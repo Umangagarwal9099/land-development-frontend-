@@ -1,0 +1,110 @@
+@import 'tailwindcss';
+
+/* Fonts are bundled from npm (not a CDN) so the showroom renders identically offline. */
+@import '@fontsource/cormorant-garamond/400.css';
+@import '@fontsource/cormorant-garamond/500.css';
+@import '@fontsource/cormorant-garamond/600.css';
+@import '@fontsource/cormorant-garamond/400-italic.css';
+@import '@fontsource-variable/manrope';
+
+@theme {
+  --font-sans: 'Manrope Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+
+  --color-ink: #07080a;
+  --color-ink-2: #0e1013;
+  --color-ivory: #f4efe6;
+  --color-gold: #d4b26a;
+  --color-gold-soft: #ecd9a6;
+  --color-gold-deep: #9c7a3c;
+  --color-line: rgb(244 239 230 / 0.1);
+
+  /* Plot availability — muted so the model reads as architecture, not a heat map. */
+  --color-available: #8fb89a;
+  --color-reserved: #c98a5a;
+  --color-sold: #5b616b;
+
+  --ease-lux: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Minimum comfortable tap size on a wall-mounted touch TV. */
+@utility touch-target {
+  min-height: 3.5rem;
+  min-width: 3.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Frosted surface used by every floating control and panel. */
+@utility glass {
+  background: linear-gradient(180deg, rgb(26 28 32 / 0.66), rgb(12 13 16 / 0.58));
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid rgb(244 239 230 / 0.09);
+  box-shadow:
+    0 24px 64px -24px rgb(0 0 0 / 0.7),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+@utility eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+@utility hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(212 178 106 / 0.55), transparent);
+}
+
+@utility text-gold-gradient {
+  background: linear-gradient(180deg, #f3e3b8 0%, #d4b26a 55%, #a8843f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@layer base {
+  html {
+    /* Scales the whole UI with screen width so text stays readable from a few metres away. */
+    font-size: clamp(15px, 0.95vw, 24px);
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-ink font-sans text-ivory antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    overflow: hidden;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
