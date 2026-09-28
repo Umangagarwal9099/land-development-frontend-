@@ -9,7 +9,20 @@ import { FURNISHED_DESIGNS } from './furnished'
  * 2.6 m, finishes, custom furniture and warm interior lighting. Follows the same naming contract
  * as an artist GLB (floor_* groups, room_* and amenity_* hotspots), so rooms are tappable as usual.
  */
-export function FurnishedModel({ design, selectedMesh, onReady }: { design: FurnishedDesign; selectedMesh: string | null; onReady: () => void }) {
+export function FurnishedModel({
+  design,
+  selectedMesh,
+  hoveredMesh = null,
+  roomView = false,
+  onReady,
+}: {
+  design: FurnishedDesign
+  selectedMesh: string | null
+  hoveredMesh?: string | null
+  /** A room is open in the room viewer: its floor glows only faintly so the finishes read. */
+  roomView?: boolean
+  onReady: () => void
+}) {
   const invalidate = useThree((s) => s.invalidate)
   const model = useMemo(() => FURNISHED_DESIGNS[design].build(), [design])
 
@@ -18,12 +31,13 @@ export function FurnishedModel({ design, selectedMesh, onReady }: { design: Furn
   // Leaving the property releases the model's geometry and painted textures from GPU memory.
   useEffect(() => () => disposeObject(model.root), [model])
 
-  // The selected room's floor glows gold; the others stay invisible but remain tappable.
+  // The selected room's floor glows gold and the hovered one faintly; the rest stay invisible but tappable.
   useEffect(() => {
-    // oxlint-disable-next-line react/immutability -- three.js materials are mutated by design
-    for (const [name, mat] of model.highlights) mat.opacity = name === selectedMesh ? 0.22 : 0
+    for (const [name, mat] of model.highlights)
+      // oxlint-disable-next-line react/immutability -- three.js materials are mutated by design
+      mat.opacity = name === selectedMesh ? (roomView ? 0.06 : 0.22) : name === hoveredMesh ? 0.12 : 0
     invalidate()
-  }, [model, selectedMesh, invalidate])
+  }, [model, selectedMesh, hoveredMesh, roomView, invalidate])
 
   return <primitive object={model.root} />
 }

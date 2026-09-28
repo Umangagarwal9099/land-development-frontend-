@@ -56,6 +56,7 @@ export default function PropertyScene({ slug }: { slug: string }) {
 
   const site = useMemo(() => siteOf(property), [property])
   const trees = useMemo(() => boundaryTrees(site), [site])
+  const siteBox = useMemo(() => new Box3(new Vector3(site.minX, -1, site.minZ), new Vector3(site.maxX, 20, site.maxZ)), [site])
   const radius = Math.hypot(site.maxX - site.minX, site.maxZ - site.minZ) / 2
   useFog(radius * 3, radius * 9)
 
@@ -68,7 +69,7 @@ export default function PropertyScene({ slug }: { slug: string }) {
       <Floor y={-PLINTH_HEIGHT} size={radius * 30} />
       <Plinth {...site} height={PLINTH_HEIGHT} color="#1d2320" />
       <Trees points={trees} scale={0.8} />
-      <ModelRoot property={property} interactive={mode === 'explore'} onReady={onReady} />
+      <ModelRoot property={property} site={siteBox} interactive={mode === 'explore'} onReady={onReady} />
     </group>
   )
 }

@@ -2,7 +2,7 @@ import { Edges, Html, useCursor } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { motion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Box3, MathUtils, Sphere, Vector3, type Object3D } from 'three'
+import { Box3, MathUtils, Mesh, Sphere, Vector3, type Object3D } from 'three'
 import type { Floor, Property, Room } from '../../../api/types'
 import { frameSphere } from '../../../lib/camera'
 import { panelInset } from '../../../lib/layout'
@@ -13,6 +13,8 @@ import { useViewerStore } from '../../../store/viewer'
 import { FurnishedModel } from './FurnishedModel'
 import { GltfModel } from './GltfModel'
 import { PlaceholderBuilding } from './PlaceholderBuilding'
+import { RoomPins } from './RoomPins'
+import { RoomSection } from './RoomSection'
 
 // A pointer that moved more than this many pixels between down and up was a drag, not a tap.
 const TAP_TOLERANCE_PX = 8
@@ -34,7 +36,7 @@ function applyFloorVisibility(root: Object3D, floors: Floor[], activeLevel: numb
   if (roof) roof.visible = activeLevel === null
 }
 
-export function ModelRoot({ property, interactive, onReady }: { property: Property; interactive: boolean; onReady: () => void }) {
+export function ModelRoot({ property, site, interactive, onReady }: { property: Property; site: Box3; interactive: boolean; onReady: () => void }) {
   const [root, setRoot] = useState<Object3D | null>(null)
   // Bumped whenever model content (placeholder or a newly streamed LOD) is mounted.
   const [modelVersion, setModelVersion] = useState(0)
@@ -49,6 +51,10 @@ export function ModelRoot({ property, interactive, onReady }: { property: Proper
   const activeLevel = useViewerStore((s) => s.activeLevel)
   const selectedRoomId = useViewerStore((s) => s.selectedRoomId)
   const selectRoom = useViewerStore((s) => s.selectRoom)
+  const roomViewId = useViewerStore((s) => s.roomViewId)
+  const openRoomView = useViewerStore((s) => s.openRoomView)
+  // Inside the room viewer the house is cut away; taps and hovers on it are ignored.
+  const picking = interactive && !roomViewId
 
   const roomsByMesh = useMemo(() => new Map(property.rooms.map((r) => [r.meshName, r])), [property.rooms])
   const levelByFloorId = useMemo(() => new Map(property.floors.map((f) => [f.id, f.level])), [property.floors])
@@ -76,14 +82,38 @@ export function ModelRoot({ property, interactive, onReady }: { property: Proper
     return new Box3().setFromObject(selectedObject)
   }, [selectedObject, root])
 
+  // Where to stand in the room: the largest floor area of the hotspot, so a suite whose hotspot
+  // also covers its dressing room is entered from the bedroom, not from the wall between them.
+  const focusBox = useMemo(() => {
+    if (!selectedObject) return null
+    let best: Box3 | null = null
+    let bestArea = 0
+    for (const child of selectedObject.children) {
+      if (!(child instanceof Mesh)) continue
+      const b = new Box3().setFromObject(child)
+      const area = (b.max.x - b.min.x) * (b.max.z - b.min.z)
+      if (area > bestArea) [best, bestArea] = [b, area]
+    }
+    return best ?? selectionBox
+  }, [selectedObject, selectionBox])
+
   // Fly to the selected room, framed beside the detail panel, keeping the current heading.
+  // (The room viewer frames its room itself, in RoomSection.)
   useEffect(() => {
-    if (!controls || !selectionBox) return
+    if (!controls || !selectionBox || roomViewId) return
     const sphere = selectionBox.getBoundingSphere(new Sphere())
     // Frame a little wider than the room itself so its surroundings give context.
     sphere.radius *= 1.5
     void frameSphere(controls, sphere, { polar: 52, inset: panelInset(), smoothTime: 0.7 })
-  }, [controls, selectionBox])
+  }, [controls, selectionBox, roomViewId])
+
+  const openRoom = useCallback(
+    (room: Room) => {
+      setHovered(null)
+      openRoomView(room.id, room.floorId ? levelByFloorId.get(room.floorId) ?? null : undefined)
+    },
+    [openRoomView, levelByFloorId],
+  )
 
   const hotspotAt = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
     if (!isVisibleInScene(e.object)) return null
@@ -91,7 +121,7 @@ export function ModelRoot({ property, interactive, onReady }: { property: Proper
   }
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    if (!interactive || e.delta > TAP_TOLERANCE_PX) return
+    if (!picking || e.delta > TAP_TOLERANCE_PX) return
     // Hidden (cut-away) floors are still hit by the raycaster; let the event reach what is behind them.
     const target = hotspotAt(e)
     if (!target) return
@@ -101,12 +131,12 @@ export function ModelRoot({ property, interactive, onReady }: { property: Proper
       invalidate()
       return
     }
-    const room = roomsByMesh.get(target.name)!
-    selectRoom(room.id, room.floorId ? levelByFloorId.get(room.floorId) ?? null : undefined)
+    // Tap a room: it highlights, the camera flies in and the room viewer opens.
+    openRoom(roomsByMesh.get(target.name)!)
   }
 
   const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (!interactive || e.pointerType !== 'mouse') return
+    if (!picking || e.pointerType !== 'mouse') return
     const target = hotspotAt(e)
     if (!target) return
     e.stopPropagation()
@@ -121,26 +151,51 @@ export function ModelRoot({ property, interactive, onReady }: { property: Proper
       onClick={handleClick}
       onPointerMove={handlePointerMove}
       onPointerLeave={() => setHovered(null)}
-      onPointerMissed={(e) => interactive && e.type === 'click' && selectRoom(null)}
+      onPointerMissed={(e) => picking && e.type === 'click' && selectRoom(null)}
     >
       {property.model.kind === 'gltf' ? (
         <GltfModel url={property.model.url} lowUrl={property.model.lowUrl} onReady={handleReady} />
       ) : property.model.kind === 'furnished' ? (
-        <FurnishedModel design={property.model.design} selectedMesh={selectedRoom?.meshName ?? null} onReady={handleReady} />
+        <FurnishedModel
+          design={property.model.design}
+          selectedMesh={selectedRoom?.meshName ?? null}
+          hoveredMesh={hovered?.room.meshName ?? null}
+          roomView={roomViewId !== null}
+          onReady={handleReady}
+        />
       ) : (
-        <PlaceholderBuilding blocks={property.model.blocks} selectedMesh={selectedRoom?.meshName ?? null} onReady={handleReady} />
+        <PlaceholderBuilding
+          blocks={property.model.blocks}
+          selectedMesh={selectedRoom?.meshName ?? null}
+          hoveredMesh={hovered?.room.meshName ?? null}
+          interiorMesh={roomViewId ? selectedRoom?.meshName ?? null : null}
+          onReady={handleReady}
+        />
       )}
 
       {root && <DoorAnimator root={root} version={modelVersion} />}
 
       {/* Artist models can't be restyled per room, so they get a gold volume around the selection. */}
-      {selectionBox && property.model.kind === 'gltf' && <SelectionVolume box={selectionBox} />}
+      {selectionBox && property.model.kind === 'gltf' && !roomViewId && <SelectionVolume box={selectionBox} />}
+      {hovered && property.model.kind === 'gltf' && hovered.room.id !== selectedRoomId && <SelectionVolume box={hovered.box} faint />}
 
-      {!ambient && interactive && selectedRoom && selectionBox && (
+      <RoomSection room={roomViewId ? selectionBox : null} focus={roomViewId ? focusBox : null} site={site} />
+
+      {/* In the room viewer its title names the room instead. */}
+      {!ambient && interactive && selectedRoom && selectionBox && !roomViewId && (
         <RoomTag key={selectedRoom.id} name={selectedRoom.name} box={selectionBox} emphasis />
       )}
-      {!ambient && interactive && hovered && hovered.room.id !== selectedRoomId && (
+      {!ambient && picking && hovered && hovered.room.id !== selectedRoomId && (
         <RoomTag key={hovered.room.id} name={hovered.room.name} box={hovered.box} />
+      )}
+      {!ambient && picking && root && (
+        <RoomPins
+          root={root}
+          rooms={property.rooms}
+          version={`${modelVersion}:${activeLevel}`}
+          isVisible={isVisibleInScene}
+          onOpen={openRoom}
+        />
       )}
     </group>
   )
@@ -164,14 +219,14 @@ function RoomTag({ name, box, emphasis }: { name: string; box: Box3; emphasis?: 
   )
 }
 
-function SelectionVolume({ box }: { box: Box3 }) {
+function SelectionVolume({ box, faint }: { box: Box3; faint?: boolean }) {
   const size = box.getSize(new Vector3())
   const center = box.getCenter(new Vector3())
   return (
     <mesh position={center} raycast={() => null}>
       <boxGeometry args={[size.x + 0.2, size.y + 0.2, size.z + 0.2]} />
-      <meshBasicMaterial color={GOLD} transparent opacity={0.14} depthWrite={false} />
-      <Edges color={GOLD} lineWidth={2} />
+      <meshBasicMaterial color={GOLD} transparent opacity={faint ? 0.06 : 0.14} depthWrite={false} />
+      <Edges color={GOLD} lineWidth={faint ? 1 : 2} transparent opacity={faint ? 0.6 : 1} />
     </mesh>
   )
 }

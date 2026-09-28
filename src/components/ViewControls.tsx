@@ -1,5 +1,6 @@
+import clsx from 'clsx'
 import { motion } from 'framer-motion'
-import { Maximize, Minimize, Minus, Plus, Rotate3d } from 'lucide-react'
+import { Maximize, Minimize, Minus, Plus, Rotate3d, RotateCcw } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useFullscreen } from '../hooks/useFullscreen'
 import { useStageStore } from '../store/stage'
@@ -12,8 +13,12 @@ const STEP_POLAR = Math.PI / 18
  * Minimal camera controls: 360° turntable, zoom in/out, a compass that doubles as Reset View,
  * and fullscreen. Gestures do the real work; these are for people who don't know to drag.
  * Keyboard: ← → rotate, ↑ ↓ tilt, + − zoom, Space turntable, R reset, F fullscreen.
+ *
+ * The `room` variant sits on the right inside the room viewer, with an explicit Reset View
+ * instead of the compass; fullscreen lives in the viewer's top bar there.
  */
-export function ViewControls() {
+export function ViewControls({ variant = 'scene' }: { variant?: 'scene' | 'room' }) {
+  const room = variant === 'room'
   const controls = useStageStore((s) => s.controls)
   const autoRotate = useStageStore((s) => s.autoRotate)
   const setAutoRotate = useStageStore((s) => s.setAutoRotate)
@@ -49,8 +54,11 @@ export function ViewControls() {
 
   return (
     <motion.div
-      className="pointer-events-none fixed bottom-6 left-6 z-10 flex flex-col items-center gap-2.5"
-      initial={{ opacity: 0, x: -16 }}
+      className={clsx(
+        'pointer-events-none fixed z-10 flex flex-col items-center gap-2.5',
+        room ? 'bottom-32 right-6 z-30' : 'bottom-6 left-6',
+      )}
+      initial={{ opacity: 0, x: room ? 16 : -16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
     >
@@ -64,8 +72,8 @@ export function ViewControls() {
           <Minus size={21} strokeWidth={1.5} />
         </button>
       </div>
-      <Compass onReset={() => home?.()} />
-      {fullscreen.supported && (
+      {room ? <IconButton icon={RotateCcw} label="Reset view" onClick={() => home?.()} /> : <Compass onReset={() => home?.()} />}
+      {!room && fullscreen.supported && (
         <IconButton icon={fullscreen.active ? Minimize : Maximize} label={fullscreen.active ? 'Exit presentation mode' : 'Presentation mode'} onClick={fullscreen.toggle} />
       )}
     </motion.div>

@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Camera, Clapperboard, DoorOpen, Images, Info } from 'lucide-react'
 import { useCallback, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { propertyQuery } from '../../api/queries'
-import type { Property } from '../../api/types'
+import type { Property, Room } from '../../api/types'
 import { GestureHint } from '../../components/GestureHint'
 import { SceneHeader } from '../../components/SceneHeader'
 import { ViewControls } from '../../components/ViewControls'
@@ -18,6 +18,7 @@ import { useMediaStore } from '../../store/media'
 import { useStageStore } from '../../store/stage'
 import { useViewerStore } from '../../store/viewer'
 import { PropertyOverview, RoomDetails } from './PropertyPanels'
+import { RoomViewer } from './RoomViewer'
 
 /**
  * A single residence in 3D. Opened from a plot on a master plan (?from=<plan>&plot=<number>)
@@ -48,14 +49,15 @@ export default function PropertyPage() {
 }
 
 function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property: Property; plotNumber: string | null; onBack: () => void; backLabel: string }) {
-  const { selectedRoomId, aboutOpen, selectRoom, setAboutOpen, goToPreset } = useViewerStore()
+  const { selectedRoomId, aboutOpen, roomViewId, selectRoom, setAboutOpen, goToPreset, openRoomView, closeRoomView } = useViewerStore()
   const openMedia = useMediaStore((s) => s.open)
 
   const selectedRoom = property.rooms.find((r) => r.id === selectedRoomId)
   const levelByFloorId = new Map(property.floors.map((f) => [f.id, f.level]))
   const film = property.media.find((m) => m.kind === 'video')
   const stills = property.media.filter((m) => m.kind !== 'video')
-  const panelOpen = Boolean(selectedRoom || aboutOpen)
+  const roomInView = property.rooms.find((r) => r.id === roomViewId) ?? null
+  const panelOpen = !roomInView && Boolean(selectedRoom || aboutOpen)
   const facts = (property.stats ?? Object.entries(property.highlights).map(([label, value]) => ({ label, value })))
     .slice(0, 3)
     .map((s) => `${s.value} ${s.label.toLowerCase()}`)
@@ -66,61 +68,79 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
     setAboutOpen(false)
   }, [selectRoom, setAboutOpen])
 
+  const openRoom = useCallback(
+    (r: Room) => openRoomView(r.id, r.floorId ? levelByFloorId.get(r.floorId) ?? null : undefined),
+    // levelByFloorId is rebuilt each render from the same floors.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [openRoomView, property.floors],
+  )
+
   return (
     <>
-      <SceneHeader
-        eyebrow={plotNumber ? `Plot ${plotNumber} · ${listingTypeLabel[property.type]}` : `${listingTypeLabel[property.type]} · ${property.location}`}
-        title={property.name}
-        subtitle={facts}
-        onBack={onBack}
-        backLabel={backLabel}
-      />
+      <AnimatePresence>
+        {roomInView && <RoomViewer key="room-viewer" property={property} room={roomInView} onSelectRoom={openRoom} onClose={closeRoomView} />}
+      </AnimatePresence>
 
-      <FloorRail property={property} />
-      <ViewControls />
-      <GestureHint />
+      {/* The house view's chrome steps aside while a room is open. */}
+      <motion.div
+        className="pointer-events-none"
+        animate={roomInView ? { opacity: 0, transitionEnd: { visibility: 'hidden' } } : { opacity: 1, visibility: 'visible' }}
+        transition={{ duration: 0.45 }}
+      >
+        <SceneHeader
+          eyebrow={plotNumber ? `Plot ${plotNumber} · ${listingTypeLabel[property.type]}` : `${listingTypeLabel[property.type]} · ${property.location}`}
+          title={property.name}
+          subtitle={facts}
+          onBack={onBack}
+          backLabel={backLabel}
+        />
 
-      <Dock
-        panelOpen={panelOpen}
-        items={[
-          {
-            id: 'views',
-            icon: Camera,
-            label: 'Views',
-            tray: property.presets.map((p) => (
-              <Chip key={p.id} onClick={() => goToPreset(p.id)}>
-                {p.name}
-              </Chip>
-            )),
-          },
-          {
-            id: 'rooms',
-            icon: DoorOpen,
-            label: 'Rooms',
-            active: Boolean(selectedRoom),
-            tray: property.rooms.map((r) => (
-              <Chip
-                key={r.id}
-                active={r.id === selectedRoomId}
-                onClick={() => selectRoom(r.id, r.floorId ? levelByFloorId.get(r.floorId) ?? null : undefined)}
-              >
-                {r.name}
-              </Chip>
-            )),
-          },
-          { id: 'about', icon: Info, label: 'About', active: aboutOpen, onSelect: () => setAboutOpen(!aboutOpen) },
-          { id: 'gallery', icon: Images, label: 'Gallery', hidden: stills.length === 0, onSelect: () => openMedia(stills) },
-          { id: 'film', icon: Clapperboard, label: 'Film', hidden: !film, onSelect: () => film && openMedia([film]) },
-        ]}
-      />
+        <FloorRail property={property} />
+        {!roomInView && <ViewControls />}
+        <GestureHint />
 
-      <DetailPanel open={panelOpen} contentKey={selectedRoom?.id ?? 'about'} onClose={closePanel}>
-        {selectedRoom ? (
-          <RoomDetails property={property} room={selectedRoom} />
-        ) : (
-          <PropertyOverview property={property} onPlayFilm={film ? () => openMedia([film]) : undefined} />
-        )}
-      </DetailPanel>
+        <Dock
+          panelOpen={panelOpen}
+          items={[
+            {
+              id: 'views',
+              icon: Camera,
+              label: 'Views',
+              tray: property.presets.map((p) => (
+                <Chip key={p.id} onClick={() => goToPreset(p.id)}>
+                  {p.name}
+                </Chip>
+              )),
+            },
+            {
+              id: 'rooms',
+              icon: DoorOpen,
+              label: 'Rooms',
+              active: Boolean(selectedRoom),
+              tray: property.rooms.map((r) => (
+                <Chip
+                  key={r.id}
+                  active={r.id === selectedRoomId}
+                  onClick={() => openRoom(r)}
+                >
+                  {r.name}
+                </Chip>
+              )),
+            },
+            { id: 'about', icon: Info, label: 'About', active: aboutOpen, onSelect: () => setAboutOpen(!aboutOpen) },
+            { id: 'gallery', icon: Images, label: 'Gallery', hidden: stills.length === 0, onSelect: () => openMedia(stills) },
+            { id: 'film', icon: Clapperboard, label: 'Film', hidden: !film, onSelect: () => film && openMedia([film]) },
+          ]}
+        />
+
+        <DetailPanel open={panelOpen} contentKey={selectedRoom?.id ?? 'about'} onClose={closePanel}>
+          {selectedRoom ? (
+            <RoomDetails property={property} room={selectedRoom} />
+          ) : (
+            <PropertyOverview property={property} onPlayFilm={film ? () => openMedia([film]) : undefined} />
+          )}
+        </DetailPanel>
+      </motion.div>
     </>
   )
 }

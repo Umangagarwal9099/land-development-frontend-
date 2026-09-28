@@ -1,7 +1,9 @@
 import { Edges } from '@react-three/drei'
-import { useLayoutEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useMemo } from 'react'
 import type { PlaceholderBlock } from '../../../api/types'
+import { disposeObject } from '../../../lib/three'
 import { GOLD, IVORY } from '../../../lib/palette'
+import { buildRoomInterior } from './furnished/autoFurnish'
 
 export const STOREY_HEIGHT = 3.2
 
@@ -24,10 +26,16 @@ function OutdoorMaterial({ meshName }: { meshName: string }) {
 export function PlaceholderBuilding({
   blocks,
   selectedMesh,
+  hoveredMesh = null,
+  interiorMesh = null,
   onReady,
 }: {
   blocks: PlaceholderBlock[]
   selectedMesh: string | null
+  /** Room under the mouse: lifted slightly so it reads as clickable. */
+  hoveredMesh?: string | null
+  /** Room open in the room viewer: its volume gives way to a generated, furnished interior. */
+  interiorMesh?: string | null
   onReady: () => void
 }) {
   const groups = useMemo(() => {
@@ -58,34 +66,41 @@ export function PlaceholderBuilding({
         <group key={group} name={group} position-y={group === 'outdoor' ? 0 : items[0].level * STOREY_HEIGHT}>
           {items.map((b) => {
             const selected = b.meshName === selectedMesh
+            const hovered = !selected && b.meshName === hoveredMesh
             const dimmed = selectedMesh !== null && !selected
+            const furnished = b.meshName === interiorMesh
             return group === 'outdoor' ? (
-              <mesh key={b.meshName} name={b.meshName} position={[b.x, outdoorHeight(b.meshName) / 2, b.z]} receiveShadow>
-                <boxGeometry args={[b.w, outdoorHeight(b.meshName), b.d]} />
-                <OutdoorMaterial meshName={b.meshName} />
-                {selected && <Edges color={GOLD} lineWidth={2} />}
-              </mesh>
+              <group key={b.meshName}>
+                <mesh name={b.meshName} position={[b.x, outdoorHeight(b.meshName) / 2, b.z]} receiveShadow visible={!furnished}>
+                  <boxGeometry args={[b.w, outdoorHeight(b.meshName), b.d]} />
+                  <OutdoorMaterial meshName={b.meshName} />
+                  {(selected || hovered) && <Edges color={GOLD} lineWidth={selected ? 2 : 1.2} />}
+                </mesh>
+                {furnished && <RoomInterior meshName={b.meshName} w={b.w} d={b.d} position={[b.x, 0, b.z]} />}
+              </group>
             ) : (
               <group key={b.meshName} name={b.meshName} position={[b.x, 0, b.z]}>
+                {furnished && <RoomInterior meshName={b.meshName} w={b.w} d={b.d} position={[0, 0.2, 0]} />}
                 <mesh position-y={0.1} receiveShadow castShadow>
                   <boxGeometry args={[b.w, 0.2, b.d]} />
                   <meshStandardMaterial color={selected ? '#e6d3a3' : '#d8d0c1'} roughness={0.85} />
                 </mesh>
-                <mesh position-y={STOREY_HEIGHT / 2 + 0.1} castShadow>
+                <mesh position-y={STOREY_HEIGHT / 2 + 0.1} castShadow={!furnished}>
                   <boxGeometry args={[b.w - 0.1, STOREY_HEIGHT - 0.2, b.d - 0.1]} />
                   <meshStandardMaterial
-                    color={selected ? GOLD : IVORY}
+                    color={selected || hovered ? GOLD : IVORY}
                     emissive={selected ? GOLD : '#000000'}
                     emissiveIntensity={selected ? 0.35 : 0}
                     transparent
-                    opacity={selected ? 0.32 : dimmed ? 0.06 : 0.14}
+                    // Once furnished, only the gold outline of the volume remains.
+                    opacity={furnished ? 0 : selected ? 0.32 : hovered ? 0.22 : dimmed ? 0.06 : 0.14}
                     depthWrite={false}
                   />
                   <Edges
-                    color={selected ? GOLD : IVORY}
-                    lineWidth={selected ? 2.2 : 1}
+                    color={selected || hovered ? GOLD : IVORY}
+                    lineWidth={selected ? 2.2 : hovered ? 1.6 : 1}
                     transparent
-                    opacity={selected ? 1 : dimmed ? 0.22 : 0.6}
+                    opacity={furnished ? 0.55 : selected || hovered ? 1 : dimmed ? 0.22 : 0.6}
                   />
                 </mesh>
               </group>
@@ -110,4 +125,17 @@ export function PlaceholderBuilding({
       )}
     </group>
   )
+}
+
+/** A generated furnished interior for one placeholder room; freed from GPU memory when closed. */
+function RoomInterior({ meshName, w, d, position }: { meshName: string; w: number; d: number; position: [number, number, number] }) {
+  const root = useMemo(() => buildRoomInterior(meshName, w, d), [meshName, w, d])
+  useEffect(() => () => disposeObject(root), [root])
+  // Decorative only: taps inside the room viewer never pick through the furniture.
+  useLayoutEffect(() => {
+    root.traverse((o) => {
+      o.raycast = () => undefined
+    })
+  }, [root])
+  return <primitive object={root} position={position} />
 }
