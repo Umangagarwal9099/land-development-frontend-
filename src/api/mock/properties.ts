@@ -152,6 +152,106 @@ function farmhouse(): Property {
   }
 }
 
+/**
+ * Palm Grove Farmhouse on Plot E-02, shown as a furnished luxury interior design model. Rooms map
+ * to the room_* / amenity_* hotspots in the model (features/property/scene/furnished/palmGroveE02).
+ */
+function palmGroveE02(): Property {
+  const G: Floor = { id: id('floor'), name: 'Ground Floor', level: 0, groupName: 'floor_G' }
+  const room = (
+    name: string, meshName: string, floor: Floor | null, [lengthM, widthM]: [number, number], hue: number,
+    description: string, specs: string[], amenities: string[] = [],
+  ): Room => {
+    const length = Math.round(lengthM * M_TO_FT)
+    const width = Math.round(widthM * M_TO_FT)
+    return {
+      id: id('room'), name, kind: floor ? 'room' : 'outdoor', meshName, floorId: floor?.id ?? null,
+      dimensions: { length, width, unit: 'ft' }, areaSqft: length * width, description, specs, amenities,
+      media: [image(`${name} — view 1`, hue), image(`${name} — view 2`, hue + 20)],
+    }
+  }
+  const rooms: Room[] = [
+    room('Arrival Foyer', 'room_foyer', G, [2.4, 2.3], 35,
+      'A hotel-lobby arrival: a solid smoked-oak pivot door opens onto a travertine drum table under a hand-blown smoked-glass chandelier, on axis with the statement artwork in the dining room.',
+      ['Honed cross-cut travertine, 800 × 1600', 'Silver Travertine inset with bronze edge', 'Smoked-oak pivot door, 1200 mm bronze pull', 'Ø1200 smoked-glass and bronze chandelier'],
+      ['Shoe bench on the verandah']),
+    room('Living Room', 'room_living', G, [4.8, 5.6], 30,
+      'Gathered around the fire under exposed timber trusses: a 3.2 m bouclé sofa, a pair of walnut and cognac-leather lounge chairs and nested travertine tables, with sliding glass to the verandah.',
+      ['Book-matched travertine chimney breast', 'Exposed trusses in smoked oak', 'Hand-knotted wool-silk rug', 'Motorised sheer and blackout linen'],
+      ['Wood-burning fireplace', 'Truss uplighting']),
+    room('Family Lounge', 'room_family', G, [4.2, 5.0], 20,
+      'The everyday room: a deep-seat performance-linen sofa facing a full-height fluted walnut media wall with a 75″ screen, speakers concealed behind the flutes.',
+      ['Fluted American walnut media wall', 'Floating console with travertine top', 'Wool and jute flat-weave rug', 'Linen acoustic panels between trusses'],
+      ['Cinema lighting scene', 'Concealed surround sound']),
+    room('Dining Room', 'room_dining', G, [10.0, 4.0], 45,
+      'A ten-seat book-matched walnut table on twin travertine pedestals under a 2.6 m alabaster and bronze linear pendant, with a fluted walnut sideboard and the statement artwork.',
+      ['Solid walnut table, 3200 × 1150', 'Olive mohair-velvet dining chairs', 'Sideboard with Taj Mahal quartzite top', 'Pendant dims warm to 2200 K']),
+    room('Kitchen & Pantry', 'room_kitchen', G, [10.0, 5.0], 150,
+      'A show kitchen with a leathered Taj Mahal quartzite island and a matt olive-grey tall wall, and behind it a walk-in pantry and wet kitchen for everyday Indian cooking.',
+      ['Leathered quartzite island with waterfall ends', 'Fluted smoked-oak island base', 'Integrated fridge columns, steam and speed ovens', 'Wet kitchen with wok burner and scullery'],
+      ['Fluted-glass pocket doors to dining', 'Herb court window']),
+    room('Master Suite', 'room_bed_master', G, [5.0, 4.4], 280,
+      'Entered through a lit dressing room: a king bed with a 3 m channel-tufted mohair headboard set into a fluted walnut wall, a chaise by the window, a writing desk and a private garden.',
+      ['Wide-plank smoked oak, 220 mm', 'Linen-wrapped wall panels', 'Bronze-tinted glass wardrobes', 'Bed-end bench with TV lift'],
+      ['Walk-in dressing room', 'Private walled garden']),
+    room('Master Bath', 'room_bath_master', G, [3.5, 2.6], 200,
+      'Book-matched Fior di Bosco marble, a freestanding stone tub under the window, a walk-in rain shower and a floating walnut vanity with a backlit mirror.',
+      ['Honed Fior di Bosco marble', 'Freestanding stone-resin tub', 'Brushed-bronze PVD fittings', 'Heated floor']),
+    room('Bedroom 1 · Garden Suite', 'room_bed_1', G, [7.0, 5.0], 260,
+      'A king bed against a 4.4 m fluted-oak wall, looking out through 3.8 m of sliding glass onto the verandah, with a dressing alcove and an attached bath.',
+      ['Wide-plank smoked oak', 'Stone-linen upholstered headboard', 'Fluted oak wardrobe', 'Attached bath with walk-in shower'],
+      ['Verandah access']),
+    room('Study Bay', 'room_study', G, [3.0, 5.0], 40,
+      'A library corner in the Garden Suite: a walnut writing desk with a leather inset facing the garden window, and a full-height lit smoked-oak library wall.',
+      ['Walnut desk, 1600 × 700', 'Smoked-oak library wall with shelf lighting', 'Leather and bronze desk chair']),
+    room('Bedroom 3', 'room_bed_3', G, [4.5, 3.6], 90,
+      'A calm guest room in olive and oak with its own entry and bath; the desk under the window doubles as a dressing table.',
+      ['Olive mohair bed wall', 'Wide-plank smoked oak', 'Fluted oak wardrobe', 'Attached bath']),
+    room('Gallery & Powder Room', 'room_gallery', G, [1.5, 8.0], 50,
+      'The single-storey home has no staircase; the passage to the bedrooms becomes a gallery along a glass wall to the kitchen court, ending in a sculpture and a basalt-plaster powder room.',
+      ['Bronze-framed court glazing', 'Art wall-washers', 'Monolithic travertine basin', 'Night-path floor lighting']),
+    room('Verandah Lounge', 'amenity_verandah', null, [20.0, 3.5], 40,
+      'A 20 m verandah in leather-finish Kota stone with a teak lounge, outdoor dining for six and a daybed, screened from sun and mosquitoes between teak columns.',
+      ['Leather-finish Kota stone', 'Teak batten ceiling with fans', 'Motorised woven outdoor blinds'],
+      ['Outdoor lounge', 'Dining for 6']),
+    room('Pool Deck & Cabana', 'amenity_pool', null, [14.0, 6.0], 195,
+      'A 14 m pool on a travertine deck with four teak loungers, a linen-draped cabana daybed and date palms, lit warm after dark.',
+      ['Anti-slip travertine deck', 'Sage-grey pebble pool finish', '2700 K underwater lighting'],
+      ['Cabana', 'Outdoor shower']),
+    room('Kitchen Court', 'amenity_court', null, [10.0, 8.0], 110,
+      'A gravel courtyard between the kitchen and the gallery with a champa tree, weathering-steel herb beds and a stone breakfast table.',
+      ['Gravel with Kota stepping stones', 'Champa (plumeria) tree', 'Curry leaf, tulsi, mint, lemongrass beds']),
+    room('Orchard', 'amenity_garden', null, [12.0, 24.0], 110,
+      'The mango and guava orchard on drip irrigation.',
+      ['Mango and guava trees', 'Drip irrigation'], ['Fruit trees']),
+  ]
+  return {
+    id: 'p_palmgrove_e02', slug: 'palm-grove-farmhouse-e02', name: 'Palm Grove Farmhouse', type: 'farmhouse', location: 'Kharkhoda Road',
+    tagline: 'Plot E-02: a luxury modern farmhouse in travertine, smoked oak and fluted walnut',
+    thumbnailUrl: placeholderImage('Palm Grove Farmhouse E-02', 35, 800, 500),
+    startingPrice: 62_000_000,
+    stats: [{ label: 'Land', value: '1 acre' }, { label: 'Built-up', value: '3,000 sq ft' }, { label: 'Bedrooms', value: '3' }],
+    description:
+      'A single-storey farmhouse on one acre, fully designed and furnished like a private villa hotel: honed travertine floors, fluted walnut and smoked oak joinery, brushed-bronze details and layered warm lighting, with a verandah, pool and orchard.',
+    highlights: {
+      'Land area': '1 acre (210 × 210 ft)', 'Built-up area': '3,000 sq ft', Bedrooms: '3 suites', Floors: 'G',
+      Interiors: 'Fully furnished, custom furniture', Flooring: 'Travertine and smoked oak',
+    },
+    model: { kind: 'furnished', design: 'palm-grove-e02' }, floors: [G], rooms,
+    presets: [
+      { id: 'aerial', name: 'Aerial', position: [22, 22, 24], target: [-1, 0, -2] },
+      { id: 'living', name: 'Great Room', position: [-2.2, 7, 8.5], target: [-5.5, 0.5, 0] },
+      { id: 'wing', name: 'Bedroom wing', position: [2.5, 9, -3], target: [-5, 0.5, -10] },
+      { id: 'front', name: 'Verandah & pool', position: [4, 5, 24], target: [-1, 1, 7] },
+      { id: 'top', name: 'Plan view', position: [0, 42, -1.99], target: [0, 0, -2] },
+    ],
+    media: [
+      image('Palm Grove E-02 — arrival axis', 35), image('Palm Grove E-02 — fireside living', 30), image('Palm Grove E-02 — master suite', 280),
+      { id: id('m'), kind: 'video', title: 'Farmhouse film (sample stream)', url: SAMPLE_HLS, thumbUrl: placeholderImage('Farmhouse film', 60, 480, 300) },
+    ],
+  }
+}
+
 function commercial(): Property {
   const floors: Floor[] = [0, 1, 2].map((level) => ({
     id: id('floor'), name: level === 0 ? 'Ground Floor' : `Floor ${level}`, level, groupName: level === 0 ? 'floor_G' : `floor_${level}`,
@@ -180,4 +280,4 @@ function commercial(): Property {
   }
 }
 
-export const properties: Property[] = [villa(), farmhouse(), commercial()]
+export const properties: Property[] = [villa(), farmhouse(), palmGroveE02(), commercial()]

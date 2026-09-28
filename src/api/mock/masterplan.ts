@@ -182,6 +182,10 @@ function buildFarmEstate(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | '
   const x0 = -totalW / 2
   const z0 = -totalD / 2
   const farmhouse: PlotUnit = { kind: 'farmhouse', name: 'Palm Grove Farmhouse', propertySlug: 'palm-grove-farmhouse' }
+  // Plot E-02 opens the fully furnished interior design model.
+  const furnished: Record<string, PlotUnit> = {
+    'E-02': { kind: 'farmhouse', name: 'Palm Grove Farmhouse', propertySlug: 'palm-grove-farmhouse-e02' },
+  }
 
   const plots: Plot[] = []
   const trees: Point2[] = []
@@ -193,9 +197,12 @@ function buildFarmEstate(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | '
       const roll = rand()
       const status: AvailabilityStatus = roll < 0.55 ? 'available' : roll < 0.75 ? 'reserved' : 'sold'
       const areaSqft = 43_560
+      const number = `${letter}-${String(c + 1).padStart(2, '0')}`
+      // Always draw, so the seeded statuses of later plots don't shift.
+      const built = status !== 'available' && rand() < 0.7
       plots.push({
         id: `farm_${letter}${c + 1}`,
-        number: `${letter}-${String(c + 1).padStart(2, '0')}`,
+        number,
         polygon: rect(px, pz, plot, plot),
         areaSqft,
         dimensionsLabel: '210 × 210 ft',
@@ -204,7 +211,7 @@ function buildFarmEstate(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | '
         isCorner: c === 0 || c === cols - 1,
         status,
         price: areaSqft * 1100,
-        unit: status !== 'available' && rand() < 0.7 ? farmhouse : undefined,
+        unit: furnished[number] ?? (built ? farmhouse : undefined),
       })
       // Hedgerow of fruit trees around each farm.
       for (let t = 4; t < plot - 2; t += 7) {

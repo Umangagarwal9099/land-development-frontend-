@@ -10,6 +10,7 @@ import { heroInset, NO_INSET, panelInset } from '../../../lib/layout'
 import { useStageStore } from '../../../store/stage'
 import { useViewerStore } from '../../../store/viewer'
 import { Floor, Plinth, SceneLighting, Trees, useFog } from '../../../stage/environment'
+import { FURNISHED_DESIGNS } from './furnished'
 import { ModelRoot } from './ModelRoot'
 
 const PLINTH_HEIGHT = 0.8
@@ -23,6 +24,8 @@ interface Site {
 
 /** Extent of the building and its grounds; artist models without a placeholder get a generous default. */
 function siteOf(property: Property): Site {
+  // Furnished design models carry their own landscaped grounds.
+  if (property.model.kind === 'furnished') return FURNISHED_DESIGNS[property.model.design].site
   if (property.model.kind !== 'placeholder') return { minX: -26, minZ: -26, maxX: 26, maxZ: 26 }
   const bs = property.model.blocks
   return {

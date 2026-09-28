@@ -10,6 +10,7 @@ import { GOLD } from '../../../lib/palette'
 import { findNamedAncestor } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
 import { useViewerStore } from '../../../store/viewer'
+import { FurnishedModel } from './FurnishedModel'
 import { GltfModel } from './GltfModel'
 import { PlaceholderBuilding } from './PlaceholderBuilding'
 
@@ -124,6 +125,8 @@ export function ModelRoot({ property, interactive, onReady }: { property: Proper
     >
       {property.model.kind === 'gltf' ? (
         <GltfModel url={property.model.url} lowUrl={property.model.lowUrl} onReady={handleReady} />
+      ) : property.model.kind === 'furnished' ? (
+        <FurnishedModel design={property.model.design} selectedMesh={selectedRoom?.meshName ?? null} onReady={handleReady} />
       ) : (
         <PlaceholderBuilding blocks={property.model.blocks} selectedMesh={selectedRoom?.meshName ?? null} onReady={handleReady} />
       )}

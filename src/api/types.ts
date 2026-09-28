@@ -76,10 +76,14 @@ export interface Room {
   price?: number
 }
 
-/** A real exported model, or a generated stand-in used until the 3D artist delivers. */
+/** Interior designs built procedurally in the front end (walls, finishes, furniture, lighting). */
+export type FurnishedDesign = 'palm-grove-e02'
+
+/** A real exported model, a generated stand-in used until the 3D artist delivers, or a furnished design model. */
 export type ModelSource =
   | { kind: 'gltf'; url: string; lowUrl?: string }
   | { kind: 'placeholder'; blocks: PlaceholderBlock[] }
+  | { kind: 'furnished'; design: FurnishedDesign }
 
 export interface PlaceholderBlock {
   meshName: string
