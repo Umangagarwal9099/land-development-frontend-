@@ -224,10 +224,10 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
       description: 'The layout’s main park, ringed by a 2 m cycle track, with a 1,00,000 litre rainwater sump beneath its north-east corner.',
       highlights: { Area: '9,725 sq yd', Size: '369′9″ × 225′9″', 'Cycle track': '2 m wide', 'Rainwater sump': '1,00,000 L', 'Plan ref.': 'Park Area-1' },
       media: [image('Central Park — morning', 110), image('Cycle track', 95)] },
-    { id: 'am_social', name: 'Social Infrastructure', kind: 'clubhouse', polygon: area(696.6, 668, 812, AVENUE_N), height: 8,
-      description: 'A site reserved for the community’s social infrastructure, facing the main avenue beside Central Park.',
-      highlights: { Area: '3,666 sq yd', Size: '150′ × 214′9″' },
-      media: [image('Social infrastructure — arrival court', 30)] },
+    { id: 'am_social', name: 'Clubhouse', kind: 'clubhouse', polygon: area(696.6, 668, 812, AVENUE_N), height: 8,
+      description: 'The community’s clubhouse, facing the main avenue beside Central Park: a grand lobby, indoor games, a video gaming lounge, a fitness centre and a 25 m six-lane training pool.',
+      highlights: { Area: '3,678.19 sq yd', Size: '150′ × 214′9″', Pool: '25 m · 6 lanes' },
+      media: [image('Clubhouse — arrival court', 30)], propertySlug: 'kalakal-clubhouse' },
     { id: 'am_park2', name: 'North Park', kind: 'garden', polygon: area(519, 681, 672.2, 708.25), height: 0,
       description: 'A strip of landscaped open space along the northern boundary, behind blocks L and M.',
       highlights: { Area: '1,252 sq yd', 'Plan ref.': 'Park Area-2' } },
@@ -354,11 +354,11 @@ const kalakal = buildKalakal()
 
 export const masterPlans: MasterPlan[] = [
   {
-    id: 'mp_greenmeadows', slug: 'green-meadows', name: 'Kalakal', type: 'plots', location: 'NH-44, Kalakal',
+    id: 'mp_greenmeadows', slug: 'green-meadows', name: 'Kallakal', type: 'plots', location: 'NH-44, Kalakal',
     tagline: 'A gated layout of 288 plots on the HMDA master plan road, set around a 9,725 sq yd central park',
     thumbnailUrl: placeholderImage('Kalakal', 95, 800, 500),
     startingPrice: Math.min(...kalakal.plots.map((p) => p.price!)),
-    stats: [{ label: 'Plots', value: '288' }, { label: 'Parkland', value: '2.3 ac' }, { label: 'Possession', value: '2027' }],
+    stats: [{ label: 'Plots', value: '288' }, { label: 'Parkland', value: '31 ac' }],
     description: 'A gated plotted layout of 284 residential plots and four commercial plots fronting the proposed 250 ft HMDA master plan road on NH-44. A 60 ft tree-lined main avenue runs the length of the site, crossed by 33 ft roads, with a central park ringed by a cycle track and a reserved social-infrastructure site. Phase 1 villas are complete and open for viewing.',
     highlights: { 'Total land': '≈ 30 acres', Plots: '284 residential + 4 commercial', 'Plot size': '40 × 60 ft', 'Main avenue': '60 ft', 'Internal roads': '33 ft', Parks: '10,977 sq yd', RERA: 'Registered' },
     ...kalakal,

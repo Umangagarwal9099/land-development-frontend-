@@ -35,6 +35,8 @@ interface StageState {
   awaitingScene: boolean
   /** Fades the canvas out (e.g. between landing-screen projects); it fades back in once ready. */
   dimmed: boolean
+  /** Daylight view instead of the default evening presentation. */
+  daylight: boolean
 
   show: (scene: StageScene | null, mode: StageMode) => void
   setControls: (controls: CameraControls | null) => void
@@ -45,6 +47,7 @@ interface StageState {
   setDive: (dive: ((id: string) => Promise<void>) | null) => void
   setCurtain: (curtain: StageState['curtain'], awaitingScene?: boolean) => void
   setDimmed: (dimmed: boolean) => void
+  setDaylight: (daylight: boolean) => void
 }
 
 const sameScene = (a: StageScene | null, b: StageScene | null) => a?.kind === b?.kind && a?.slug === b?.slug
@@ -61,6 +64,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   curtain: 'open',
   awaitingScene: false,
   dimmed: false,
+  daylight: false,
 
   show: (scene, mode) => {
     const changed = !sameScene(get().scene, scene)
@@ -80,4 +84,5 @@ export const useStageStore = create<StageState>((set, get) => ({
   setDive: (dive) => set({ dive }),
   setCurtain: (curtain, awaitingScene) => set(awaitingScene === undefined ? { curtain } : { curtain, awaitingScene }),
   setDimmed: (dimmed) => set({ dimmed }),
+  setDaylight: (daylight) => set({ daylight }),
 }))

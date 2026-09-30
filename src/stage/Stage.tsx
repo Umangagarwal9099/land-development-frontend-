@@ -5,7 +5,7 @@ import MasterPlanScene from '../features/masterplan/scene/MasterPlanScene'
 import PropertyScene from '../features/property/scene/PropertyScene'
 import { useStageStore } from '../store/stage'
 import { CameraRig } from './CameraRig'
-import { BACKGROUND, StudioEnvironment } from './environment'
+import { SceneBackground, StudioEnvironment } from './environment'
 import { StageLoader } from './StageLoader'
 
 /**
@@ -15,6 +15,7 @@ import { StageLoader } from './StageLoader'
 export default function Stage() {
   const scene = useStageStore((s) => s.scene)
   const visible = useStageStore((s) => s.sceneReady && !s.dimmed)
+  const daylight = useStageStore((s) => s.daylight)
 
   return (
     <div className="fixed inset-0 z-0 touch-none select-none">
@@ -28,7 +29,7 @@ export default function Stage() {
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ position: [0, 400, 600], fov: 38, near: 0.5, far: 6000 }}
       >
-        <color attach="background" args={[BACKGROUND]} />
+        <SceneBackground />
         <CameraRig />
         <StudioEnvironment />
         <Suspense fallback={null}>
@@ -46,7 +47,9 @@ export default function Stage() {
       </Canvas>
       </div>
       {/* Cinematic falloff toward the edges keeps the eye on the model. */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgb(7_8_10/0.75)_100%)]" />
+      <div
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-700 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgb(7_8_10/0.75)_100%)] ${daylight ? 'opacity-50' : ''}`}
+      />
       <StageLoader />
     </div>
   )

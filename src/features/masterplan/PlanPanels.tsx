@@ -58,11 +58,18 @@ export function PlotDetails({ plot, onEnter }: { plot: Plot; onEnter: () => void
   )
 }
 
-export function AmenityDetails({ amenity }: { amenity: Amenity }) {
+export function AmenityDetails({ amenity, onEnter }: { amenity: Amenity; onEnter?: () => void }) {
   return (
     <>
       <PanelTitle eyebrow={amenityKindLabel[amenity.kind]} title={amenity.name} />
       <Paragraph>{amenity.description}</Paragraph>
+      {onEnter && (
+        <PanelSection>
+          <Button icon={ArrowRight} onClick={onEnter} className="w-full">
+            Step inside the {amenity.kind === 'clubhouse' ? 'clubhouse' : amenity.name.toLowerCase()}
+          </Button>
+        </PanelSection>
+      )}
       {amenity.media && amenity.media.length > 0 && (
         <PanelSection title="Gallery">
           <MediaStrip items={amenity.media} />

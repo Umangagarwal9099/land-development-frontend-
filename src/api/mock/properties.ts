@@ -280,4 +280,102 @@ function commercial(): Property {
   }
 }
 
-export const properties: Property[] = [villa(), farmhouse(), palmGroveE02(), commercial()]
+/**
+ * The Kalakal Clubhouse on the layout's social-infrastructure site, shown as a furnished design
+ * model. Rooms map to the room_* / amenity_* hotspots in features/property/scene/furnished/kalakalClubhouse.
+ */
+function kalakalClubhouse(): Property {
+  const G: Floor = { id: id('floor'), name: 'Clubhouse', level: 0, groupName: 'floor_G' }
+  const room = (
+    name: string, meshName: string, floor: Floor | null, [lengthM, widthM]: [number, number], hue: number,
+    description: string, specs: string[], amenities: string[] = [],
+  ): Room => {
+    const length = Math.round(lengthM * M_TO_FT)
+    const width = Math.round(widthM * M_TO_FT)
+    return {
+      id: id('room'), name, kind: floor ? 'room' : 'outdoor', meshName, floorId: floor?.id ?? null,
+      dimensions: { length, width, unit: 'ft' }, areaSqft: length * width, description, specs, amenities,
+      media: [image(`${name} — view 1`, hue), image(`${name} — view 2`, hue + 20)],
+    }
+  }
+  const rooms: Room[] = [
+    room('Arrival Court', 'amenity_entrance', null, [47.7, 16.7], 35,
+      'A granite-sett drop-off loop around a lit fountain and a stone monolith bearing the club name, under a 7 m cantilevered porte-cochère with a fluted walnut soffit. Parking and date palms either side.',
+      ['Granite setts and travertine paving', 'Cantilevered canopy, fluted walnut soffit', 'Bronze-clad canopy columns', 'Facade grazing lights and lit portal reveals'],
+      ['Valet drop-off', '8 visitor parking bays', 'Fountain with bronze sculpture']),
+    room('Grand Lobby & Reception', 'room_lobby', G, [14.0, 13.0], 40,
+      'Through glass pivot doors into a Statuario marble lobby: the reception desk in front of a honed stone wall bearing the club name, and a seating area either side of the arrival.',
+      ['Statuario marble, 1200 × 1200', 'Honed stone reception wall with bronze lettering', 'Fluted oak panelling', 'Perimeter cove and recessed downlights'],
+      ['Reception and concierge', 'Waiting lounge']),
+    room('Carrom & Darts', 'room_carrom', G, [14.0, 6.0], 60,
+      'The games room behind reception: two tournament carrom boards under low pendants and a pair of regulation dartboards with an oche and scoreboard, with clear walkways either side to the gym, changing rooms and board games.',
+      ['Tournament carrom boards on walnut stands', 'Regulation dartboards in oak cabinets, 2.37 m oche', 'Statuario marble floor'],
+      ['Carrom', 'Darts']),
+    room('Video Gaming Lounge', 'room_gaming', G, [15.0, 13.0], 230,
+      'A gaming lounge facing the avenue and the park: two console stations with racing-style gaming chairs, a sofa station on a large screen, two racing simulators with triple monitors, and a marked VR play area.',
+      ['Large-format screens with bias lighting', 'Racing-style gaming chairs', 'Direct-drive racing simulators, triple 27″ monitors', 'VR play area, 2.6 × 2.6 m, with tracking sensors'],
+      ['Console gaming', 'Racing simulators', 'Virtual reality', 'Game library']),
+    room('Billiards Room', 'room_billiards', G, [7.5, 13.0], 150,
+      'A 9 ft tournament table in walnut and bronze under a three-shade pendant, with 1.5 m cue clearance all round, a fluted walnut feature wall and cue rack, and leather club chairs for spectators.',
+      ['9 ft slate-bed table, steel-blue cloth', 'Wall-mounted walnut cue rack', 'Solid walnut flooring', 'Dimmable pendant 1 m above the cloth'],
+      ['Spectator club chairs', 'Bar-height table']),
+    room('Table Tennis', 'room_tt', G, [7.5, 13.0], 210,
+      'An ITTF-size table on cushioned sports vinyl with over 3 m of run-back at each end, court barriers, a bat and ball store, benches, and glare-free linear LED lighting.',
+      ['Cushioned sports vinyl flooring', 'ITTF-size table, 2.74 × 1.525 m', 'Court barrier panels', '500 lux linear LED lighting'],
+      ['Equipment store', 'Player benches']),
+    room('Chess & Board Games', 'room_boardgames', G, [15.0, 8.0], 60,
+      'A quiet library lounge: two walnut chess tables under alabaster globes, a round games table, oak shelves stocked with board games, and reading chairs by the park glass.',
+      ['Walnut chess tables with inlaid boards', 'Oak game library with lit shelves', 'Wool rug on smoked oak'],
+      ['Chess', 'Board and card games']),
+    room('Recreation Lounge', 'room_recreation', G, [15.0, 7.0], 240,
+      'Match nights and family games: a large screen over a floating walnut console, a deep velvet sofa and lounge chairs, foosball and air hockey, with glass onto the pool deck.',
+      ['Large-format display with concealed sound', 'Velvet sofa and bouclé lounge chairs', 'Foosball and air-hockey tables'],
+      ['Screenings', 'Gaming tables']),
+    room('Fitness Centre', 'room_gym', G, [15.0, 15.0], 200,
+      'A hotel-grade gym looking over the pool: treadmills, cross trainers, bikes and a rower facing the glass; a squat rack on a lifting platform, cable trainer and selectorised machines; free weights at a full-height mirror wall; and an oak-floored stretching and yoga zone.',
+      ['Rubber sports flooring, 20 mm', 'Full-height mirror wall with fluted oak above', 'Linear LED battens', 'Glass partition to the gallery'],
+      ['Cardio row', 'Strength machines', 'Free weights', 'Yoga and stretching', 'Equipment store']),
+    room('Changing & Showers', 'room_changing', G, [14.0, 9.0], 190,
+      "Men's and women's changing rooms between the lobby and the pool: oak lockers with lit kick plates, walk-in rain showers in travertine, private changing cubicles, Statuario vanities with backlit mirrors and full-length mirrors.",
+      ['Travertine walls and floors, basalt shower trays', 'Oak locker banks with bronze pulls', 'Rain showers with glass screens', 'Direct doors to the pool deck'],
+      ['Lockers', 'Showers', 'Vanities', 'Private cubicles']),
+    room('Training Pool', 'amenity_pool', null, [25.0, 15.5], 195,
+      'A 25 m, six-lane training pool, 2 m deep, with deck-level overflow edges: competition starting blocks and touch pads, anti-wave lane lines, backstroke flags, a digital timing board and pace clocks, athlete stands, a raised coaches’ platform and a training-kit store.',
+      ['25 m × 15.5 m, six 2.5 m lanes', 'Competition starting blocks, lane-numbered', 'Anti-wave lane lines, red within 5 m of the walls', 'White mosaic shell with blue lane targets', 'Anti-slip porcelain deck, stainless fittings', 'Underwater and floodlit deck lighting'],
+      ['Timing board and pace clocks', 'Coaches’ platform', 'Athlete stands', 'Kickboards, pull buoys, fins and paddles']),
+    room('Garden Terrace', 'amenity_garden', null, [11.5, 24.7], 110,
+      'A quiet garden beside the pool behind a glass balustrade: a teak pergola lounge, sun loungers on the lawn, planted beds and trees lit from below at night.',
+      ['Teak pergola and deck', 'Travertine stepping-stone path', 'Landscape uplighting and bollards'],
+      ['Outdoor lounge', 'Loungers']),
+  ]
+  // Camera positions are in scene metres; the model stands on a 2.2 m podium.
+  const y = 2.2
+  return {
+    id: 'p_kalakal_clubhouse', slug: 'kalakal-clubhouse', name: 'Kalakal Clubhouse', type: 'clubhouse', location: 'Kalakal, NH-44',
+    tagline: 'A clubhouse with indoor games, a fitness centre and a 25 m training pool',
+    thumbnailUrl: placeholderImage('Kalakal Clubhouse', 40, 800, 500),
+    stats: [{ label: 'Built-up', value: '13,260 sq ft' }, { label: 'Pool', value: '25 m · 6 lanes' }, { label: 'Site', value: '3,666 sq yd' }],
+    description:
+      'The Kalakal clubhouse: a contemporary stone, glass and timber building on the layout’s social-infrastructure site, with a Statuario lobby and reception, a video gaming lounge, carrom and darts, billiards, table tennis, board games and recreation rooms, a hotel-grade fitness centre, changing rooms, and a 25 m six-lane training pool with stands and timing.',
+    highlights: {
+      Site: '3,666 sq yd (150′ × 214′9″)', 'Built-up area': '13,260 sq ft', 'Training pool': '25 m, 6 lanes, 2 m deep',
+      'Indoor games': 'Billiards, table tennis, carrom, darts, video gaming, chess', Fitness: 'Cardio, strength, free weights, yoga', Parking: '8 bays + drop-off',
+    },
+    model: { kind: 'furnished', design: 'kalakal-clubhouse' }, floors: [G], rooms,
+    presets: [
+      { id: 'aerial', name: 'Aerial', position: [46, 48 + y, 54], target: [0, y, -2] },
+      { id: 'arrival', name: 'Arrival & facade', position: [15, 4.5 + y, 45], target: [0, 3 + y, 17] },
+      { id: 'pool', name: 'Training pool', position: [24, 12 + y, -46], target: [-2, y, -21] },
+      { id: 'blocks', name: 'Starting end', position: [-19.5, 3.2 + y, -21], target: [4, y, -21] },
+      { id: 'games', name: 'Games wing', position: [-2, 20 + y, 26], target: [-14, y, 10] },
+      { id: 'gym', name: 'Fitness centre', position: [-4, 18 + y, -18], target: [-14.5, y, -3] },
+      { id: 'top', name: 'Plan view', position: [0, 105, -0.01], target: [0, 0, 0] },
+    ],
+    media: [
+      image('Kalakal Clubhouse — arrival at dusk', 35), image('Kalakal Clubhouse — grand lobby', 40), image('Kalakal Clubhouse — training pool', 195),
+      image('Kalakal Clubhouse — fitness centre', 200),
+    ],
+  }
+}
+
+export const properties: Property[] = [villa(), farmhouse(), palmGroveE02(), commercial(), kalakalClubhouse()]

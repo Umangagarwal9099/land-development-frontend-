@@ -79,7 +79,11 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
   const selectionBox = useMemo(() => {
     if (!selectedObject) return null
     root?.updateWorldMatrix(true, true)
-    return new Box3().setFromObject(selectedObject)
+    const box = new Box3().setFromObject(selectedObject)
+    // A hotspot can say how tall its space is (walls, a canopy, floodlights) so the room view keeps all of it.
+    const height = selectedObject.userData.height as number | undefined
+    if (height) box.max.y = Math.max(box.max.y, box.min.y + height)
+    return box
   }, [selectedObject, root])
 
   // Where to stand in the room: the largest floor area of the hotspot, so a suite whose hotspot
@@ -179,7 +183,7 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
       {selectionBox && property.model.kind === 'gltf' && !roomViewId && <SelectionVolume box={selectionBox} />}
       {hovered && property.model.kind === 'gltf' && hovered.room.id !== selectedRoomId && <SelectionVolume box={hovered.box} faint />}
 
-      <RoomSection room={roomViewId ? selectionBox : null} focus={roomViewId ? focusBox : null} site={site} />
+      <RoomSection room={roomViewId ? selectionBox : null} focus={roomViewId ? focusBox : null} site={site} outdoor={selectedRoom?.kind === 'outdoor'} />
 
       {/* In the room viewer its title names the room instead. */}
       {!ambient && interactive && selectedRoom && selectionBox && !roomViewId && (

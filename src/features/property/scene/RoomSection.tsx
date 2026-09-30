@@ -33,17 +33,19 @@ function roomVolume(hotspot: Box3): Box3 {
  * Stands the camera inside the room at eye height, turning around the room's centre: orbiting
  * then looks around the room 360°, and zooming out rises over the walls to a dollhouse view.
  */
-async function enterRoom(controls: CameraControls, volume: Box3, focus: Box3, smoothTime: number) {
+async function enterRoom(controls: CameraControls, volume: Box3, focus: Box3, smoothTime: number, outdoor: boolean) {
   const c = focus.getCenter(new Vector3())
   const floorY = volume.min.y + 0.14
   const half = Math.min(focus.max.x - focus.min.x, focus.max.z - focus.min.z) / 2
+  // A large outdoor area (a pool, a court) opens from a raised vantage over it; zoom in to walk it.
+  const overview = outdoor && half > 5
   // Stay well inside the walls, even in narrow rooms.
-  const distance = MathUtils.clamp(half * 0.8, 1.1, 4.5)
-  const polar = Math.acos(MathUtils.clamp((EYE - PIVOT) / distance, 0.05, 0.9))
+  const distance = overview ? half * 1.7 : MathUtils.clamp(half * 0.8, 1.1, 4.5)
+  const polar = overview ? MathUtils.degToRad(56) : Math.acos(MathUtils.clamp((EYE - PIVOT) / distance, 0.05, 0.9))
   controls.smoothTime = smoothTime
   await settle(
     Promise.all([
-      controls.moveTo(c.x, floorY + PIVOT, c.z, true),
+      controls.moveTo(c.x, floorY + (overview ? 0.4 : PIVOT), c.z, true),
       controls.dollyTo(distance, true),
       controls.rotatePolarTo(polar, true),
       controls.setFocalOffset(0, 0, 0, true),
@@ -59,7 +61,7 @@ async function enterRoom(controls: CameraControls, volume: Box3, focus: Box3, sm
  * flies in, so the rest of the house falls away and the room stands alone like a cut model.
  * The camera then stands in the room: look around 360°, zoom in and out, pan and tilt.
  */
-export function RoomSection({ room, focus, site }: { room: Box3 | null; focus: Box3 | null; site: Box3 }) {
+export function RoomSection({ room, focus, site, outdoor = false }: { room: Box3 | null; focus: Box3 | null; site: Box3; outdoor?: boolean }) {
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
   const controls = useStageStore((s) => s.controls)
@@ -131,7 +133,7 @@ export function RoomSection({ room, focus, site }: { room: Box3 | null; focus: B
       if (!saved.current)
         saved.current = { fov: camera.fov, min: controls.minDistance, max: controls.maxDistance, polar: controls.maxPolarAngle, home: stage.home }
       const sphere = volume.getBoundingSphere(new Sphere())
-      const frame = (smoothTime: number) => enterRoom(controls, volume, focus ?? volume, smoothTime)
+      const frame = (smoothTime: number) => enterRoom(controls, volume, focus ?? volume, smoothTime, outdoor)
 
       controls.minDistance = 0.3
       controls.maxDistance = sphere.radius * 3.2

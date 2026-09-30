@@ -3,21 +3,33 @@ import { useThree } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { Color, Fog, InstancedMesh, Object3D } from 'three'
 import type { Point2 } from '../api/types'
+import { useStageStore } from '../store/stage'
 
 export const BACKGROUND = '#07080a'
+/** A soft late-morning haze for the daylight view; mid-toned so the ivory UI stays legible. */
+export const DAY_BACKGROUND = '#6f8394'
+
+export const useBackground = () => (useStageStore((s) => s.daylight) ? DAY_BACKGROUND : BACKGROUND)
+
+/** The canvas clear colour, following the time of day. */
+export function SceneBackground() {
+  const color = useBackground()
+  return <color attach="background" args={[color]} />
+}
 
 /** Atmospheric depth scaled to the scene; far geometry melts into the background. */
 export function useFog(near: number, far: number) {
   const scene = useThree((s) => s.scene)
   const invalidate = useThree((s) => s.invalidate)
+  const color = useBackground()
   useLayoutEffect(() => {
     // oxlint-disable-next-line react/immutability -- the three.js scene is meant to be mutated
-    scene.fog = new Fog(BACKGROUND, near, far)
+    scene.fog = new Fog(color, near, far)
     invalidate()
     return () => {
       scene.fog = null
     }
-  }, [scene, near, far, invalidate])
+  }, [scene, near, far, color, invalidate])
 }
 
 /**
@@ -28,13 +40,15 @@ export function useFog(near: number, far: number) {
 export function SceneLighting({ radius, center = [0, 0, 0] }: { radius: number; center?: [number, number, number] }) {
   const [cx, , cz] = center
   const r = radius * 1.15
+  // Daylight: a higher, whiter sun and a bright sky fill in place of the warm low evening key.
+  const day = useStageStore((s) => s.daylight)
   return (
     <>
-      <hemisphereLight args={['#d9e2f2', '#1a1712', 0.75]} />
+      <hemisphereLight args={day ? ['#e6f0fb', '#5d5648', 1.6] : ['#d9e2f2', '#1a1712', 0.75]} />
       <directionalLight
-        position={[cx + radius * 0.8, radius * 1.3, cz + radius * 0.55]}
-        intensity={2.4}
-        color="#ffe6c2"
+        position={day ? [cx + radius * 0.5, radius * 1.8, cz + radius * 0.4] : [cx + radius * 0.8, radius * 1.3, cz + radius * 0.55]}
+        intensity={day ? 3.4 : 2.4}
+        color={day ? '#fff6e8' : '#ffe6c2'}
         castShadow
         shadow-mapSize={[4096, 4096]}
         shadow-bias={-0.0004}
@@ -48,7 +62,7 @@ export function SceneLighting({ radius, center = [0, 0, 0] }: { radius: number; 
       >
         <object3D attach="target" position={[cx, 0, cz]} />
       </directionalLight>
-      <directionalLight position={[cx - radius, radius * 0.5, cz - radius]} intensity={0.45} color="#8fa6c9" />
+      <directionalLight position={[cx - radius, radius * 0.5, cz - radius]} intensity={day ? 0.8 : 0.45} color="#8fa6c9" />
     </>
   )
 }
@@ -66,10 +80,11 @@ export function StudioEnvironment() {
 
 /** Endless dark floor the model's plinth sits on; fog dissolves its edge into the background. */
 export function Floor({ y, size }: { y: number; size: number }) {
+  const day = useStageStore((s) => s.daylight)
   return (
     <mesh rotation-x={-Math.PI / 2} position-y={y} receiveShadow raycast={() => null}>
       <planeGeometry args={[size, size]} />
-      <meshStandardMaterial color="#0b0c0e" roughness={0.95} />
+      <meshStandardMaterial color={day ? '#3f4a52' : '#0b0c0e'} roughness={0.95} />
     </mesh>
   )
 }

@@ -2,6 +2,7 @@ import { useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo } from 'react'
 import type { FurnishedDesign } from '../../../api/types'
 import { disposeObject } from '../../../lib/three'
+import { useStageStore } from '../../../store/stage'
 import { FURNISHED_DESIGNS } from './furnished'
 
 /**
@@ -27,6 +28,12 @@ export function FurnishedModel({
   const model = useMemo(() => FURNISHED_DESIGNS[design].build(), [design])
 
   useLayoutEffect(onReady, [model, onReady])
+
+  const daylight = useStageStore((s) => s.daylight)
+  useEffect(() => {
+    model.setDaylight?.(daylight)
+    invalidate()
+  }, [model, daylight, invalidate])
 
   // Leaving the property releases the model's geometry and painted textures from GPU memory.
   useEffect(() => () => disposeObject(model.root), [model])

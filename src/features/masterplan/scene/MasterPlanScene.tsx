@@ -221,17 +221,17 @@ function useCameraDirector(plan: MasterPlan, site: ReturnType<typeof siteBounds>
     return () => setHome(null)
   }, [overview, setHome])
 
-  // "Enter residence": fly down close to the home before the screen changes.
+  // "Enter residence" / "Step inside": fly down close to the home or building before the screen changes.
   useEffect(() => {
     if (!controls) return
-    setDive(async (plotId) => {
-      const plot = plan.plots.find((p) => p.id === plotId)
-      if (!plot) return
-      const s = boxToSphere(bounds([plot.polygon]), 3)
+    setDive(async (id) => {
+      const polygon = plan.plots.find((p) => p.id === id)?.polygon ?? plan.amenities.find((a) => a.id === id)?.polygon
+      if (!polygon) return
+      const s = boxToSphere(bounds([polygon]), 3)
       await frameSphere(controls, s, { polar: 62, inset: NO_INSET, distanceScale: 0.9, smoothTime: 0.55 })
     })
     return () => setDive(null)
-  }, [controls, plan.plots, setDive])
+  }, [controls, plan.plots, plan.amenities, setDive])
 
   const last = useRef<{ mode: string; selKey: string | null } | null>(null)
   useEffect(() => {

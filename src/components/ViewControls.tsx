@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { motion } from 'framer-motion'
-import { Maximize, Minimize, Minus, Plus, Rotate3d, RotateCcw } from 'lucide-react'
+import { Maximize, Minimize, Minus, Moon, Plus, Rotate3d, RotateCcw, Sun } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useFullscreen } from '../hooks/useFullscreen'
 import { useStageStore } from '../store/stage'
@@ -10,9 +10,9 @@ const STEP_AZIMUTH = Math.PI / 6
 const STEP_POLAR = Math.PI / 18
 
 /**
- * Minimal camera controls: 360° turntable, zoom in/out, a compass that doubles as Reset View,
- * and fullscreen. Gestures do the real work; these are for people who don't know to drag.
- * Keyboard: ← → rotate, ↑ ↓ tilt, + − zoom, Space turntable, R reset, F fullscreen.
+ * Minimal camera controls: day / evening lighting, 360° turntable, zoom in/out, a compass that
+ * doubles as Reset View, and fullscreen. Gestures do the real work; these are for people who don't know to drag.
+ * Keyboard: ← → rotate, ↑ ↓ tilt, + − zoom, Space turntable, R reset, F fullscreen, D day / evening.
  *
  * The `room` variant sits on the right inside the room viewer, with an explicit Reset View
  * instead of the compass; fullscreen lives in the viewer's top bar there.
@@ -23,6 +23,8 @@ export function ViewControls({ variant = 'scene' }: { variant?: 'scene' | 'room'
   const autoRotate = useStageStore((s) => s.autoRotate)
   const setAutoRotate = useStageStore((s) => s.setAutoRotate)
   const home = useStageStore((s) => s.home)
+  const daylight = useStageStore((s) => s.daylight)
+  const setDaylight = useStageStore((s) => s.setDaylight)
   const fullscreen = useFullscreen()
 
   const zoom = (factor: number) => controls && void controls.dolly(controls.distance * factor, true)
@@ -41,6 +43,7 @@ export function ViewControls({ variant = 'scene' }: { variant?: 'scene' | 'room'
         ' ': () => setAutoRotate(!useStageStore.getState().autoRotate),
         r: () => home?.(),
         f: () => fullscreen.toggle(),
+        d: () => setDaylight(!useStageStore.getState().daylight),
       }
       const action = actions[e.key]
       if (action) {
@@ -50,7 +53,7 @@ export function ViewControls({ variant = 'scene' }: { variant?: 'scene' | 'room'
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [controls, home, setAutoRotate, fullscreen])
+  }, [controls, home, setAutoRotate, setDaylight, fullscreen])
 
   return (
     <motion.div
@@ -62,6 +65,7 @@ export function ViewControls({ variant = 'scene' }: { variant?: 'scene' | 'room'
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
     >
+      <IconButton icon={daylight ? Moon : Sun} label={daylight ? 'Evening view' : 'Daylight view'} onClick={() => setDaylight(!daylight)} />
       <IconButton icon={Rotate3d} label={autoRotate ? 'Stop 360° rotation' : '360° rotation'} active={autoRotate} onClick={() => setAutoRotate(!autoRotate)} />
       <div className="glass pointer-events-auto flex flex-col overflow-hidden rounded-full">
         <button aria-label="Zoom in" title="Zoom in" onClick={() => zoom(0.3)} className="flex h-14 w-14 items-center justify-center text-ivory/80 transition hover:text-ivory active:bg-white/10">

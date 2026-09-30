@@ -5,7 +5,7 @@ import { Clapperboard, Grid2x2, Images, Info, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router'
 import { masterPlanQuery } from '../../api/queries'
-import type { AvailabilityStatus, MasterPlan, Plot } from '../../api/types'
+import type { Amenity, AvailabilityStatus, MasterPlan, Plot } from '../../api/types'
 import { GestureHint } from '../../components/GestureHint'
 import { SceneHeader } from '../../components/SceneHeader'
 import { ViewControls } from '../../components/ViewControls'
@@ -51,7 +51,6 @@ function MasterPlanScreen({ plan, onBack }: { plan: MasterPlan; onBack: () => vo
   const media = plan.media ?? []
   const film = media.find((m) => m.kind === 'video')
   const stills = media.filter((m) => m.kind !== 'video')
-  const homes = plan.plots.filter((p) => p.unit).length
 
   const selectedPlot = selection?.kind === 'plot' ? plan.plots.find((p) => p.id === selection.id) : undefined
   const selectedAmenity = selection?.kind === 'amenity' ? plan.amenities.find((a) => a.id === selection.id) : undefined
@@ -68,13 +67,17 @@ function MasterPlanScreen({ plan, onBack }: { plan: MasterPlan; onBack: () => vo
     const params = new URLSearchParams({ from: plan.slug, plot: plot.number })
     void go(`/property/${plot.unit.propertySlug}?${params}`, { before: () => dive?.(plot.id) })
   }
+  const enterAmenity = (amenity: Amenity) => {
+    if (!amenity.propertySlug) return
+    void go(`/property/${amenity.propertySlug}?${new URLSearchParams({ from: plan.slug })}`, { before: () => dive?.(amenity.id) })
+  }
 
   return (
     <>
       <SceneHeader
         eyebrow={`Master plan · ${plan.location}`}
         title={plan.name}
-        subtitle={`${plan.plots.length} plots${homes ? ` · ${homes} homes built` : ''} · ${plan.amenities.length} amenities`}
+        subtitle={`${plan.plots.length} plots · ${plan.amenities.length} amenities`}
         onBack={onBack}
         backLabel="All projects"
       >
@@ -126,7 +129,7 @@ function MasterPlanScreen({ plan, onBack }: { plan: MasterPlan; onBack: () => vo
         {selectedPlot ? (
           <PlotDetails plot={selectedPlot} onEnter={() => enterHome(selectedPlot)} />
         ) : selectedAmenity ? (
-          <AmenityDetails amenity={selectedAmenity} />
+          <AmenityDetails amenity={selectedAmenity} onEnter={selectedAmenity.propertySlug ? () => enterAmenity(selectedAmenity) : undefined} />
         ) : selectedRoad ? (
           <RoadDetails road={selectedRoad} />
         ) : (

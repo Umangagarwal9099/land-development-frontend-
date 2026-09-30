@@ -79,10 +79,13 @@ export class Kit {
   readonly m: ReturnType<typeof createMaterials>
   /** Warm emissive used by lamp shades, globes and LED strips. */
   readonly glow: MeshStandardMaterial
+  /** Ceiling height pendants hang from (the section cut of a house, or a taller false ceiling). */
+  readonly ceiling: number
 
   /** Pass `shared` to build under another root with the same materials and geometry cache. */
-  constructor(root: Group, shared?: Kit) {
+  constructor(root: Group, shared?: Kit, ceiling = shared?.ceiling ?? WALL_H) {
     this.root = root
+    this.ceiling = ceiling
     this.tex = shared?.tex ?? new TextureLibrary()
     this.geos = shared?.geos ?? new Map()
     this.m = shared?.m ?? createMaterials(this.tex)
@@ -257,7 +260,7 @@ export class Kit {
     this.box(g, 0.3, 0.012, 0.02, this.m.bronze, 0, 0.5, 0.215)
     this.cyl(g, 0.07, 0.09, 0.2, this.m.ceramic, 0.14, 0.75, -0.04)
     this.sphere(g, 0.1, this.glow, -0.12, 1.1, -0.04)
-    this.cyl(g, 0.004, 0.004, WALL_H - 1.2, this.m.bronze, -0.12, (WALL_H + 1.2) / 2, -0.04, 6)
+    this.cyl(g, 0.004, 0.004, this.ceiling - 1.2, this.m.bronze, -0.12, (this.ceiling + 1.2) / 2, -0.04, 6)
   }
 
   wardrobe(x: number, z: number, ry: number, len: number, finish: 'flutedWalnut' | 'flutedOak' = 'flutedOak', dep = 0.6) {
@@ -315,7 +318,7 @@ export class Kit {
   globe(x: number, y: number, z: number, r = 0.17) {
     const g = this.at(x, z)
     this.sphere(g, r, this.glow, 0, y, 0)
-    this.cyl(g, 0.004, 0.004, WALL_H - y, this.m.bronze, 0, (WALL_H + y) / 2, 0, 6)
+    this.cyl(g, 0.004, 0.004, this.ceiling - y, this.m.bronze, 0, (this.ceiling + y) / 2, 0, 6)
   }
 
   chandelier(x: number, z: number, y: number) {
@@ -329,14 +332,14 @@ export class Kit {
         this.sphere(g, 0.055, this.glow, Math.cos(a) * r, y - 0.04 - k * 0.12, Math.sin(a) * r)
       }
     })
-    this.cyl(g, 0.005, 0.005, WALL_H - y, this.m.bronze, 0, (WALL_H + y) / 2, 0, 6)
+    this.cyl(g, 0.005, 0.005, this.ceiling - y, this.m.bronze, 0, (this.ceiling + y) / 2, 0, 6)
   }
 
   linearPendant(x: number, z: number, y: number, len: number) {
     const g = this.at(x, z)
     this.box(g, len, 0.05, 0.13, this.m.bronze, 0, y, 0)
     this.box(g, len - 0.1, 0.012, 0.09, this.glow, 0, y - 0.028, 0, false)
-    for (const s of [-1, 1]) this.cyl(g, 0.003, 0.003, WALL_H - y, this.m.bronze, s * (len / 2 - 0.2), (WALL_H + y) / 2, 0, 4)
+    for (const s of [-1, 1]) this.cyl(g, 0.003, 0.003, this.ceiling - y, this.m.bronze, s * (len / 2 - 0.2), (this.ceiling + y) / 2, 0, 4)
   }
 
   desk(x: number, z: number, ry: number, len: number, dep: number) {

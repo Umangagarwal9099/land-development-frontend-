@@ -55,7 +55,8 @@ export default function PropertyScene({ slug }: { slug: string }) {
   const setSceneReady = useStageStore((s) => s.setSceneReady)
 
   const site = useMemo(() => siteOf(property), [property])
-  const trees = useMemo(() => boundaryTrees(site), [site])
+  const landscaped = property.model.kind === 'furnished' && FURNISHED_DESIGNS[property.model.design].landscaped
+  const trees = useMemo(() => (landscaped ? [] : boundaryTrees(site)), [site, landscaped])
   const siteBox = useMemo(() => new Box3(new Vector3(site.minX, -1, site.minZ), new Vector3(site.maxX, 20, site.maxZ)), [site])
   const radius = Math.hypot(site.maxX - site.minX, site.maxZ - site.minZ) / 2
   useFog(radius * 3, radius * 9)

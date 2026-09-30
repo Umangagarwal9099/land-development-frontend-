@@ -1,6 +1,7 @@
 import { BoxGeometry, CylinderGeometry, Group, IcosahedronGeometry, InstancedMesh, Mesh, MeshBasicMaterial, Object3D, PointLight, TorusKnotGeometry } from 'three'
 import { GOLD } from '../../../../lib/palette'
 import { FACE, FLOOR_Y, Kit, PI, WALL_H } from './kit'
+import { buildWalls, type Wall } from './walls'
 
 /*
  * Palm Grove Farmhouse, Plot E-02: luxury modern farmhouse interior design model.
@@ -16,14 +17,6 @@ export const SITE = { minX: -27, maxX: 24, minZ: -18, maxZ: 21 }
 
 const T_EXT = 0.3
 const T_INT = 0.15
-
-type Opening = [from: number, to: number, kind: 'door' | 'open' | 'window' | 'glass', sill?: number]
-interface Wall {
-  a: [number, number]
-  b: [number, number]
-  t: number
-  o?: Opening[]
-}
 
 // Axis-aligned walls; openings are given as ranges along the wall's own axis.
 const WALLS: Wall[] = [
@@ -83,6 +76,8 @@ export interface FurnishedModel {
   root: Group
   /** Hotspot overlay material per room mesh name, used to highlight the selection. */
   highlights: Map<string, MeshBasicMaterial>
+  /** Switches the model's own lights between the evening scheme and daylight. */
+  setDaylight?: (daylight: boolean) => void
 }
 
 export function buildPalmGroveE02(): FurnishedModel {
@@ -179,49 +174,12 @@ function buildShell(k: Kit) {
   floor(-1.5, 0, -13, -11.5, m.basalt)
 
   // Walls: plaster faces with a dark section cap on the cut top, openings left as gaps or glazing.
-  const faces = [m.plaster, m.plaster, m.wallCap, m.plaster, m.plaster, m.plaster]
-  WALLS.forEach((w, i) => {
-    const alongX = w.a[1] === w.b[1]
-    const fixed = alongX ? w.a[1] : w.a[0]
-    const [p0, p1] = alongX ? [w.a[0], w.b[0]] : [w.a[1], w.b[1]]
-    const start = Math.min(p0, p1) - w.t / 2
-    const end = Math.max(p0, p1) + w.t / 2
-    // A hair's difference per wall avoids z-fighting where section caps overlap at junctions.
-    const top = WALL_H + i * 0.0008
-
-    const segment = (a: number, b: number, y0: number, y1: number, mat: typeof faces | typeof m.plaster) => {
-      if (b - a < 0.005 || y1 - y0 < 0.005) return
-      const len = b - a
-      const c = (a + b) / 2
-      const mesh = new Mesh(new BoxGeometry(alongX ? len : w.t, y1 - y0, alongX ? w.t : len), mat)
-      mesh.position.set(alongX ? c : fixed, FLOOR_Y + (y0 + y1) / 2, alongX ? fixed : c)
-      mesh.castShadow = mesh.receiveShadow = true
-      r.add(mesh)
-    }
-    const glazing = (a: number, b: number, y0: number) => {
-      const len = b - a
-      const c = (a + b) / 2
-      const h = top - y0
-      k.box(r, alongX ? len : 0.02, h, alongX ? 0.02 : len, m.glass, alongX ? c : fixed, FLOOR_Y + y0 + h / 2, alongX ? fixed : c, false)
-      const n = Math.max(1, Math.round(len / 1.4))
-      for (let j = 0; j <= n; j++) {
-        const p = a + (len * j) / n
-        k.box(r, alongX ? 0.045 : 0.07, h, alongX ? 0.07 : 0.045, m.frame, alongX ? p : fixed, FLOOR_Y + y0 + h / 2, alongX ? fixed : p)
-      }
-      k.box(r, alongX ? len : 0.08, 0.04, alongX ? 0.08 : len, m.frame, alongX ? c : fixed, FLOOR_Y + y0 + 0.02, alongX ? fixed : c)
-    }
-
-    let cursor = start
-    const openings = (w.o ?? []).map(([s, e, kind, sill = 0]) => ({ s: Math.min(s, e), e: Math.max(s, e), kind, sill })).sort((a, b) => a.s - b.s)
-    for (const o of openings) {
-      segment(cursor, o.s, 0, top, faces)
-      if (o.kind === 'window') {
-        segment(o.s, o.e, 0, o.sill, m.plaster)
-        glazing(o.s, o.e, o.sill)
-      } else if (o.kind === 'glass') glazing(o.s, o.e, 0)
-      cursor = o.e
-    }
-    segment(cursor, end, 0, top, faces)
+  buildWalls(k, WALLS, {
+    height: WALL_H,
+    faces: [m.plaster, m.plaster, m.wallCap, m.plaster, m.plaster, m.plaster],
+    sill: m.plaster,
+    glass: m.glass,
+    frame: m.frame,
   })
 }
 

@@ -19,6 +19,7 @@ export const listingTypeLabel: Record<ListingType, string> = {
   farmhouse: 'Farmhouse',
   commercial: 'Commercial',
   plots: 'Plots',
+  clubhouse: 'Clubhouse',
 }
 
 export const statusLabel: Record<AvailabilityStatus, string> = {

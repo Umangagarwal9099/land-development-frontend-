@@ -1,6 +1,6 @@
 // Shapes returned by the showroom API. Keep in sync with the Go models.
 
-export type ListingType = 'villa' | 'apartment' | 'farmhouse' | 'commercial' | 'plots'
+export type ListingType = 'villa' | 'apartment' | 'farmhouse' | 'commercial' | 'plots' | 'clubhouse'
 
 export type AvailabilityStatus = 'available' | 'reserved' | 'sold'
 
@@ -77,7 +77,7 @@ export interface Room {
 }
 
 /** Interior designs built procedurally in the front end (walls, finishes, furniture, lighting). */
-export type FurnishedDesign = 'palm-grove-e02'
+export type FurnishedDesign = 'palm-grove-e02' | 'kalakal-clubhouse'
 
 /** A real exported model, a generated stand-in used until the 3D artist delivers, or a furnished design model. */
 export type ModelSource =
@@ -143,6 +143,8 @@ export interface Amenity {
   description: string
   highlights?: Record<string, string>
   media?: MediaItem[]
+  /** A building on this amenity that opens as its own explorable property (e.g. the clubhouse). */
+  propertySlug?: string
 }
 
 export interface Road {
