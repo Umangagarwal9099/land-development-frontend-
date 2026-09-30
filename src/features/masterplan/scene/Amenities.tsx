@@ -14,7 +14,7 @@ interface Props {
   onSelect: (amenity: Amenity) => void
 }
 
-/** Clubhouse, pools, parks, courts and the gateway, each a small architectural model. */
+/** Clubhouse, pools, parks, courts, utilities and the gateway, each a small architectural model. */
 export function Amenities({ amenities, selectedId, interactive, onSelect }: Props) {
   const [hovered, setHovered] = useState<string | null>(null)
   useCursor(hovered !== null)
@@ -60,6 +60,8 @@ function AmenityModel({ amenity, w, d }: { amenity: Amenity; w: number; d: numbe
       return <Courts w={w} d={d} />
     case 'entrance':
       return <Gateway w={w} d={d} h={amenity.height || 6} />
+    case 'utility':
+      return <Utility w={w} d={d} h={amenity.height || 3} />
   }
 }
 
@@ -172,9 +174,12 @@ function Courts({ w, d }: { w: number; d: number }) {
   )
 }
 
-function Gateway({ w, d, h }: { w: number; d: number; h: number }) {
+/** Pillars stand either side of the road, across the footprint's long side. */
+function Gateway({ w: fw, d: fd, h }: { w: number; d: number; h: number }) {
+  const across = fd > fw
+  const [w, d] = across ? [fd, fw] : [fw, fd]
   return (
-    <group>
+    <group rotation-y={across ? Math.PI / 2 : 0}>
       {[-1, 1].map((side) => (
         <Box key={side} size={[1.8, h, d]} pos={[(side * w) / 2, h / 2, 0]}>
           <Stone />
@@ -186,6 +191,26 @@ function Gateway({ w, d, h }: { w: number; d: number; h: number }) {
       <Box size={[4, 3, 4]} pos={[w / 2 + 5, 1.5, 0]}>
         <Wall />
       </Box>
+    </group>
+  )
+}
+
+/** A service compound: plant room beside a tank, which stands tall for an overhead water tank. */
+function Utility({ w, d, h }: { w: number; d: number; h: number }) {
+  const r = Math.min(w, d) * 0.22
+  const alongX = w >= d
+  return (
+    <group>
+      <Box size={[w, 0.2, d]} pos={[0, 0.1, 0]} shadow={false}>
+        <meshStandardMaterial color="#6f6a61" roughness={0.95} />
+      </Box>
+      <Box size={alongX ? [w * 0.35, 2.6, d * 0.6] : [w * 0.6, 2.6, d * 0.35]} pos={alongX ? [-w * 0.22, 1.5, 0] : [0, 1.5, -d * 0.22]}>
+        <Wall />
+      </Box>
+      <mesh position={alongX ? [w * 0.22, 0.2 + h / 2, 0] : [0, 0.2 + h / 2, d * 0.22]} castShadow receiveShadow>
+        <cylinderGeometry args={[r, r, h, 24]} />
+        <Stone />
+      </mesh>
     </group>
   )
 }

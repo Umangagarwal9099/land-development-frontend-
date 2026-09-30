@@ -2,7 +2,7 @@ import { useCursor } from '@react-three/drei'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { InstancedMesh, Object3D, ShapeGeometry } from 'three'
-import type { Road } from '../../../api/types'
+import type { Point2, Road } from '../../../api/types'
 import { GOLD } from '../../../lib/palette'
 import { toShape } from './plotGeometry'
 
@@ -87,15 +87,15 @@ function LaneMarkings({ roads }: { roads: Road[] }) {
   const invalidate = useThree((s) => s.invalidate)
 
   const dashes = useMemo(() => {
-    const out: { x: number; z: number; horizontal: boolean }[] = []
+    const out: { x: number; z: number; angle: number }[] = []
     for (const road of roads) {
-      const [[x0, z0], , [x1, z1]] = road.polygon
-      const horizontal = x1 - x0 > z1 - z0
-      const len = horizontal ? x1 - x0 : z1 - z0
-      const mid = horizontal ? (z0 + z1) / 2 : (x0 + x1) / 2
+      const [a, b] = centreLine(road.polygon)
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1])
+      const [ux, uz] = [(b[0] - a[0]) / len, (b[1] - a[1]) / len]
+      const angle = Math.atan2(-uz, ux)
       for (let t = GAP; t + DASH < len - GAP; t += DASH + GAP) {
-        const along = (horizontal ? x0 : z0) + t + DASH / 2
-        out.push(horizontal ? { x: along, z: mid, horizontal } : { x: mid, z: along, horizontal })
+        const along = t + DASH / 2
+        out.push({ x: a[0] + ux * along, z: a[1] + uz * along, angle })
       }
     }
     return out
@@ -108,7 +108,7 @@ function LaneMarkings({ roads }: { roads: Road[] }) {
     o.rotation.x = -Math.PI / 2
     dashes.forEach((d, i) => {
       o.position.set(d.x, ROAD_Y + 0.01, d.z)
-      o.rotation.z = d.horizontal ? 0 : Math.PI / 2
+      o.rotation.z = d.angle
       o.updateMatrix()
       mesh.setMatrixAt(i, o.matrix)
     })
@@ -124,4 +124,12 @@ function LaneMarkings({ roads }: { roads: Road[] }) {
       <meshBasicMaterial color="#e9e2d0" transparent opacity={0.35} />
     </instancedMesh>
   )
+}
+
+const mid = (p: Point2, q: Point2): Point2 => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]
+const dist = (p: Point2, q: Point2) => Math.hypot(q[0] - p[0], q[1] - p[1])
+
+/** A four-sided road's centre line runs between the midpoints of its two short ends, whatever its angle. */
+function centreLine([p0, p1, p2, p3]: Point2[]): [Point2, Point2] {
+  return dist(p0, p1) < dist(p1, p2) ? [mid(p0, p1), mid(p2, p3)] : [mid(p1, p2), mid(p3, p0)]
 }

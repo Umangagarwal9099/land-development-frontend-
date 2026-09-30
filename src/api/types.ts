@@ -136,7 +136,7 @@ export interface Plot {
 export interface Amenity {
   id: string
   name: string
-  kind: 'park' | 'clubhouse' | 'entrance' | 'pool' | 'sports' | 'garden'
+  kind: 'park' | 'clubhouse' | 'entrance' | 'pool' | 'sports' | 'garden' | 'utility'
   polygon: Point2[]
   /** Built height in metres; 0 for flat areas like parks. */
   height: number

@@ -1,4 +1,4 @@
-import { Building2, Castle, Dumbbell, Trees, Waves, Sprout, type LucideIcon } from 'lucide-react'
+import { Building2, Castle, Dumbbell, Factory, Trees, Waves, Sprout, type LucideIcon } from 'lucide-react'
 import type { Amenity } from '../api/types'
 
 export const amenityIcon: Record<Amenity['kind'], LucideIcon> = {
@@ -8,6 +8,7 @@ export const amenityIcon: Record<Amenity['kind'], LucideIcon> = {
   sports: Dumbbell,
   entrance: Castle,
   garden: Sprout,
+  utility: Factory,
 }
 
 export const amenityKindLabel: Record<Amenity['kind'], string> = {
@@ -17,4 +18,5 @@ export const amenityKindLabel: Record<Amenity['kind'], string> = {
   sports: 'Sport',
   entrance: 'Arrival',
   garden: 'Gardens',
+  utility: 'Utilities',
 }
