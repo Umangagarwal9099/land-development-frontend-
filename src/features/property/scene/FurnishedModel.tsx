@@ -29,6 +29,15 @@ export function FurnishedModel({
 
   useLayoutEffect(onReady, [model, onReady])
 
+  // Photograph textures arrive after the first frame; the stage renders on demand, so redraw then.
+  useEffect(() => {
+    let live = true
+    void model.ready?.then(() => live && invalidate())
+    return () => {
+      live = false
+    }
+  }, [model, invalidate])
+
   const daylight = useStageStore((s) => s.daylight)
   useEffect(() => {
     model.setDaylight?.(daylight)

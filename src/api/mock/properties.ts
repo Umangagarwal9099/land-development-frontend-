@@ -252,31 +252,78 @@ function palmGroveE02(): Property {
   }
 }
 
-function commercial(): Property {
-  const floors: Floor[] = [0, 1, 2].map((level) => ({
-    id: id('floor'), name: level === 0 ? 'Ground Floor' : `Floor ${level}`, level, groupName: level === 0 ? 'floor_G' : `floor_${level}`,
-  }))
-  const { rooms, blocks } = buildRooms([
-    { name: 'Retail Showroom A', meshName: 'room_shop_a', floor: floors[0], block: { x: -5, z: 0, w: 10, d: 12 }, hue: 40,
-      description: 'Double-frontage retail unit on the main road.', specs: ['Glass shopfront', '16 ft clear height'] },
-    { name: 'Retail Showroom B', meshName: 'room_shop_b', floor: floors[0], block: { x: 5, z: 0, w: 10, d: 12 }, hue: 70,
-      description: 'Retail unit next to the lobby.', specs: ['Glass shopfront'] },
-    { name: 'Office Floor 1', meshName: 'room_office_1', floor: floors[1], block: { x: 0, z: 0, w: 20, d: 12 }, hue: 210,
-      description: 'Open-plan office floor plate.', specs: ['Raised flooring', 'VRV AC'] },
-    { name: 'Office Floor 2', meshName: 'room_office_2', floor: floors[2], block: { x: 0, z: 0, w: 20, d: 12 }, hue: 230,
-      description: 'Open-plan office floor plate with terrace.', specs: ['Raised flooring', 'VRV AC'] },
-    { name: 'Parking', meshName: 'amenity_parking', floor: null, block: { x: 0, z: 13, w: 20, d: 8 }, hue: 0,
-      description: 'Surface parking for 18 cars.' },
-  ])
+/**
+ * Nysha’s Haven, Osman Sagar Lake: Terranova’s Balinese-inspired farmhouse, shown as its site in 3D
+ * (features/property/scene/furnished/nyshasHaven). Areas map to its amenity_* hotspots; the
+ * residence opens from outside until the interiors are modelled room by room.
+ */
+function nyshasHaven(): Property {
+  const area = (
+    name: string, meshName: string, [lengthFt, widthFt]: [number, number], hue: number, description: string, specs: string[], amenities: string[] = [],
+  ): Room => ({
+    id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
+    dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: lengthFt * widthFt, description, specs, amenities,
+    media: [image(`${name} — view 1`, hue), image(`${name} — view 2`, hue + 20)],
+  })
+  const rooms: Room[] = [
+    area('Arrival & North Walk', 'amenity_arrival', [88, 18], 35,
+      'Arrival through the arched gate at the north-west corner, onto the wide paved walk that runs under flame trees past the house and down to the lawn.',
+      ['Arched gate in Burma teak', 'Paved walk with semicircular steps', 'Hand-carved Balinese door with rustic brass handles']),
+    area('The Residence', 'amenity_residence', [68, 63], 30,
+      'A G+1 Balinese-inspired home in red brick cladding and cream textured walls, with Burma teak columns on carved stone bases, a full-width balcony over the pool, and a low shingled hip roof whose flat top is the entertainment terrace.',
+      ['Red brick cladding and cream textured walls', 'Burma teak and hand-carved stone', 'Raw basalt floors', 'Elevator to the terrace'],
+      ['4 bedrooms, 4 attached baths', '4 powder rooms', 'Formal and informal living', 'Pooja room', 'Bar, poker and party room']),
+    area('Rooftop Terrace', 'amenity_terrace', [39, 47], 40,
+      'Climbed by the seven-tonne sculptural steel staircase or the elevator: a round alang-alang thatched bar clad in river stone over the lake, sunken seating for bonfire nights, and a 560 sq ft gaming and home-theatre room behind sliding glass.',
+      ['Alang-alang thatch', 'River-stone bar counter', 'Glass balustrade'], ['Terrace bar', 'Bonfire seating', 'Gaming & home theatre']),
+    area('Infinity Pool', 'amenity_pool', [34, 24], 190,
+      'A 34′ × 24′ infinity pool in natural green Bali Sukabumi stone, aligned with the view from the east entrance, with a children’s pool, sunken seating at water level, a rounded bay at its north end, heat-pump heating and the thatched changing and dining hall along its south side.',
+      ['Green Bali Sukabumi stone', 'Heat-pump heating', 'Basalt pool deck', 'Underwater lighting'], ['Children’s pool', 'Sunken seating', 'Thatched changing hall']),
+    area('Lawn & Gardens', 'amenity_lawn', [95, 80], 110,
+      'A wide lawn of Korean carpet grass running from the pool terrace east to the lake, reached by curved lit steps and edged with palms, with automated sprinkler and drip irrigation.',
+      ['Korean carpet grass', 'Automated sprinklers and drip irrigation', 'Curved lit steps']),
+    area('Bamboo Bar', 'amenity_bamboobar', [19, 19], 45,
+      'A round thatched bamboo kiosk at the north side of the lawn, with a beach-shack feel.', ['Bamboo structure', 'Alang-alang thatch']),
+    area('Boulder Deck', 'amenity_deck', [88, 11], 60,
+      'A 125 ft open deck paved with boulders from the site itself, behind a low wavy stone wall between the lawn and the court: ready for barbecues, yoga, Diwali gatherings, live music or an intimate wedding.',
+      ['Site boulders', 'Wavy river-stone wall'], ['Barbecue counter', 'Lake views']),
+    area('Sports Court', 'amenity_court', [118, 50], 210,
+      'A full tennis court along the south side that converts for basketball, cricket and badminton, behind a tall mesh fence, with murals of sporting legends on its south wall and cricket practice nets beyond it.',
+      ['Full-size tennis court', 'Basketball hoops', 'Floodlights'], ['Tennis', 'Basketball', 'Cricket', 'Badminton']),
+    area('Arcade Building', 'amenity_arcade', [52, 52], 250,
+      'A two-storey arcade beside the house with balconies front and side and an open pavilion on top under a grey roof: table tennis, chess, PlayStation, refreshments and changing rooms.', ['Two storeys and roof pavilion', 'Balconies'], ['Table tennis', 'Chess', 'PlayStation', 'Refreshments']),
+    area('Staff & Service', 'amenity_staff', [21, 50], 0,
+      'The service corner at the south-east: staff quarters with their own bathroom, the transformer and the backup generator.', ['Attached bathroom', 'Generator backup']),
+  ]
   return {
-    id: 'p_skyline', slug: 'skyline-business-centre', name: 'Skyline Business Centre', type: 'commercial', location: 'Ring Road',
-    tagline: 'High-street retail and flexible office floors on the Ring Road', thumbnailUrl: placeholderImage('Skyline Business Centre', 210, 800, 500),
-    startingPrice: 9_500_000,
-    stats: [{ label: 'Total area', value: '7,800 sq ft' }, { label: 'Levels', value: 'G + 2' }, { label: 'Frontage', value: '120 ft' }],
-    description: 'A three-storey commercial block with high-street retail and flexible office floors.',
-    highlights: { 'Total area': '7,800 sq ft', Floors: 'G + 2', 'Frontage': '120 ft' },
-    model: { kind: 'placeholder', blocks }, floors, rooms, presets: standardPresets(),
-    media: [image('Skyline — street view', 210), image('Skyline — lobby', 250)],
+    id: 'p_nyshas_haven', slug: 'nyshas-haven', name: 'Nysha’s Haven', type: 'farmhouse', location: 'Gandipet, Hyderabad',
+    tagline: 'Terranova’s first project: the spirit of Bali, crafted in Hyderabad', thumbnailUrl: placeholderImage('Nysha’s Haven', 110, 800, 500),
+    stats: [{ label: 'Land', value: '~1 acre' }, { label: 'Bedrooms', value: '4' }, { label: 'Structure', value: 'G + 1 + terrace' }],
+    description:
+      'A Balinese-inspired farmhouse of nearly one acre on the edge of Osman Sagar Lake. The residence sits highest on the natural slope, with the pool and landscaped terraces stepping down toward the water, in a warm palette of red brick, cream textured walls, Burma teak, hand-carved stone, raw basalt and alang-alang thatch.',
+    highlights: {
+      Location: 'Osman Sagar Lake, Hyderabad', Land: 'Nearly 1 acre', Structure: 'G + 1 with entertainment terrace, elevator',
+      Bedrooms: '4, with attached baths; 4 powder rooms', 'Living spaces': 'Formal ~1,100 · Informal ~750 · Family lounge ~800 sq ft',
+      Entertainment: 'Bar · Poker & party room · Gaming & theatre · Terrace bar', Outdoors: 'Infinity pool · Sports court · Arcade · Bamboo bar · 125 ft deck',
+      Materials: 'Burma teak, basalt, river stone, Sukabumi stone, alang-alang thatch',
+    },
+    model: { kind: 'furnished', design: 'nyshas-haven' }, floors: [], rooms,
+    // Camera positions are in scene metres; the site stands on a 1.2 m podium.
+    presets: [
+      // The view in the photographs: level with the balcony, square to the pool front.
+      { id: 'drone', name: 'Drone view', position: [70, 58, 26], target: [11, 0, 4], fov: 42 },
+      { id: 'photo', name: 'As photographed', position: [36, 12.6, 0.6], target: [-6, 6.4, 0.6], fov: 52 },
+      { id: 'aerial', name: 'Aerial', position: [34, 58, 70], target: [-2, 3, 0] },
+      { id: 'lake', name: 'From the lake', position: [64, 9, 2], target: [-4, 6, 0] },
+      { id: 'steps', name: 'Pool & steps', position: [38, 17, 14], target: [15, 2.4, 5], fov: 46 },
+      { id: 'hut', name: 'Lawn & hut', position: [46, 18, 0], target: [20, 1, -1], fov: 50 },
+      { id: 'pool', name: 'Pool & residence', position: [26, 7.5, 2], target: [-6, 7, 0] },
+      { id: 'arrival', name: 'North walk', position: [40, 7, -17], target: [-10, 5, -18] },
+      { id: 'terrace', name: 'Rooftop', position: [4, 22, 18], target: [-9, 13, 0] },
+      { id: 'court', name: 'Court & deck', position: [22, 24, 58], target: [22, 2, 20] },
+      { id: 'top', name: 'Site plan', position: [22, 120, 3.01], target: [22, 0, 3] },
+    ],
+    media: [image('Nysha’s Haven — pool and residence', 110), image('Nysha’s Haven — terrace bar', 40), image('Nysha’s Haven — dining', 30)],
   }
 }
 
@@ -378,4 +425,4 @@ function kalakalClubhouse(): Property {
   }
 }
 
-export const properties: Property[] = [villa(), farmhouse(), palmGroveE02(), commercial(), kalakalClubhouse()]
+export const properties: Property[] = [villa(), farmhouse(), palmGroveE02(), nyshasHaven(), kalakalClubhouse()]

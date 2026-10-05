@@ -7,7 +7,7 @@ import { useStageStore } from '../store/stage'
 
 export const BACKGROUND = '#07080a'
 /** A soft late-morning haze for the daylight view; mid-toned so the ivory UI stays legible. */
-export const DAY_BACKGROUND = '#6f8394'
+export const DAY_BACKGROUND = '#86aac8'
 
 export const useBackground = () => (useStageStore((s) => s.daylight) ? DAY_BACKGROUND : BACKGROUND)
 

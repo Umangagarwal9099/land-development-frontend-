@@ -78,6 +78,8 @@ export interface FurnishedModel {
   highlights: Map<string, MeshBasicMaterial>
   /** Switches the model's own lights between the evening scheme and daylight. */
   setDaylight?: (daylight: boolean) => void
+  /** Resolves when textures loaded after the build (e.g. photographs) have arrived. */
+  ready?: Promise<void>
 }
 
 export function buildPalmGroveE02(): FurnishedModel {

@@ -1,6 +1,9 @@
 import { Color, CylinderGeometry, InstancedMesh, MeshStandardMaterial, Object3D, TorusGeometry, type Group, type Material } from 'three'
 import { FLOOR_Y, PI, type Kit } from '../kit'
+import { paintedMat } from '../shared'
 import type { ClubMaterials } from './materials'
+
+export { paintedMat }
 import { carromTop, chessBoard, dartboard as dartboardPaint, gameplay, landscapePrint, laneNumber, paceClock as paceClockPaint, ttTop } from './paints'
 
 /*
@@ -10,20 +13,6 @@ import { carromTop, chessBoard, dartboard as dartboardPaint, gameplay, landscape
  */
 
 type P = { k: Kit; c: ClubMaterials }
-
-const painted = new WeakMap<Kit, Map<string, MeshStandardMaterial>>()
-/** One material per painted surface per model, shared by every piece that uses it. */
-export function paintedMat({ k }: P, key: string, w: number, h: number, paint: Parameters<Kit['tex']['painted']>[2], extra: Partial<MeshStandardMaterial> = {}) {
-  let cache = painted.get(k)
-  if (!cache) painted.set(k, (cache = new Map()))
-  let mat = cache.get(key)
-  if (!mat) {
-    mat = new MeshStandardMaterial({ map: k.tex.painted(w, h, paint), roughness: 0.6 })
-    Object.assign(mat, extra)
-    cache.set(key, mat)
-  }
-  return mat
-}
 
 const legs = (p: P, g: Group, w: number, d: number, h: number, mat: Material, r = 0.025) => {
   for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) p.k.cyl(g, r, r, h, mat, (a * w) / 2, h / 2, (b * d) / 2, 10)

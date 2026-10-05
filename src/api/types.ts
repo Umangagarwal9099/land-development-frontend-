@@ -42,6 +42,8 @@ export interface CameraPreset {
   name: string
   position: Vec3
   target: Vec3
+  /** Vertical field of view in degrees, for a view matched to a photograph's lens. */
+  fov?: number
 }
 
 export interface Floor {
@@ -77,7 +79,7 @@ export interface Room {
 }
 
 /** Interior designs built procedurally in the front end (walls, finishes, furniture, lighting). */
-export type FurnishedDesign = 'palm-grove-e02' | 'kalakal-clubhouse'
+export type FurnishedDesign = 'palm-grove-e02' | 'kalakal-clubhouse' | 'nyshas-haven'
 
 /** A real exported model, a generated stand-in used until the 3D artist delivers, or a furnished design model. */
 export type ModelSource =

@@ -5,7 +5,8 @@ import type { FurnishedModel } from '../palmGroveE02'
 import { buildFacade, buildPodium, buildShell, DECK_Y, INT_H, LIFT, type Ctx } from './architecture'
 import { buildGrounds } from './grounds'
 import { buildCarromDarts, buildChanging, buildGames, buildGamingLounge, buildGym, buildLobby } from './interiors'
-import { clubMaterials, Lighting } from './materials'
+import { Lighting } from '../shared'
+import { clubMaterials } from './materials'
 import { buildPool } from './pool'
 
 /*

@@ -1,5 +1,6 @@
 import type { FurnishedDesign } from '../../../../api/types'
 import { buildKalakalClubhouse, SITE as KALAKAL_CLUBHOUSE_SITE } from './kalakalClubhouse'
+import { buildNyshasHaven, SITE as NYSHAS_HAVEN_SITE } from './nyshasHaven'
 import { buildPalmGroveE02, SITE as PALM_GROVE_E02_SITE, type FurnishedModel } from './palmGroveE02'
 
 export type { FurnishedModel }
@@ -16,4 +17,5 @@ interface FurnishedDesignEntry {
 export const FURNISHED_DESIGNS: Record<FurnishedDesign, FurnishedDesignEntry> = {
   'palm-grove-e02': { build: buildPalmGroveE02, site: PALM_GROVE_E02_SITE },
   'kalakal-clubhouse': { build: buildKalakalClubhouse, site: KALAKAL_CLUBHOUSE_SITE, landscaped: true },
+  'nyshas-haven': { build: buildNyshasHaven, site: NYSHAS_HAVEN_SITE, landscaped: true },
 }

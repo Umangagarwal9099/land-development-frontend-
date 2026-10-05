@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { Box3, MathUtils, Sphere, Vector3 } from 'three'
+import { Box3, MathUtils, Sphere, Vector3, type PerspectiveCamera } from 'three'
 import { propertyQuery } from '../../../api/queries'
 import type { Point2, Property } from '../../../api/types'
 import { settle } from '../../../lib/async'
@@ -80,6 +80,7 @@ function usePropertyCamera(property: Property, site: Site, radius: number) {
   const mode = useStageStore((s) => s.mode)
   const setHome = useStageStore((s) => s.setHome)
   const camera = useThree((s) => s.camera)
+  const invalidate = useThree((s) => s.invalidate)
   const selectedRoomId = useViewerStore((s) => s.selectedRoomId)
   const aboutOpen = useViewerStore((s) => s.aboutOpen)
   const preset = useViewerStore((s) => s.preset)
@@ -103,18 +104,47 @@ function usePropertyCamera(property: Property, site: Site, radius: number) {
     return () => controls.setBoundary()
   }, [controls, camera, site, radius])
 
+  // A preset may set its own lens (to match a photograph); every other view uses the stage's lens.
+  const baseFov = useRef((camera as PerspectiveCamera).fov)
+  useEffect(() => {
+    const cam = camera as PerspectiveCamera
+    const fov = baseFov.current
+    return () => {
+      cam.fov = fov
+      cam.updateProjectionMatrix()
+    }
+  }, [camera])
+  const setLens = useCallback(
+    (fov: number) => {
+      const cam = camera as PerspectiveCamera
+      const from = cam.fov
+      if (Math.abs(from - fov) < 0.01) return
+      const start = performance.now()
+      const step = (now: number) => {
+        const t = Math.min(1, (now - start) / 900)
+        cam.fov = MathUtils.lerp(from, fov, t * t * (3 - 2 * t))
+        cam.updateProjectionMatrix()
+        invalidate()
+        if (t < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+    },
+    [camera, invalidate],
+  )
+
   const goToPreset = useCallback(
     async (id: string | undefined, smoothTime = 0.9) => {
       if (!controls) return
       const p = property.presets.find((x) => x.id === id) ?? property.presets[0]
       if (!p) return
+      setLens(p.fov ?? baseFov.current)
       controls.smoothTime = smoothTime
       void controls.setFocalOffset(0, 0, 0, true)
       await settle(controls.setLookAt(...p.position, ...p.target, true), 2500)
       controls.smoothTime = BASE_SMOOTH_TIME
       if (useViewerStore.getState().aboutOpen) applyInset(controls, panelInset())
     },
-    [controls, property.presets],
+    [controls, property.presets, setLens],
   )
 
   useEffect(() => {

@@ -1,31 +1,8 @@
-import { MeshPhysicalMaterial, MeshStandardMaterial, type MeshStandardMaterialParameters, type PointLight } from 'three'
+import { MeshPhysicalMaterial, MeshStandardMaterial, type MeshStandardMaterialParameters } from 'three'
 import type { Kit } from '../kit'
+import type { Lighting } from '../shared'
 
 const std = (p: MeshStandardMaterialParameters) => new MeshStandardMaterial({ roughness: 0.8, ...p })
-
-/**
- * Everything that glows or lights up, with its evening strength and how much of it is left in
- * daylight (interiors stay softly lit by day; facade, landscape and pool lights switch off).
- */
-export class Lighting {
-  private items: { mat: MeshStandardMaterial; night: number; day: number }[] = []
-  private lamps: { light: PointLight; night: number; day: number }[] = []
-
-  glow(mat: MeshStandardMaterial, dayFactor: number) {
-    this.items.push({ mat, night: mat.emissiveIntensity, day: mat.emissiveIntensity * dayFactor })
-    return mat
-  }
-
-  light(light: PointLight, dayFactor: number) {
-    this.lamps.push({ light, night: light.intensity, day: light.intensity * dayFactor })
-    return light
-  }
-
-  set(daylight: boolean) {
-    for (const i of this.items) i.mat.emissiveIntensity = daylight ? i.day : i.night
-    for (const l of this.lamps) l.light.intensity = daylight ? l.day : l.night
-  }
-}
 
 /** The clubhouse's own finishes, on top of the shared house kit. */
 export function clubMaterials(k: Kit, lighting: Lighting) {

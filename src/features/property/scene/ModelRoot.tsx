@@ -183,7 +183,13 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
       {selectionBox && property.model.kind === 'gltf' && !roomViewId && <SelectionVolume box={selectionBox} />}
       {hovered && property.model.kind === 'gltf' && hovered.room.id !== selectedRoomId && <SelectionVolume box={hovered.box} faint />}
 
-      <RoomSection room={roomViewId ? selectionBox : null} focus={roomViewId ? focusBox : null} site={site} outdoor={selectedRoom?.kind === 'outdoor'} />
+      <RoomSection
+        room={roomViewId ? selectionBox : null}
+        focus={roomViewId ? focusBox : null}
+        site={site}
+        outdoor={selectedRoom?.kind === 'outdoor'}
+        view={selectedObject?.userData.view as 'overview' | 'eye' | undefined}
+      />
 
       {/* In the room viewer its title names the room instead. */}
       {!ambient && interactive && selectedRoom && selectionBox && !roomViewId && (

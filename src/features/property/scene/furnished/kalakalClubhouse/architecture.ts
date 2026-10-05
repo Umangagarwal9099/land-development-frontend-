@@ -1,7 +1,8 @@
 import { DoubleSide, FrontSide, Mesh, MeshStandardMaterial, PlaneGeometry, type Material } from 'three'
 import { FLOOR_Y, PI, type Kit } from '../kit'
 import { buildWalls, type Wall } from '../walls'
-import type { ClubMaterials, Lighting } from './materials'
+import type { Lighting } from '../shared'
+import type { ClubMaterials } from './materials'
 
 export interface Ctx {
   /** Builds inside the clubhouse (the floor group). */

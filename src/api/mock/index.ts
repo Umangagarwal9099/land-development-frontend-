@@ -10,12 +10,12 @@ const toCatalogItem = ({ id, slug, name, type, location, tagline, thumbnailUrl, 
   id, slug, name, type, location, tagline, thumbnailUrl, startingPrice, stats,
 })
 
-// Villas and farmhouses are reached through the plots they stand on; only standalone
-// buildings are listed as projects of their own.
-const STANDALONE: CatalogItem['type'][] = ['commercial', 'apartment']
+// Homes and buildings on a master plan (a plot's home, the clubhouse) are reached through the plan;
+// every other property is a project of its own.
+const onAPlan = new Set(masterPlans.flatMap((m) => [...m.plots.map((p) => p.unit?.propertySlug), ...m.amenities.map((a) => a.propertySlug)]))
 
 export function getCatalog(): Promise<Catalog> {
-  const items = [...masterPlans, ...properties.filter((p) => STANDALONE.includes(p.type))]
+  const items = [...masterPlans, ...properties.filter((p) => !onAPlan.has(p.slug))]
   return delay({ version: 1, items: items.map(toCatalogItem) })
 }
 
