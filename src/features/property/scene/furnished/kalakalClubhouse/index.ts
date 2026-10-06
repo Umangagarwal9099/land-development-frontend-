@@ -1,18 +1,17 @@
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PointLight } from 'three'
 import { GOLD } from '../../../../../lib/palette'
 import { FLOOR_Y, Kit } from '../kit'
-import type { FurnishedModel } from '../palmGroveE02'
 import { buildFacade, buildPodium, buildShell, DECK_Y, INT_H, LIFT, type Ctx } from './architecture'
 import { buildGrounds } from './grounds'
 import { buildCarromDarts, buildChanging, buildGames, buildGamingLounge, buildGym, buildLobby } from './interiors'
-import { Lighting } from '../shared'
+import { Lighting, type FurnishedModel } from '../shared'
 import { clubMaterials } from './materials'
 import { buildPool } from './pool'
 
 /*
  * The Kalakal Clubhouse: a contemporary stone, glass and timber clubhouse with a grand lobby,
  * indoor games, fitness centre, changing rooms and a 25 m six-lane training pool,
- * on the layout's social-infrastructure site. Built in code like the Palm Grove E-02 design model,
+ * on the layout's social-infrastructure site. Built in code like the other furnished design models,
  * with the same naming contract (floor_G, room_*, amenity_*) so every area opens in the room viewer.
  */
 

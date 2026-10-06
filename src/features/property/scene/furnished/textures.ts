@@ -314,26 +314,6 @@ export const rugPaint = (base: string, border: string, seed: number): Paint => (
   g.strokeRect(22, 22, w - 44, h - 44)
 }
 
-/** Abstract canvas in the house palette: a few broad gestural strokes. */
-export const artPaint = (seed: number, palette: string[]): Paint => (g, w, h) => {
-  const r = rng(seed)
-  g.fillStyle = palette[0]
-  g.fillRect(0, 0, w, h)
-  g.lineCap = 'round'
-  for (let i = 0; i < 7; i++) {
-    g.strokeStyle = palette[1 + (i % (palette.length - 1))]
-    g.globalAlpha = 0.55 + r() * 0.4
-    g.lineWidth = 18 + r() * 70
-    g.beginPath()
-    const x = r() * w
-    const y = r() * h
-    g.moveTo(x, y)
-    g.bezierCurveTo(x + r() * 300 - 150, y + r() * 200 - 100, x + r() * 300 - 150, y + r() * 200 - 100, x + r() * 260 - 130, y + r() * 160 - 80)
-    g.stroke()
-  }
-  g.globalAlpha = 1
-}
-
 const PAINTERS = {
   travertineTile: [1024, 512, travertine(3, true)],
   travertine: [512, 512, travertine(5, false)],

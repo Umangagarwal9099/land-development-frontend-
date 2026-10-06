@@ -10,12 +10,11 @@ import {
   MeshStandardMaterial,
   Shape,
   SphereGeometry,
-  TorusGeometry,
   type Material,
   type MeshStandardMaterialParameters,
   type Object3D,
 } from 'three'
-import { artPaint, rugPaint, TextureLibrary, type Finish } from './textures'
+import { rugPaint, TextureLibrary, type Finish } from './textures'
 
 /** Finished floor level above the site; the house stands on a 150 mm stone plinth. */
 export const FLOOR_Y = 0.15
@@ -101,10 +100,6 @@ export class Kit {
   /** Fluted panel material with flutes at true 25 mm spacing across `width` metres. */
   fluted(name: 'flutedWalnut' | 'flutedOak', width: number) {
     return new MeshStandardMaterial({ map: this.tex.finish(name, width / 0.6, 1), roughness: 0.55 })
-  }
-
-  art(seed: number, palette: string[]) {
-    return new MeshStandardMaterial({ map: this.tex.painted(512, 420, artPaint(seed, palette)), roughness: 0.9 })
   }
 
   /* ---------- primitives ---------- */
@@ -300,13 +295,6 @@ export class Kit {
     }
   }
 
-  /** Framed canvas hung flat on a wall; `ry` faces it into the room. */
-  artwork(x: number, y: number, z: number, ry: number, w: number, h: number, canvas: Material) {
-    const g = this.at(x, z, ry, FLOOR_Y + y)
-    this.box(g, w + 0.06, h + 0.06, 0.04, this.m.walnut, 0, 0, 0)
-    this.box(g, w, h, 0.01, canvas, 0, 0, 0.022, false)
-  }
-
   floorLamp(x: number, z: number) {
     const g = this.at(x, z)
     this.cyl(g, 0.16, 0.18, 0.03, this.m.bronze, 0, 0.015, 0)
@@ -319,20 +307,6 @@ export class Kit {
     const g = this.at(x, z)
     this.sphere(g, r, this.glow, 0, y, 0)
     this.cyl(g, 0.004, 0.004, this.ceiling - y, this.m.bronze, 0, (this.ceiling + y) / 2, 0, 6)
-  }
-
-  chandelier(x: number, z: number, y: number) {
-    const g = this.at(x, z)
-    ;[0.62, 0.42].forEach((r, k) => {
-      const ring = this.mesh(this.geo(`t${r}`, () => new TorusGeometry(r, 0.012, 8, 64)), this.m.bronze, g, 0, y - k * 0.12, 0)
-      ring.rotation.x = PI / 2
-      const n = k ? 8 : 14
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * PI * 2
-        this.sphere(g, 0.055, this.glow, Math.cos(a) * r, y - 0.04 - k * 0.12, Math.sin(a) * r)
-      }
-    })
-    this.cyl(g, 0.005, 0.005, this.ceiling - y, this.m.bronze, 0, (this.ceiling + y) / 2, 0, 6)
   }
 
   linearPendant(x: number, z: number, y: number, len: number) {

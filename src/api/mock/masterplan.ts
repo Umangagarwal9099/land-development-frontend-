@@ -267,89 +267,6 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
   return { plots, roads, amenities, landscape: { trees } }
 }
 
-/** 20 one-acre farm plots with hedgerows, a clubhouse, pool and an orchard garden. */
-function buildFarmEstate(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'landscape'> {
-  const rand = mulberry32(7)
-  const plot = 64
-  const road = 10
-  const cols = 4
-  const rows = 5
-  const totalW = cols * plot + (cols + 1) * road
-  const totalD = rows * plot + (rows + 1) * road
-  const x0 = -totalW / 2
-  const z0 = -totalD / 2
-  const farmhouse: PlotUnit = { kind: 'farmhouse', name: 'Palm Grove Farmhouse', propertySlug: 'palm-grove-farmhouse' }
-  // Plot E-02 opens the fully furnished interior design model.
-  const furnished: Record<string, PlotUnit> = {
-    'E-02': { kind: 'farmhouse', name: 'Palm Grove Farmhouse', propertySlug: 'palm-grove-farmhouse-e02' },
-  }
-
-  const plots: Plot[] = []
-  const trees: Point2[] = []
-  for (let r = 0; r < rows; r++) {
-    const letter = String.fromCharCode(65 + r)
-    for (let c = 0; c < cols; c++) {
-      const px = x0 + road + c * (plot + road)
-      const pz = z0 + road + r * (plot + road)
-      const roll = rand()
-      const status: AvailabilityStatus = roll < 0.55 ? 'available' : roll < 0.75 ? 'reserved' : 'sold'
-      const areaSqft = 43_560
-      const number = `${letter}-${String(c + 1).padStart(2, '0')}`
-      // Always draw, so the seeded statuses of later plots don't shift.
-      const built = status !== 'available' && rand() < 0.7
-      plots.push({
-        id: `farm_${letter}${c + 1}`,
-        number,
-        polygon: rect(px, pz, plot, plot),
-        areaSqft,
-        dimensionsLabel: '210 × 210 ft',
-        facing: c % 2 === 0 ? 'East' : 'West',
-        roadWidthFt: 33,
-        isCorner: c === 0 || c === cols - 1,
-        status,
-        price: areaSqft * 1100,
-        unit: furnished[number] ?? (built ? farmhouse : undefined),
-      })
-      // Hedgerow of fruit trees around each farm.
-      for (let t = 4; t < plot - 2; t += 7) {
-        trees.push([px + t, pz + 2.5], [px + t, pz + plot - 2.5], [px + 2.5, pz + t], [px + plot - 2.5, pz + t])
-      }
-    }
-  }
-
-  const roads: Road[] = []
-  for (let r = 0; r <= rows; r++)
-    roads.push({ id: `road_h${r}`, name: `${['Mango', 'Guava', 'Neem', 'Peepal', 'Jamun', 'Banyan'][r]} Lane`, widthFt: 33, polygon: rect(x0, z0 + r * (plot + road), totalW, road) })
-  for (let c = 0; c <= cols; c++)
-    roads.push({ id: `road_v${c}`, name: `Estate Road ${c + 1}`, widthFt: 33, polygon: rect(x0 + c * (plot + road), z0, road, totalD) })
-
-  const south = z0 + totalD
-  const amenities: Amenity[] = [
-    { id: 'am_club', name: 'Estate Clubhouse', kind: 'clubhouse', polygon: rect(-70, south + 14, 40, 26), height: 7,
-      description: 'A pavilion clubhouse with a farm-to-table restaurant, library lounge and event lawn.',
-      highlights: { Restaurant: '80 covers', 'Event lawn': '1 acre' },
-      media: [image('Estate Clubhouse', 35), image('Farm-to-table dining', 25)] },
-    { id: 'am_pool', name: 'Infinity Pool', kind: 'pool', polygon: rect(-20, south + 18, 26, 14), height: 0,
-      description: 'An infinity-edge pool overlooking the orchard garden.',
-      highlights: { Length: '26 m', Edge: 'Infinity' },
-      media: [image('Infinity pool', 190)] },
-    { id: 'am_garden', name: 'Orchard Garden', kind: 'garden', polygon: rect(20, south + 10, 80, 44), height: 0,
-      description: 'A shared orchard of mango, guava and citrus with walking trails and a picnic meadow.',
-      highlights: { 'Fruit trees': '240', Trails: '1.2 km' },
-      media: [image('Orchard trails', 100)] },
-    { id: 'am_gate', name: 'Estate Gate', kind: 'entrance', polygon: rect(-8, south + 62, 16, 6), height: 6,
-      description: 'Gated entry with a security lodge and guest parking.',
-      highlights: { Security: '24 × 7' } },
-  ]
-  roads.push({ id: 'road_entry', name: 'Palm Avenue', widthFt: 40, polygon: rect(-6, south, 12, 62) })
-  const [[ox0, oz0], , [ox1, oz1]] = amenities.find((a) => a.kind === 'garden')!.polygon
-  for (let x = ox0 + 4; x < ox1 - 2; x += 6)
-    for (let z = oz0 + 4; z < oz1 - 2; z += 6) if (rand() < 0.8) trees.push([x + rand(), z + rand()])
-  trees.push(...kerbTrees(roads[roads.length - 1].polygon, 8, 1.2, () => false))
-
-  return { plots, roads, amenities, landscape: { trees } }
-}
-
 const kalakal = buildKalakal()
 
 export const masterPlans: MasterPlan[] = [
@@ -368,22 +285,6 @@ export const masterPlans: MasterPlan[] = [
       { name: 'City Hospital', distance: '3.5 km' },
       { name: 'Metro Station', distance: '4 km' },
       { name: 'IGI Airport', distance: '28 km' },
-    ],
-  },
-  {
-    id: 'mp_palmgrove', slug: 'palm-grove-estate', name: 'Palm Grove Estate', type: 'plots', location: 'Kharkhoda Road',
-    tagline: 'Twenty one-acre farm estates with orchards, a clubhouse and an infinity pool',
-    thumbnailUrl: placeholderImage('Palm Grove Estate', 110, 800, 500),
-    startingPrice: 47_916_000,
-    stats: [{ label: 'Farm estates', value: '20' }, { label: 'Each', value: '1 acre' }, { label: 'Fruit trees', value: '800+' }],
-    description: 'A private farm-estate community of twenty one-acre parcels, each bordered by fruit-tree hedgerows, with a shared clubhouse, infinity pool and orchard garden.',
-    highlights: { 'Total land': '32 acres', Estates: '20', 'Estate size': '1 acre', Roads: '33 ft' },
-    ...buildFarmEstate(),
-    media: [film('Palm Grove — estate film', 110), image('Orchard at dawn', 110), image('Farmhouse verandah', 40)],
-    nearby: [
-      { name: 'KMP Expressway', distance: '6 km' },
-      { name: 'Sonipat City', distance: '14 km' },
-      { name: 'IGI Airport', distance: '52 km' },
     ],
   },
 ]

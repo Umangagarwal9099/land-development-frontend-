@@ -1,6 +1,17 @@
-import { Group, MeshStandardMaterial, type MeshStandardMaterialParameters, type PointLight, type Texture } from 'three'
+import { Group, MeshStandardMaterial, type MeshBasicMaterial, type MeshStandardMaterialParameters, type PointLight, type Texture } from 'three'
 import { Kit } from './kit'
 import type { Paint } from './textures'
+
+/** A furnished design model, as built in code: its scene graph, hotspot highlights and lighting. */
+export interface FurnishedModel {
+  root: Group
+  /** Hotspot overlay material per room mesh name, used to highlight the selection. */
+  highlights: Map<string, MeshBasicMaterial>
+  /** Switches the model's own lights between the evening scheme and daylight. */
+  setDaylight?: (daylight: boolean) => void
+  /** Resolves when textures loaded after the build (e.g. photographs) have arrived. */
+  ready?: Promise<void>
+}
 
 /**
  * Everything that glows or lights up, with its evening strength and how much of it is left in
