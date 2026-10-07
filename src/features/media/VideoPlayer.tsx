@@ -22,6 +22,7 @@ export function VideoPlayer({ url, poster }: { url: string; poster?: string }) {
   const [muted, setMuted] = useState(false)
   const [time, setTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [aspect, setAspect] = useState(16 / 9)
   const [chrome, setChrome] = useState(true)
   const hideTimer = useRef(0)
 
@@ -63,10 +64,12 @@ export function VideoPlayer({ url, poster }: { url: string; poster?: string }) {
   }
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center" onPointerMove={wake}>
+    <div className="relative flex h-full w-full items-center justify-center [container-type:size]" onPointerMove={wake}>
       <video
         ref={ref}
         poster={poster ? assetUrl(poster) : undefined}
+        // Scale up to the largest size that fits the stage, so low-res films don't sit small in the middle.
+        style={{ width: `min(100cqw, ${aspect} * 100cqh)` }}
         className="max-h-full max-w-full rounded-2xl bg-black shadow-[0_40px_120px_-40px_rgb(0_0_0/0.9)]"
         autoPlay
         playsInline
@@ -81,7 +84,11 @@ export function VideoPlayer({ url, poster }: { url: string; poster?: string }) {
           setChrome(true)
         }}
         onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+        onLoadedMetadata={(e) => {
+          const v = e.currentTarget
+          setDuration(v.duration)
+          if (v.videoWidth && v.videoHeight) setAspect(v.videoWidth / v.videoHeight)
+        }}
       />
 
       <AnimatePresence>
