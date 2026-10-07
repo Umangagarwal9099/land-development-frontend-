@@ -14,9 +14,9 @@ import { boulders, breezeBlock, crazyPaving, pebbleBed, cream, gabion, riverSton
  *   x 3 … 17.2             the pool terrace in front of the house, the long thatched building
  *                          beside it; the multi-sport court runs east from here along the south
  *   x 17.2 … 46 (lower)    the lawn, the round bamboo bar, the 125 ft boulder deck between lawn
- *                          and court behind a wavy stone wall, the service corner at the far end
+ *                          and court behind a wavy stone wall
  *   along the north        the wide curving paved walk under flame trees and palms
- *   along the south        the court, with cricket practice nets behind its mural wall
+ *   along the south        the court, closed by its mural wall
  *   x > 46                 the white east wall with its bronze lattice grille, the road outside,
  *                          then the shore and the lake
  */
@@ -54,16 +54,20 @@ export const PLOT = { x0: -24, x1: 46, z0: -31, z1: 37 }
 export const SOUTH_SIDE = 14.6
 export const ARCADE: Rect = [-16, 0, 13.2, 27]
 export const COURT: Rect = [3, 39, 15.2, 26.6]
-/** Behind the court's mural wall: a paved strip with cricket practice nets, inside the same tall fence. */
-export const PRACTICE: Rect = [3, 39, 27.0, 36.6]
+/** Past the dining strip's east end: the raised, fenced yard with the transformer and generator. */
+export const TRANSFORMER: Rect = [39.9, 45.5, 9.6, 14.8]
+/** The way into the court, as photographed: both gates set in the tall fence's east side, along z. */
+export const MAIN_GATE = { z0: 20.0, z1: 22.8 }
+export const COURT_GATE = { z0: 16.4, z1: 17.9 }
+/** The plot ends just behind the court's mural wall and the arcade's south gable. */
+export const SOUTH_END = ARCADE[3] + 0.6
 /** The dining strip between lawn and court, raised to the pool terrace level behind an ivy-clad wall. */
 export const BOULDER_DECK: Rect = [17.2, 39.4, 11.6, 15.0]
 /** The pebble garden below the pool wall sits half a metre above the lawn. */
 export const PEBBLE_T = LAWN + 0.5
 export const THATCH_HALL: Rect = [3.4, 15.6, 10.9, 14.3]
-export const SERVICE: Rect = [39.6, 46, 15.2, 36.6]
-/** Outside the east wall: the paved road along the plot's frontage. */
-export const ROAD: Rect = [46, 54, -40, 44]
+/** Outside the east wall: the paved road along the plot's frontage, ending with the south wall. */
+export const ROAD: Rect = [46, 54, -40, SOUTH_END + 0.15]
 export const BAMBOO_BAR = { x: 22.0, z: -5.4, r: 2.9 }
 
 export type Rect = [x0: number, x1: number, z0: number, z1: number]

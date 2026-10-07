@@ -3,7 +3,7 @@ import { PI, type Kit } from '../kit'
 import { levelKit, paintedMat } from '../shared'
 import { palmFrond } from './paints'
 import {
-  BASE, BOULDER_DECK, PEBBLE_T, ROAD, SERVICE, KIDS_POOL, LAKE_BED, SPA, LAKE_WATER, LAWN, PLOT, POOL, POOL_T, SHORE, SOUTH_SIDE, SUNKEN, UPPER, WALL_X, WATER_LEVEL, WEIR,
+  BASE, BOULDER_DECK, PEBBLE_T, ROAD, KIDS_POOL, LAKE_BED, SPA, LAKE_WATER, LAWN, PLOT, POOL, POOL_T, SHORE, SOUTH_SIDE, SUNKEN, UPPER, WALL_X, WATER_LEVEL, WEIR, SOUTH_END,
   type Ctx, type Rect,
 } from './layout'
 
@@ -61,23 +61,24 @@ export function buildTerrain(ctx: Ctx) {
   const M = 40
 
   // Ground levels, as in the aerial photograph: the house, arcade and gate raised to the west; the
-  // pool terrace in front of the house; the lawn, deck, court and service corner lower, to the east
+  // pool terrace in front of the house; the lawn, deck and court lower, to the east
   // and south; then the shore and the lake. Retaining walls in river stone where levels change.
-  solid(k, [-M, 3, -M, M], UPPER, BASE, h.grass, river)
+  const southEdge = SOUTH_END + 0.15
+  solid(k, [-M, 3, -M, southEdge], UPPER, BASE, h.grass, river)
   const poolDeck: Rect = [3, WALL_X, -12, 10.4]
   // The terrace's front wall below the pool, clad in light grey split-stone tiles as photographed.
   const infinityWall = h.poolWall(14, 2)
   solid(k, [3, WALL_X, -M, SOUTH_SIDE], POOL_T, BASE, h.grass, infinityWall, [poolDeck])
   solid(k, poolDeck, POOL_T, BASE, h.deckStone, infinityWall, [POOL, KIDS_POOL, SUNKEN, WEIR])
   solid(k, [WALL_X, PLOT.x1, -M, SOUTH_SIDE], LAWN, BASE, h.grass, river)
-  solid(k, [3, PLOT.x1, SOUTH_SIDE, M], LAWN, BASE, h.grass, river)
+  solid(k, [3, PLOT.x1, SOUTH_SIDE, southEdge], LAWN, BASE, h.grass, river)
   // The dining strip, raised to the pool terrace level, its crackle-finish paving retained above
   // the lawn by a stone wall grown over with creepers.
   solid(k, BOULDER_DECK, POOL_T, LAWN - 0.01, h.crazy, river)
-  solid(k, [PLOT.x1, ROAD[1], -M, M], LAWN - 0.2, BASE, h.grass, river)
-  solid(k, [ROAD[1], 56.5, -M, M], SHORE, BASE, () => h.sand, h.earth)
-  solid(k, [56.5, 82, -M, M], LAKE_BED, BASE, () => h.lakeBed, h.earth)
-  k.box(k.root, 25.5, 0.02, 2 * M, h.lake, 69.25, LAKE_WATER, 0, false)
+  solid(k, [PLOT.x1, ROAD[1], -M, southEdge], LAWN - 0.2, BASE, h.grass, river)
+  solid(k, [ROAD[1], 56.5, -M, southEdge], SHORE, BASE, () => h.sand, h.earth)
+  solid(k, [56.5, 82, -M, southEdge], LAKE_BED, BASE, () => h.lakeBed, h.earth)
+  k.box(k.root, 25.5, 0.02, southEdge + M, h.lake, 69.25, LAKE_WATER, (southEdge - M) / 2, false)
 
   // The pool in green Sukabumi stone with a pale grey stone coping; the children's pool beside it
   // behind a broad coping strip, and the sunken seating set down to water level.
@@ -350,7 +351,7 @@ function buildBoundaries(ctx: Ctx) {
   }
   // West: the white compound wall, with the arched gate at the north-west corner opening onto the walk.
   const [ga, gb] = [-20.6, -16.6]
-  for (const [a, b] of [[PLOT.z0, ga], [gb, PLOT.z1]]) wall(PLOT.x0 - 0.15, PLOT.x0 + 0.15, a, b, UPPER, 2.8)
+  for (const [a, b] of [[PLOT.z0, ga], [gb, SOUTH_END]]) wall(PLOT.x0 - 0.15, PLOT.x0 + 0.15, a, b, UPPER, 2.8)
   const gz = (ga + gb) / 2
   for (const s of [-1, 1]) k.box(k.root, 0.9, 4.0, 0.9, h.cream(0.9, 4), PLOT.x0, UPPER + 2.0, gz + s * 2.45)
   const arch = k.mesh(new TorusGeometry(2.0, 0.45, 10, 32, PI), h.cream(2, 2), k.root, PLOT.x0, UPPER + 3.4, gz, true)
@@ -360,17 +361,17 @@ function buildBoundaries(ctx: Ctx) {
 
   // North and south: tall white walls, stepping down with the ground.
   for (const [a, b, y] of [[PLOT.x0, 3, UPPER], [3, WALL_X, POOL_T], [WALL_X, PLOT.x1, LAWN]] as const) wall(a, b, PLOT.z0 - 0.15, PLOT.z0 + 0.15, y, 3.0)
-  for (const [a, b, y] of [[PLOT.x0, 3, UPPER], [3, PLOT.x1, LAWN]] as const) wall(a, b, PLOT.z1 - 0.15, PLOT.z1 + 0.15, y, 3.0)
+  // South: straight behind the arcade and the court's mural wall.
+  for (const [a, b, y] of [[PLOT.x0, 3, UPPER], [3, PLOT.x1, LAWN]] as const) wall(a, b, SOUTH_END - 0.15, SOUTH_END + 0.15, y, 3.0)
 
   // East, on the road: a low white wall carrying a bronze lattice grille in front of the lawn and the
-  // walk, with red cordylines planted along its foot; a tall white wall round the service corner.
+  // walk, with red cordylines planted along its foot.
   const x = PLOT.x1
-  const [ga0, ga1] = [-26.4, SERVICE[2]]
-  wall(x - 0.2, x + 0.2, PLOT.z0, PLOT.z1, LAWN, 0.7)
-  wall(x - 0.2, x + 0.2, SERVICE[2], PLOT.z1, LAWN, 2.8)
+  const [ga0, ga1] = [-26.4, SOUTH_END]
+  wall(x - 0.2, x + 0.2, PLOT.z0, SOUTH_END, LAWN, 0.7)
   const bronze = new MeshStandardMaterial({ color: '#4a3a2c', metalness: 0.5, roughness: 0.5 })
   const panel = 2.4
-  for (let z = ga0; z < ga1 - 0.1; z += panel) {
+  for (let z = ga0; z + panel < ga1 + 0.05; z += panel) {
     const zc = z + panel / 2
     const y0 = LAWN + 0.7
     const H = 2.1
@@ -402,11 +403,13 @@ function buildShore(ctx: Ctx) {
   const stone = new MeshStandardMaterial({ color: '#8a8273', roughness: 0.95, flatShading: true })
   for (let i = 0; i < 29; i++) {
     const z = -36 + i * 2.6 + ((i * 7) % 5) * 0.2
+    if (z > ROAD[3] - 0.6) continue
     shore.blob(shore.root, 0.35 + (i % 4) * 0.12, stone, 55.6 + ((i * 3) % 4) * 0.3, 0.05, z, 0.55)
   }
   const reed = new MeshStandardMaterial({ color: '#6f7d4a', roughness: 0.9 })
   for (let i = 0; i < 44; i++) {
     const z = -38 + i * 1.75
+    if (z > ROAD[3] - 0.6) continue
     for (let j = 0; j < 4; j++) shore.cyl(shore.root, 0.015, 0.02, 1.1 + ((i + j) % 3) * 0.25, reed, 56.6 + j * 0.12, 0.5, z + j * 0.15, 5)
   }
 }

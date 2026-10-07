@@ -3,7 +3,7 @@ import { GOLD } from '../../../../../lib/palette'
 import { Kit } from '../kit'
 import { Lighting, type FurnishedModel } from '../shared'
 import { buildHouse } from './house'
-import { ARCADE, BAMBOO_BAR, BOULDER_DECK, COURT, GF, PRACTICE, havenMaterials, LAWN, LIFT, PLOT, POOL_T, SERVICE, TERRACE, THATCH_HALL, UPPER, type Ctx } from './layout'
+import { ARCADE, BAMBOO_BAR, BOULDER_DECK, COURT, GF, havenMaterials, LAWN, LIFT, PLOT, POOL_T, TERRACE, THATCH_HALL, UPPER, type Ctx } from './layout'
 import { buildOutdoors } from './outdoors'
 import { Photos } from './photos'
 import { buildTerrain } from './terrain'
@@ -16,7 +16,7 @@ import { buildTerrain } from './terrain'
  */
 
 /** Site extent (plan metres): the plot, its margins and a reach of the lake. */
-export const SITE = { minX: -28, maxX: 82, minZ: -35, maxZ: 41 }
+export const SITE = { minX: -28, maxX: 82, minZ: -35, maxZ: 29 }
 
 type Zone = [x0: number, x1: number, z0: number, z1: number]
 
@@ -35,9 +35,8 @@ const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[]; view?
   amenity_lawn: { y: LAWN, height: 9, zones: [[17.2, 46, -14, BAR[2]], [17.2, BAR[0], BAR[2], BAR[3]], [BAR[1], 46, BAR[2], BAR[3]], [17.2, 46, BAR[3], 9.0]] },
   amenity_bamboobar: { y: LAWN, height: 5.4, zones: [BAR], view: 'eye' },
   amenity_deck: { y: POOL_T, height: 6, zones: [BOULDER_DECK] },
-  amenity_court: { y: LAWN, height: 7, zones: [COURT, PRACTICE] },
+  amenity_court: { y: LAWN, height: 7, zones: [COURT] },
   amenity_arcade: { y: UPPER, height: 13, zones: [ARCADE], view: 'overview' },
-  amenity_staff: { y: LAWN, height: 4, zones: [SERVICE], view: 'overview' },
 }
 
 // Evening lights: underwater pool glow, the front door, the terrace bar, bamboo bar, deck and arcade.

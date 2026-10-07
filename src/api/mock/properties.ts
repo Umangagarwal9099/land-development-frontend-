@@ -157,12 +157,10 @@ function nyshasHaven(): Property {
       'A 125 ft open deck paved with boulders from the site itself, behind a low wavy stone wall between the lawn and the court: ready for barbecues, yoga, Diwali gatherings, live music or an intimate wedding.',
       ['Site boulders', 'Wavy river-stone wall'], ['Barbecue counter', 'Lake views']),
     area('Sports Court', 'amenity_court', [118, 50], 210,
-      'A full tennis court along the south side that converts for basketball, cricket and badminton, behind a tall mesh fence, with murals of sporting legends on its south wall and cricket practice nets beyond it.',
+      'A full tennis court along the south side that converts for basketball, cricket and badminton, behind a tall mesh fence, with murals of sporting legends on its south wall.',
       ['Full-size tennis court', 'Basketball hoops', 'Floodlights'], ['Tennis', 'Basketball', 'Cricket', 'Badminton']),
     area('Arcade Building', 'amenity_arcade', [52, 52], 250,
       'A two-storey arcade beside the house with balconies front and side and an open pavilion on top under a grey roof: table tennis, chess, PlayStation, refreshments and changing rooms.', ['Two storeys and roof pavilion', 'Balconies'], ['Table tennis', 'Chess', 'PlayStation', 'Refreshments']),
-    area('Staff & Service', 'amenity_staff', [21, 50], 0,
-      'The service corner at the south-east: staff quarters with their own bathroom, the transformer and the backup generator.', ['Attached bathroom', 'Generator backup']),
   ]
   return {
     id: 'p_nyshas_haven', slug: 'nyshas-haven', name: 'Nysha’s Haven', type: 'farmhouse', location: 'Gandipet, Hyderabad',
