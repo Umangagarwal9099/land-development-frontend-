@@ -3,6 +3,8 @@ import { placeholderImage, placeholderPano } from './placeholders'
 
 // Public sample stream so the HLS player path can be exercised; replace with R2-hosted HLS.
 const SAMPLE_HLS = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+// Served from public/videos/. Absolute so assetUrl() doesn't resolve it against the R2 domain.
+const NYSHAS_HAVEN_FILM = `${window.location.origin}/videos/nyshas-haven-film.mp4`
 
 let seq = 0
 const id = (prefix: string) => `${prefix}_${++seq}`
@@ -190,7 +192,10 @@ function nyshasHaven(): Property {
       { id: 'court', name: 'Court & deck', position: [22, 24, 58], target: [22, 2, 20] },
       { id: 'top', name: 'Site plan', position: [22, 120, 3.01], target: [22, 0, 3] },
     ],
-    media: [image('Nysha’s Haven — pool and residence', 110), image('Nysha’s Haven — terrace bar', 40), image('Nysha’s Haven — dining', 30)],
+    media: [
+      { id: id('m'), kind: 'video', title: 'Nysha’s Haven', url: NYSHAS_HAVEN_FILM, thumbUrl: placeholderImage('Nysha’s Haven — project film', 110, 480, 300) },
+      image('Nysha’s Haven — pool and residence', 110), image('Nysha’s Haven — terrace bar', 40), image('Nysha’s Haven — dining', 30),
+    ],
   }
 }
 

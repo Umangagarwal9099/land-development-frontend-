@@ -281,7 +281,7 @@ export const masterPlans: MasterPlan[] = [
     description: 'A gated plotted layout of 284 residential plots and four commercial plots fronting the proposed 250 ft HMDA master plan road on NH-44. A 60 ft tree-lined main avenue runs the length of the site, crossed by 33 ft roads, with a central park ringed by a cycle track and a reserved social-infrastructure site. Phase 1 villas are complete and open for viewing.',
     highlights: { 'Total land': '≈ 30 acres', Plots: '284 residential + 4 commercial', 'Plot size': '40 × 60 ft', 'Main avenue': '60 ft', 'Internal roads': '33 ft', Parks: '10,977 sq yd', RERA: 'Registered' },
     ...kalakal,
-    media: [film('Kalakal — project film', 100, KALAKAL_FILM), image('Aerial at golden hour', 95), image('Tree-lined avenue', 120), image('Phase 1 villas', 40)],
+    media: [film('Kallakal', 100, KALAKAL_FILM), image('Aerial at golden hour', 95), image('Tree-lined avenue', 120), image('Phase 1 villas', 40)],
     nearby: [
       { name: 'Delhi Public School', distance: '1.2 km' },
       { name: 'City Hospital', distance: '3.5 km' },

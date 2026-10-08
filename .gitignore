@@ -27,3 +27,6 @@ dist-ssr
 public/decoders
 
 .env.local
+
+# Original export, over GitHub's 100 MB limit; public/videos/nyshas-haven-film.mp4 is the compressed copy
+public/videos/Nysha’s Haven.mp4
