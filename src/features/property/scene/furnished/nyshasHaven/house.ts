@@ -247,7 +247,8 @@ export function buildHouse(ctx: Ctx) {
   // shingles slope down across the pool front only, over the balcony: wide at the top, where the
   // corners point out past the side walls, and raking in to the eave at the outer columns, with a
   // charcoal fascia and a dark timber soffit underneath.
-  const inner: Rect4 = [-17.5, -3.5, z0 + 0.4, z1 - 0.4]
+  // Set the flat rooftop back on its west (left) end while keeping the east edge aligned.
+  const inner: Rect4 = [-15.5, -3.5, z0 + 0.4, z1 - 0.4]
   block(ctx, inner[0], inner[1], inner[2], inner[3], EAVE, TERRACE - EAVE, ['n', 's', 'w'])
   k.box(r, inner[1] - inner[0] + 0.15, 0.14, inner[3] - inner[2] + 0.3, h.sandstone, (inner[0] + inner[1]) / 2 - 0.075, TERRACE - 0.07, 0)
   const { top, edge } = frontRoof(inner[1], 4.2, inner[3] + 2.2, 10.9, TERRACE, EAVE + 0.12)
