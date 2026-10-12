@@ -1,4 +1,4 @@
-import { BackSide, BufferAttribute, BufferGeometry, CircleGeometry, CylinderGeometry, DoubleSide, Mesh, MeshStandardMaterial, TorusGeometry, type Material } from 'three'
+import { BackSide, BufferAttribute, BufferGeometry, CircleGeometry, CylinderGeometry, DoubleSide, Mesh, MeshStandardMaterial, type Material } from 'three'
 import { PI, type Kit } from '../kit'
 import { BAND, BAYS, EAVE, FF, GF, HOUSE, TERRACE, UPPER, type Ctx, type HavenMaterials } from './layout'
 
@@ -114,74 +114,28 @@ export function glazing(ctx: Ctx, axis: 'x' | 'z', fixed: number, out: 1 | -1, a
 type Rect4 = [number, number, number, number]
 
 /**
- * The swept Balinese roof, as photographed: a hip whose top is cut flat for the terrace, its planes
- * curving from steep at the terrace edge to almost flat at the eaves, with the corners kicked up.
- * Built as one smooth grid over the eave rectangle (the terrace rectangle left open), plus the
- * thin fascia ribbon that runs round the curved eave line.
+ * The shingle roof, as photographed: a single slope across the pool front only, falling from the
+ * terrace's front edge (x0, z ±zTop) to the eave (x1, z ±zEave). The top edge is the long one, its
+ * corners pointing out past the house on both sides; the ends rake in to the shorter eave.
+ * Returns the slope and the fascia: a ribbon hanging below the eave and along both raked ends.
  */
-function sweptRoof(outer: Rect4, inner: Rect4, yEave: number, yTop: number, flare = 0.16, curve = 1.7) {
-  const [ox0, ox1, oz0, oz1] = outer
-  const [ix0, ix1, iz0, iz1] = inner
-  // Normalised distance out from the terrace edge (0) to the eave (1) along each axis.
-  const along = (v: number, i0: number, i1: number, o0: number, o1: number) => (v < i0 ? (i0 - v) / (i0 - o0) : v > i1 ? (v - i1) / (o1 - i1) : 0)
-  const height = (x: number, z: number) => {
-    const sx = along(x, ix0, ix1, ox0, ox1)
-    const sz = along(z, iz0, iz1, oz0, oz1)
-    const s = Math.max(sx, sz)
-    const sweep = Math.pow(1 - s, curve)
-    const kick = flare * (Math.pow(sx * sz, 3) + 0.25 * Math.pow(s, 8))
-    return yEave + (yTop - yEave) * sweep + kick
+function frontRoof(x0: number, x1: number, zTop: number, zEave: number, yTop: number, yEave: number) {
+  const geo = (pos: number[], uv?: number[]) => {
+    const g = new BufferGeometry()
+    g.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3))
+    if (uv) g.setAttribute('uv', new BufferAttribute(new Float32Array(uv), 2))
+    g.computeVertexNormals()
+    return g
   }
-  const nx = 64
-  const nz = 64
-  const xs = Array.from({ length: nx + 1 }, (_, i) => ox0 + ((ox1 - ox0) * i) / nx)
-  const zs = Array.from({ length: nz + 1 }, (_, j) => oz0 + ((oz1 - oz0) * j) / nz)
-  const pos: number[] = []
-  const uv: number[] = []
-  for (const z of zs)
-    for (const x of xs) {
-      // Snap vertices inside the terrace to its edge height, so the roof meets the terrace slab.
-      pos.push(x, height(x, z), z)
-      uv.push(x / 2, z / 2)
-    }
-  const inside = (x: number, z: number) => x > ix0 + 0.01 && x < ix1 - 0.01 && z > iz0 + 0.01 && z < iz1 - 0.01
-  const index: number[] = []
-  for (let j = 0; j < nz; j++)
-    for (let i = 0; i < nx; i++) {
-      const cx = (xs[i] + xs[i + 1]) / 2
-      const cz = (zs[j] + zs[j + 1]) / 2
-      if (inside(cx, cz)) continue
-      const a = j * (nx + 1) + i
-      const b = a + 1
-      const c = a + nx + 1
-      const d = c + 1
-      index.push(a, c, b, b, c, d)
-    }
-  const top = new BufferGeometry()
-  top.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3))
-  top.setAttribute('uv', new BufferAttribute(new Float32Array(uv), 2))
-  top.setIndex(index)
-  top.computeVertexNormals()
+  const corners = [[x0, yTop, -zTop], [x0, yTop, zTop], [x1, yEave, -zEave], [x1, yEave, -zEave], [x0, yTop, zTop], [x1, yEave, zEave]]
+  const top = geo(corners.flat(), corners.flatMap(([x, , z]) => [x / 2, z / 2]))
 
-  // Fascia: a ribbon hanging 0.16 m below the eave line, all the way round.
-  const ring: [number, number][] = [
-    ...xs.map((x) => [x, oz0] as [number, number]),
-    ...zs.slice(1).map((z) => [ox1, z] as [number, number]),
-    ...xs.slice(0, -1).reverse().map((x) => [x, oz1] as [number, number]),
-    ...zs.slice(1, -1).reverse().map((z) => [ox0, z] as [number, number]),
-  ]
-  const rp: number[] = []
-  const ri: number[] = []
-  ring.forEach(([x, z], n) => {
-    const y = height(x, z)
-    rp.push(x, y + 0.01, z, x, y - 0.16, z)
-    const m = (n + 1) % ring.length
-    ri.push(2 * n, 2 * n + 1, 2 * m, 2 * m, 2 * n + 1, 2 * m + 1)
-  })
-  const edge = new BufferGeometry()
-  edge.setAttribute('position', new BufferAttribute(new Float32Array(rp), 3))
-  edge.setIndex(ri)
-  edge.computeVertexNormals()
+  const drop = yEave - 0.16
+  const quad = (a: number[], b: number[], c: number[], d: number[]) => [a, b, c, c, b, d].flat()
+  const edge = geo([
+    ...quad([x1, yEave + 0.01, -zEave], [x1, drop, -zEave], [x1, yEave + 0.01, zEave], [x1, drop, zEave]),
+    ...[-1, 1].flatMap((s) => quad([x0, yTop + 0.01, s * zTop], [x0, yTop - 0.16, s * zTop], [x1, yEave + 0.01, s * zEave], [x1, drop, s * zEave])),
+  ])
   return { top, edge }
 }
 
@@ -288,14 +242,15 @@ export function buildHouse(ctx: Ctx) {
   for (const z of BAYS) column(ctx, 2.0, z, FF, EAVE + 0.05)
   balustrade(ctx)
 
-  // The roof, as in the drone photograph: a low, straight-sloped hip in charcoal shingles, its
-  // eaves as wide as the floor band below, a charcoal fascia, a timber soffit underneath, and its
-  // flat top the entertainment terrace. Dark timber soffit underneath, as photographed.
-  const outer: Rect4 = [-20.6, 4.2, -12.9, 12.9]
-  const inner: Rect4 = [-15.5, -3.5, -8.8, 8.8]
-  const soffitMat = new MeshStandardMaterial({ color: '#5e4a3a', roughness: 0.9 })
-  k.box(r, inner[1] - inner[0], TERRACE - EAVE, inner[3] - inner[2], soffitMat, (inner[0] + inner[1]) / 2, (EAVE + TERRACE) / 2 - 0.02, 0)
-  const { top, edge } = sweptRoof(outer, inner, EAVE + 0.12, TERRACE, 0, 1)
+  // The roof, as in the drone photograph: the flat top is the entertainment terrace, running out
+  // to the walls on the north, south and west behind a brick parapet with a stone coping; charcoal
+  // shingles slope down across the pool front only, over the balcony: wide at the top, where the
+  // corners point out past the side walls, and raking in to the eave at the outer columns, with a
+  // charcoal fascia and a dark timber soffit underneath.
+  const inner: Rect4 = [-17.5, -3.5, z0 + 0.4, z1 - 0.4]
+  block(ctx, inner[0], inner[1], inner[2], inner[3], EAVE, TERRACE - EAVE, ['n', 's', 'w'])
+  k.box(r, inner[1] - inner[0] + 0.15, 0.14, inner[3] - inner[2] + 0.3, h.sandstone, (inner[0] + inner[1]) / 2 - 0.075, TERRACE - 0.07, 0)
+  const { top, edge } = frontRoof(inner[1], 4.2, inner[3] + 2.2, 10.9, TERRACE, EAVE + 0.12)
   const roof = new Mesh(top, h.shingles(1, 1))
   roof.castShadow = roof.receiveShadow = true
   r.add(roof)
@@ -363,7 +318,7 @@ function glassRail(ctx: Ctx, [x0, x1, z0, z1]: [number, number, number, number],
 
 /**
  * The entertainment terrace on the roof: the round alang-alang thatched bar over a river-stone
- * counter with a stone arch back-bar, sunken bonfire seating opposite, the glazed gaming and
+ * counter with a stone arch back-bar, the glazed gaming and
  * home-theatre room, the stone-clad lift and stair core and the water-tank frame.
  */
 function buildTerrace(ctx: Ctx, [x0, x1, z0, z1]: [number, number, number, number]) {
@@ -410,26 +365,10 @@ function buildTerrace(ctx: Ctx, [x0, x1, z0, z1]: [number, number, number, numbe
   }
   // Dark glazed pots with plants along the glass rail.
   const pot = new MeshStandardMaterial({ color: '#3a3532', roughness: 0.5 })
-  for (const [px, pz] of [[x1 - 0.5, 7.6], [x1 - 0.5, 4.0], [x0 + 3.6, 8.2], [x1 - 0.5, -7.8], [x0 + 6, -8.2], [-11.0, -8.2]] as const) {
+  for (const [px, pz] of [[x1 - 0.5, 7.6], [x1 - 0.5, 4.0], [-11.9, z1 - 0.6], [x1 - 0.5, -7.8], [-9.5, z0 + 0.6], [-13.0, z0 + 0.6]] as const) {
     k.cyl(r, 0.28, 0.2, 0.6, pot, px, y + 0.3, pz, 16)
     k.blob(r, 0.32, k.m.leaf, px, y + 0.85, pz, 0.8)
   }
-
-  // Sunken bonfire seating opposite the bar.
-  const [fx, fz] = [-6.4, -6.2]
-  const ring = new Mesh(new TorusGeometry(1.3, 0.3, 10, 40), h.river(3, 1))
-  ring.rotation.x = PI / 2
-  ring.scale.z = 0.7
-  ring.position.set(fx, y + 0.2, fz)
-  ring.castShadow = ring.receiveShadow = true
-  r.add(ring)
-  const cushion = new Mesh(new TorusGeometry(1.3, 0.2, 8, 40), k.m.outdoor)
-  cushion.rotation.x = PI / 2
-  cushion.scale.z = 0.35
-  cushion.position.set(fx, y + 0.44, fz)
-  r.add(cushion)
-  k.cyl(r, 0.4, 0.3, 0.35, h.steel, fx, y + 0.175, fz, 24)
-  k.cyl(r, 0.34, 0.34, 0.02, h.fire, fx, y + 0.36, fz, 24)
 
   // Gaming & home theatre across the back of the terrace: sliding glass doors with curtains between
   // brick piers, under a white scalloped awning, a taller cream wall above.
@@ -491,7 +430,7 @@ function buildSteelStair(ctx: Ctx, terrace: [number, number, number, number]) {
   const rail = k.cyl(r, 0.035, 0.035, Math.hypot(run, TERRACE - FF), k.m.teak, x - 0.62, (FF + TERRACE) / 2 + 0.95, z0 + run / 2, 10)
   rail.rotation.x = PI / 2 - ang
   for (let i = 0; i <= steps; i += 4) k.cyl(r, 0.012, 0.012, 0.95, h.steel, x - 0.62, FF + i * rise + 0.48, z0 + i * going, 6)
-  // Bridge over the west eave onto the terrace.
+  // Bridge across onto the terrace.
   const zb = z0 + run + 0.6
   const len = terrace[0] - (x - 0.6)
   k.box(r, len, 0.08, 1.4, h.steel, x - 0.6 + len / 2, TERRACE + 0.02, zb)

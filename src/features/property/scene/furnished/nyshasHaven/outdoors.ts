@@ -319,6 +319,6 @@ function buildLights(ctx: Ctx) {
     k.box(k.root, 0.145, 0.1, 0.145, h.lamp, x, y + 0.6, z, false)
   }
   for (let x = -16; x <= 0; x += 4) bollard(x, -15.8, UPPER)
-  for (let x = 22; x <= 44; x += 5.5) bollard(x, -13, LAWN)
+  for (let x = 33; x <= 44; x += 5.5) bollard(x, -13, LAWN)
   for (let z = -6; z <= 8; z += 7) bollard(44.8, z, LAWN)
 }

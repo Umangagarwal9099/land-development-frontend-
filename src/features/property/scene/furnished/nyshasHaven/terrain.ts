@@ -3,7 +3,7 @@ import { PI, type Kit } from '../kit'
 import { levelKit, paintedMat } from '../shared'
 import { palmFrond } from './paints'
 import {
-  BASE, BOULDER_DECK, PEBBLE_T, ROAD, KIDS_POOL, LAKE_BED, SPA, LAKE_WATER, LAWN, PLOT, POOL, POOL_T, SHORE, SOUTH_SIDE, SUNKEN, UPPER, WALL_X, WATER_LEVEL, WEIR, SOUTH_END,
+  BAMBOO_BAR, BASE, BOULDER_DECK, PEBBLE_T, ROAD, KIDS_POOL, LAKE_BED, SPA, LAKE_WATER, LAWN, PLOT, POOL, POOL_T, SHORE, SOUTH_SIDE, SUNKEN, UPPER, WALL_X, WATER_LEVEL, WEIR, SOUTH_END,
   type Ctx, type Rect,
 } from './layout'
 
@@ -54,6 +54,27 @@ const waterSurface = (ctx: Ctx, [x0, x1, z0, z1]: Rect, y: number) =>
  * cutting into its upper side.
  */
 const FAN = { x: WALL_X, z: 11.6, inner: 0.7, outer: 7.0, n: 10, span: 1.25 }
+
+/**
+ * The north walk east of the pool wall: its centre line and half-width at `x`. Toward the road it
+ * widens into the forecourt behind the entrance.
+ */
+const walkCentre = (x: number) => -16.4 + 2.2 * Math.sin(((x - WALL_X) / (PLOT.x1 - WALL_X)) * PI * 1.4)
+const walkHalf = (x: number) => {
+  const t = Math.min(Math.max((x - 36) / 6, 0), 1)
+  return 3.2 + 0.9 * Math.cos(x * 0.21) + Math.max(0, 22 - x) * 0.4 + t * t * (3 - 2 * t)
+}
+/**
+ * The climb from the lawn to the pool terrace, as photographed: five curved steps concentric with
+ * the medallion at their head, a landing beside the bamboo bar, then four long wedge-shaped treads
+ * fanning from a point by the bar's planting, narrow on the lawn side and broad under the trees.
+ */
+const CLIMB = { x: 13.6, z: -17.0, inner: 4.6, outer: 9.1, n: 5, pivot: { x: 28.2, z: -8.6 }, rays: [-0.44, -0.22, 0, 0.22, 0.44] }
+const RISE = (POOL_T - LAWN) / (CLIMB.n + 1 + CLIMB.rays.length)
+const LANDING = LAWN + CLIMB.rays.length * RISE
+
+/** The entrance from the road: the gap in the east wall, as wide as the walk where it meets it. */
+const ENTRANCE = { z0: walkCentre(PLOT.x1) - walkHalf(PLOT.x1), z1: walkCentre(PLOT.x1) + walkHalf(PLOT.x1) }
 
 export function buildTerrain(ctx: Ctx) {
   const { k, h } = ctx
@@ -134,19 +155,18 @@ function buildPaths(ctx: Ctx) {
     k.box(k.root, r[1] - r[0], t, r[3] - r[2], mat(r[1] - r[0], r[3] - r[2]), (r[0] + r[1]) / 2, y + t / 2, (r[2] + r[3]) / 2, false)
 
   // The wide paved walk along the north side, in pale grey stone slabs: from the arched gate past
-  // the house, across a round pebble-mosaic medallion, down broad curved steps beside the pool, then
-  // winding east the length of the lawn between planted beds.
+  // the house, across a round pebble-mosaic medallion at the head of the curved steps beside the
+  // pool, down past the bamboo bar, then winding east the length of the lawn between planted beds.
   slab([PLOT.x0, 3, -21.5, -16], UPPER, h.deckStone)
   slab([-20.6, -18.6, -16, 12.6], UPPER, h.paving)
   slab([3, WALL_X, -22, -12], POOL_T, h.flagstone)
-  const medallion = k.at(11.2, -16.4, 0, POOL_T + 0.05)
+  const medallion = k.at(CLIMB.x, CLIMB.z, 0, POOL_T + 0.05)
   k.cyl(medallion, 2.5, 2.5, 0.03, h.baseStone, 0, 0, 0, 48)
   k.cyl(medallion, 2.2, 2.2, 0.04, h.pebbles(4.4, 4.4), 0, 0.01, 0, 48)
   k.cyl(medallion, 0.9, 0.9, 0.05, h.baseStone, 0, 0.01, 0, 32)
   // Concentric rings of dark stone set into the mosaic.
   for (const rr of [1.3, 1.75]) k.mesh(new TorusGeometry(rr, 0.05, 4, 48), h.baseStone, medallion, 0, 0.03, 0, false).rotation.x = PI / 2
-  const centre = (x: number) => -16.4 + 2.2 * Math.sin(((x - WALL_X) / (PLOT.x1 - WALL_X)) * PI * 1.4)
-  const half = (x: number) => 3.2 + 0.9 * Math.cos(x * 0.21) + Math.max(0, 22 - x) * 0.4
+  const [centre, half] = [walkCentre, walkHalf]
   const xs = Array.from({ length: 40 }, (_, i) => WALL_X + ((PLOT.x1 - WALL_X) * i) / 39)
   const walk = new Shape()
   walk.moveTo(xs[0], -(centre(xs[0]) - half(xs[0])))
@@ -167,7 +187,52 @@ function buildPaths(ctx: Ctx) {
       const kerb = k.box(k.root, Math.hypot(xb - xa, zb - za), 0.16, 0.14, k.m.basalt, (xa + xb) / 2, LAWN + 0.08, (za + zb) / 2)
       kerb.rotation.y = -Math.atan2(zb - za, xb - xa)
     }
-  steps(ctx, 12.4, -17.6, 7.0, 7, 0, PI)
+  // The climb beside the pool. The terrace swells out in a round apron under the medallion; the
+  // curved steps fall from it to the landing, and the wedge treads carry the walk on down to the lawn.
+  const paving = h.flagstone(1, 1)
+  k.mesh(new CylinderGeometry(CLIMB.inner, CLIMB.inner, POOL_T + 0.05 - LAWN, 64, 1, false, 0, PI), [h.graniteRiser, h.flagstone(2 * CLIMB.inner, 2 * CLIMB.inner), h.granite], k.root, CLIMB.x, (POOL_T + 0.05 + LAWN) / 2, CLIMB.z, false).receiveShadow = true
+  steps(ctx)
+  type Pt = [x: number, z: number]
+  const north = (x: number) => centre(x) - half(x)
+  const south = (x: number) => centre(x) + half(x)
+  const raised = (pts: Pt[], top: number) => {
+    const outline = new Shape()
+    pts.forEach(([x, z], i) => (i ? outline.lineTo(x, -z) : outline.moveTo(x, -z)))
+    const geo = new ExtrudeGeometry(outline, { depth: top - LAWN, bevelEnabled: false })
+    geo.rotateX(-PI / 2)
+    k.mesh(geo, [paving, h.graniteRiser], k.root, 0, LAWN, 0).receiveShadow = true
+  }
+  // Where a riser line from the pivot crosses an edge of the walk.
+  const hit = (phi: number, edge: (x: number) => number): Pt => {
+    const { x: px, z: pz } = CLIMB.pivot
+    for (let t = 0; t < 16; t += 0.02) {
+      const [x, z] = [px + t * Math.sin(phi), pz - t * Math.cos(phi)]
+      if (z <= edge(x)) return [x, z]
+    }
+    return [px, pz]
+  }
+  const along = (edge: (x: number) => number, xa: number, xb: number): Pt[] => {
+    const n = Math.max(Math.round(Math.abs(xb - xa) / 0.4), 1)
+    return Array.from({ length: n - 1 }, (_, i) => xa + ((xb - xa) * (i + 1)) / n).map((x) => [x, edge(x)])
+  }
+  const nosing = new MeshStandardMaterial({ color: '#55544f', roughness: 0.8 })
+  const lines: { s: Pt; n: Pt }[] = [{ s: [WALL_X, south(WALL_X)], n: [WALL_X, north(WALL_X)] }, ...CLIMB.rays.map((phi) => ({ s: hit(phi, south), n: hit(phi, north) }))]
+  for (let j = 0; j < lines.length - 1; j++) {
+    const [a, b] = [lines[j], lines[j + 1]]
+    const top = LAWN + RISE * (CLIMB.rays.length - j)
+    raised([a.s, a.n, ...along(north, a.n[0], b.n[0]), b.n, b.s, ...along(south, b.s[0], a.s[0])], top)
+    // The dark line at the tread's lower edge.
+    const [dx, dz] = [b.n[0] - b.s[0], b.n[1] - b.s[1]]
+    const line = k.box(k.root, Math.hypot(dx, dz), 0.012, 0.05, nosing, (b.s[0] + b.n[0]) / 2, top + 0.006, (b.s[1] + b.n[1]) / 2, false)
+    line.rotation.y = -Math.atan2(dz, dx)
+  }
+  // Shrubs closing the north end of the curved steps, and the big white urn standing there.
+  for (let i = 0; i < 7; i++) {
+    const a = 0.55 + i * 0.09
+    const rr = CLIMB.outer + 0.5 + (i % 2) * 0.7
+    k.blob(k.root, 0.65 + (i % 3) * 0.15, i % 2 ? k.m.sage : k.m.leaf, CLIMB.x + rr * Math.cos(a), LAWN + 0.6, CLIMB.z - rr * Math.sin(a), 0.85)
+  }
+  urn(ctx, 22.2, LANDING, -20.6, 1.1)
   // Between walk and lawn, as photographed: a curving planted border with a dark steel edging on the
   // lawn side, thick with palms, broad-leaved plants and shrubs, dark glazed urns, and small white
   // lantern posts along the walk's edge.
@@ -177,8 +242,8 @@ function buildPaths(ctx: Ctx) {
   const lanternWhite = new MeshStandardMaterial({ color: '#e9e6df', roughness: 0.6 })
   for (let i = 0; i < xs.length - 1; i++) {
     const [xa, xb] = [xs[i], xs[i + 1]]
-    if (xa < 24) continue
     const [za, zb] = [centre(xa) + half(xa), centre(xb) + half(xb)]
+    if (xa < 24 || Math.hypot(xa - BAMBOO_BAR.x, za + 0.9 - BAMBOO_BAR.z) < BAMBOO_BAR.r + 0.9) continue
     const len = Math.hypot(xb - xa, zb - za)
     const ang = -Math.atan2(zb - za, xb - xa)
     const strip = k.box(k.root, len + 0.05, 0.04, 1.8, soil, (xa + xb) / 2, LAWN + 0.02, (za + zb) / 2 + 0.9, false)
@@ -199,17 +264,35 @@ function buildPaths(ctx: Ctx) {
       u.scale.y = 1.4
     }
   }
-  // At the east end the walk opens into a paved forecourt behind the east wall, with benches, and a
-  // round planted island bulges into the walk from the trees.
-  slab([36.5, PLOT.x1 - 0.2, -25.6, -10.6], LAWN, h.flagstone, 0.04)
-  for (const z of [-22, -18.5]) {
-    k.box(k.root, 0.5, 0.45, 1.8, h.concrete, PLOT.x1 - 1.4, LAWN + 0.27, z)
-    k.box(k.root, 0.08, 0.5, 1.8, h.concrete, PLOT.x1 - 1.1, LAWN + 0.7, z)
+  // The entrance forecourt, as photographed from the road: the walk runs in wide between the
+  // planted border and the trees; a round planted bay edged in dark steel bulges into it from the
+  // north, thick with orange-flowering shrubs round a palm; two dark daybeds stand along the north
+  // edge just inside the wall, and small stone figures sit along the border opposite.
+  const bloom = new MeshStandardMaterial({ color: '#e0662c', roughness: 0.8, flatShading: true })
+  const [bayX, bayR] = [34, 2.6]
+  const bayZ = centre(bayX) - half(bayX) - 0.6
+  const bay = k.at(bayX, bayZ, 0, LAWN)
+  k.cyl(bay, bayR, bayR, 0.22, h.steel, 0, 0.11, 0, 48)
+  k.cyl(bay, bayR - 0.05, bayR - 0.05, 0.24, soil, 0, 0.12, 0, 48)
+  for (let i = 0; i < 12; i++) {
+    const [a, rr] = [i * 2.4, 0.7 + (i % 3) * 0.6]
+    k.blob(bay, 0.5 + (i % 2) * 0.15, i % 3 ? k.m.leaf : broad, Math.cos(a) * rr, 0.55, Math.sin(a) * rr, 0.8)
+    k.blob(bay, 0.16, bloom, Math.cos(a + 0.5) * (rr + 0.2), 0.95, Math.sin(a + 0.5) * (rr + 0.2), 0.8)
   }
-  const island = k.at(31.5, -23.6, 0, LAWN)
-  k.cyl(island, 3.0, 3.0, 0.22, k.m.basalt, 0, 0.11, 0, 40)
-  k.cyl(island, 2.85, 2.85, 0.24, h.grass(6, 6), 0, 0.12, 0, 40)
-  for (let i = 0; i < 9; i++) k.blob(island, 0.55, k.m.leaf, Math.cos(i * 0.7) * 1.8, 0.5, Math.sin(i * 0.7) * 1.8, 0.8)
+  palm(ctx, levelKit(k, LAWN), bayX + 0.6, bayZ - 0.4, 5.6)
+  const daybedFrame = new MeshStandardMaterial({ color: '#46464a', roughness: 0.7 })
+  const daybedPad = new MeshStandardMaterial({ color: '#77777c', roughness: 0.9 })
+  for (const x of [39.4, 42.4]) {
+    const bed = k.at(x, centre(x) - half(x) + 0.95, 0, LAWN + 0.04)
+    k.box(bed, 2.0, 0.26, 0.85, daybedFrame, 0, 0.13, 0)
+    k.soft(bed, 1.5, 0.08, 0.75, 0.03, daybedPad, 0.2, 0.3, 0)
+    k.box(bed, 0.42, 0.1, 0.85, daybedFrame, -0.79, 0.31, 0)
+  }
+  for (const [i, x] of [37.6, 39.0, 40.6, 42.2].entries()) {
+    const fig = k.at(x, centre(x) + half(x) - 0.4, i * 1.3, LAWN + 0.04)
+    k.blob(fig, 0.17, h.baseStone, 0, 0.14, 0, 0.85)
+    k.sphere(fig, 0.1, h.baseStone, 0.1, 0.3, 0)
+  }
 
   // Steps from the verandah down to the pool deck.
   for (const [x, top] of [[2.75, 3.25], [3.05, 3.05]] as const) k.box(k.root, 0.3, top - BASE, 25.2, k.m.basalt, x, (top + BASE) / 2, 0, false)
@@ -255,7 +338,7 @@ function buildPaths(ctx: Ctx) {
   bonsai(19.8, 1.4, 1.2)
   bonsai(18.6, 6.6, 0.8)
   // Big distressed white urns, as photographed beside the steps, the hall and on the lawn.
-  for (const [x, z, y, s] of [[24.9, 11.0, LAWN, 1.0], [15.0, 10.4, POOL_T, 0.9], [30.5, 9.0, LAWN, 0.9], [23.4, 6.8, LAWN, 0.8], [26.6, -9.0, LAWN, 0.9]] as const) urn(ctx, x, y, z, s)
+  for (const [x, z, y, s] of [[24.9, 11.0, LAWN, 1.0], [15.0, 10.4, POOL_T, 0.9], [30.5, 9.0, LAWN, 0.9], [23.4, 6.8, LAWN, 0.8]] as const) urn(ctx, x, y, z, s)
 
   // The dining strip between lawn and court: crackle-finish paving retained above the lawn by a
   // stone wall overgrown with creepers, a long row of rattan dining sets, and garden lights.
@@ -327,18 +410,20 @@ function urn(ctx: Ctx, x: number, y: number, z: number, s: number) {
 }
 
 /**
- * Curved stone steps down from the pool terrace to the lawn: concentric treads of pale grey stone
- * with darker risers, spanning `start`..`start + span` (radians from +z towards +x), outermost lowest.
+ * The curved steps from the landing up to the pool terrace: concentric treads of grey stone with
+ * darker risers and a dark line at each nosing, bowing east round the medallion, outermost lowest.
  */
-function steps(ctx: Ctx, cx: number, cz: number, outer: number, n: number, start: number, span: number) {
+function steps(ctx: Ctx) {
   const { k, h } = ctx
-  const rise = (POOL_T - LAWN) / (n + 1)
-  const inner = outer * 0.3
+  const { x: cx, z: cz, inner, outer, n } = CLIMB
+  const nosing = new MeshStandardMaterial({ color: '#55544f', roughness: 0.8 })
   for (let i = 0; i < n; i++) {
     const r = outer - (i * (outer - inner)) / n
-    const top = LAWN + rise * (i + 1)
-    const step = k.mesh(new CylinderGeometry(r, r, top - LAWN + 0.02, 48, 1, false, start, span), [h.baseStone, h.paleStone, h.paleStone], k.root, cx, (top + LAWN) / 2 - 0.01, cz, false)
+    const top = LANDING + RISE * (i + 1)
+    const step = k.mesh(new CylinderGeometry(r, r, top - LAWN, 64, 1, false, 0, PI), [h.graniteRiser, h.granite, h.granite], k.root, cx, (top + LAWN) / 2, cz, false)
     step.receiveShadow = true
+    const line = k.mesh(new TorusGeometry(r - 0.03, 0.018, 4, 64, PI), nosing, k.root, cx, top + 0.005, cz, false)
+    line.rotation.set(-PI / 2, 0, -PI / 2)
   }
 }
 
@@ -364,14 +449,18 @@ function buildBoundaries(ctx: Ctx) {
   // South: straight behind the arcade and the court's mural wall.
   for (const [a, b, y] of [[PLOT.x0, 3, UPPER], [3, PLOT.x1, LAWN]] as const) wall(a, b, SOUTH_END - 0.15, SOUTH_END + 0.15, y, 3.0)
 
-  // East, on the road: a low white wall carrying a bronze lattice grille in front of the lawn and the
-  // walk, with red cordylines planted along its foot.
+  // East, on the road, as photographed: the entrance is an open gap where the walk runs out to the
+  // road. North of it a tall white wall stands before the trees; south of it a low white wall
+  // carries the bronze lattice grille in front of the lawn. A white planter runs along the road at
+  // the foot of each.
   const x = PLOT.x1
-  const [ga0, ga1] = [-26.4, SOUTH_END]
-  wall(x - 0.2, x + 0.2, PLOT.z0, SOUTH_END, LAWN, 0.7)
+  const road = LAWN - 0.2
+  const { z0: g0, z1: g1 } = ENTRANCE
+  wall(x - 0.2, x + 0.2, PLOT.z0, g0, road, 2.6)
+  wall(x - 0.2, x + 0.2, g1, SOUTH_END, road, 0.9)
   const bronze = new MeshStandardMaterial({ color: '#4a3a2c', metalness: 0.5, roughness: 0.5 })
   const panel = 2.4
-  for (let z = ga0; z + panel < ga1 + 0.05; z += panel) {
+  for (let z = g1; z + panel < SOUTH_END + 0.05; z += panel) {
     const zc = z + panel / 2
     const y0 = LAWN + 0.7
     const H = 2.1
@@ -387,14 +476,37 @@ function buildBoundaries(ctx: Ctx) {
     k.box(k.root, 0.05, 0.05, panel, bronze, x, y0 + H / 2, zc)
   }
   const cordyline = new MeshStandardMaterial({ color: '#8c2335', roughness: 0.8, flatShading: true })
-  for (let z = ga0 + 0.6; z < ga1; z += 0.9) {
+  for (let z = g1 + 0.6; z < SOUTH_END; z += 0.9) {
     k.blob(k.root, 0.42, (Math.round(z * 10) % 3 === 0 ? k.m.leaf : cordyline), x - 0.9, LAWN + 0.45, z, 0.9)
   }
+  // The roadside planters: white boxes of dark soil. Red cordylines and greens before the lattice;
+  // clipped round shrubs before the tall wall, a slim conifer at the corner by the entrance.
+  const soil = new MeshStandardMaterial({ color: '#3b3127', roughness: 1 })
+  const planter = (za: number, zb: number, ht: number) => {
+    const [d, zc] = [zb - za, (za + zb) / 2]
+    k.box(k.root, 1.2, ht, d, h.cream(d, ht), x + 0.8, road + ht / 2, zc)
+    k.box(k.root, 1.0, 0.02, d - 0.2, soil, x + 0.8, road + ht + 0.01, zc, false)
+    return road + ht
+  }
+  const southTop = planter(g1, SOUTH_END, 0.55)
+  for (let z = g1 + 0.5; z < SOUTH_END - 0.3; z += 0.75) {
+    const red = Math.round(z * 7) % 3 !== 0
+    k.blob(k.root, red ? 0.34 : 0.4, red ? cordyline : k.m.leaf, x + 0.8 + Math.sin(z * 3) * 0.15, southTop + 0.28, z, 0.85)
+  }
+  const northTop = planter(PLOT.z0, g0, 0.6)
+  for (let z = g0 - 2.6; z > PLOT.z0 + 0.8; z -= 3.4) k.blob(k.root, 0.85, k.m.leaf, x + 0.85, northTop + 0.7, z, 0.95)
+  for (let z = g0 - 1.2; z > PLOT.z0 + 0.5; z -= 1.7) k.blob(k.root, 0.3, k.m.sage, x + 1.0, northTop + 0.22, z, 0.8)
+  k.cyl(k.root, 0.03, 0.42, 2.6, k.m.leaf, x + 0.8, northTop + 1.3, g0 - 0.5, 10)
 
-  // The road outside the east wall, with a kerb.
+  // The road outside the east wall, its kerb broken at the entrance, where the walk's paving
+  // ramps down across it.
   const [rx0, rx1, rz0, rz1] = ROAD
   k.box(k.root, rx1 - rx0, 0.06, rz1 - rz0, h.concrete, (rx0 + rx1) / 2, LAWN - 0.17, (rz0 + rz1) / 2, false)
-  k.box(k.root, 0.3, 0.2, rz1 - rz0, h.paleStone, rx0 + 0.45, LAWN - 0.1, (rz0 + rz1) / 2)
+  for (const [a, b] of [[rz0, g0], [g1, rz1]]) k.box(k.root, 0.3, 0.2, b - a, h.paleStone, rx0 + 0.45, LAWN - 0.1, (a + b) / 2)
+  const [run, drop] = [2.4, 0.18]
+  const apron = k.box(k.root, Math.hypot(run, drop), 0.06, g1 - g0, h.flagstone(run, g1 - g0), x - 0.2 + run / 2, LAWN + 0.045 - drop / 2 - 0.03, (g0 + g1) / 2, false)
+  apron.rotation.z = -Math.atan2(drop, run)
+  apron.receiveShadow = true
 }
 
 function buildShore(ctx: Ctx) {
@@ -488,7 +600,7 @@ function buildPlanting(ctx: Ctx) {
   }
   for (let x = -14; x <= 44; x += 7.3) palm(ctx, at(x), x, -23.8 + ((x * 5) % 3) * 0.3, 6.5 + ((x * 3) % 3))
   // Palms and shrubs along the south edge of the walk, beside the lawn.
-  for (const x of [26, 31.5, 37, 42.5]) palm(ctx, lawn, x, -12.2, 5.2)
+  for (const x of [27.6, 31.5, 37, 42.5]) palm(ctx, lawn, x, walkCentre(x) + walkHalf(x) + 0.6, 5.2)
   for (const [x, z] of [[4.2, 9.8], [16.4, -12.8], [12.6, 10.0]] as const) palm(ctx, pool, x, z, 4.8)
   for (const [x, z] of [[27.5, -4.4], [40, 6.8], [43.4, -3]] as const) palm(ctx, lawn, x, z, 4.0)
   // A row of palms between the court's jali wall and the gravel deck.

@@ -41,7 +41,7 @@ export const GF = UPPER + 0.45
 /** Ground-floor walls run up to the deep cream floor band; the first floor sits on top of it. */
 export const BAND = GF + 3.6
 export const FF = BAND + 0.8
-/** The first-floor roof is a low shingle hip whose flat top is the entertainment terrace. */
+/** The first-floor roof is the flat entertainment terrace, with a shingle slope across the pool front. */
 export const EAVE = FF + 3.6
 export const TERRACE = EAVE + 1.6
 /** The pool front is 24 m across: four teak columns in three 7 m bays. */
@@ -52,7 +52,7 @@ export const PLOT = { x0: -24, x1: 46, z0: -31, z1: 37 }
 
 /** South of this line the court, deck and arcade side of the site begins. */
 export const SOUTH_SIDE = 14.6
-export const ARCADE: Rect = [-16, 0, 13.2, 27]
+export const ARCADE: Rect = [-16, 0, 15.6, 29.4]
 export const COURT: Rect = [3, 39, 15.2, 26.6]
 /** Past the dining strip's east end: the raised, fenced yard with the transformer and generator. */
 export const TRANSFORMER: Rect = [39.9, 45.5, 9.6, 14.8]
@@ -68,7 +68,8 @@ export const PEBBLE_T = LAWN + 0.5
 export const THATCH_HALL: Rect = [3.4, 15.6, 10.9, 14.3]
 /** Outside the east wall: the paved road along the plot's frontage, ending with the south wall. */
 export const ROAD: Rect = [46, 54, -40, SOUTH_END + 0.15]
-export const BAMBOO_BAR = { x: 22.0, z: -5.4, r: 2.9 }
+/** The round bamboo bar stands on the lawn against the walk, beside the landing below the curved steps. */
+export const BAMBOO_BAR = { x: 23.6, z: -8.4, r: 2.9 }
 
 export type Rect = [x0: number, x1: number, z0: number, z1: number]
 

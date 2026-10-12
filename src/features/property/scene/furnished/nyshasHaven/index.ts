@@ -16,7 +16,7 @@ import { buildTerrain } from './terrain'
  */
 
 /** Site extent (plan metres): the plot, its margins and a reach of the lake. */
-export const SITE = { minX: -28, maxX: 82, minZ: -35, maxZ: 29 }
+export const SITE = { minX: -28, maxX: 82, minZ: -35, maxZ: 31.4 }
 
 type Zone = [x0: number, x1: number, z0: number, z1: number]
 
@@ -30,7 +30,7 @@ const BAR: Zone = [bx - br, bx + br, bz - br, bz + br]
 const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[]; view?: 'overview' | 'eye' }> = {
   amenity_arrival: { y: UPPER, height: 6, zones: [[PLOT.x0, 3, -21.5, -16], [-20.6, -18.6, -16, 12.6]], view: 'overview' },
   amenity_residence: { y: GF, height: 13.5, zones: [[-18.6, 3.2, -12.6, 12.6], [-12, -5, -15.6, -12.6]], view: 'overview' },
-  amenity_terrace: { y: TERRACE, height: 4.6, zones: [[-15.5, -3.5, -8.8, 8.8]], view: 'overview' },
+  amenity_terrace: { y: TERRACE, height: 4.6, zones: [[-17.5, -3.5, -11.6, 11.6]], view: 'overview' },
   amenity_pool: { y: POOL_T, height: 4, zones: [[3.2, 17.2, -12, 10.4], THATCH_HALL] },
   amenity_lawn: { y: LAWN, height: 9, zones: [[17.2, 46, -14, BAR[2]], [17.2, BAR[0], BAR[2], BAR[3]], [BAR[1], 46, BAR[2], BAR[3]], [17.2, 46, BAR[3], 9.0]] },
   amenity_bamboobar: { y: LAWN, height: 5.4, zones: [BAR], view: 'eye' },
