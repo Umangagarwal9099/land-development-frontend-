@@ -1,4 +1,4 @@
-import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture } from 'three'
+import { CanvasTexture, DataTexture, RGBAFormat, RepeatWrapping, SRGBColorSpace, type Texture } from 'three'
 
 // Finishes are painted on canvases at load time, so the design model needs no texture downloads
 // (the kiosk runs offline). Each canvas is uploaded once; repeats are clones sharing its source.
@@ -345,6 +345,7 @@ export type Finish = keyof typeof PAINTERS
 /** Paints each finish once and hands out repeat-adjusted clones that share the uploaded image. */
 export class TextureLibrary {
   private base = new Map<string, Texture>()
+  private relief = new Map<string, Texture>()
 
   finish(name: Finish, repeatX = 1, repeatY = 1): Texture {
     let t = this.base.get(name)
@@ -360,6 +361,73 @@ export class TextureLibrary {
 
   painted(w: number, h: number, paint: Paint): Texture {
     return this.make(canvas(w, h, paint))
+  }
+
+  /** A repeat-matched tangent-space normal map derived from the finish's painted height detail. */
+  normalFinish(name: Finish, repeatX = 1, repeatY = 1): Texture {
+    let source = this.base.get(name)
+    if (!source) {
+      const [w, h, paint] = PAINTERS[name]
+      source = this.make(canvas(w, h, paint))
+      this.base.set(name, source)
+    }
+    return this.normalTexture(name, source.image as HTMLCanvasElement, repeatX, repeatY)
+  }
+
+  /** Relief companion for a bespoke painted surface, cached by its material name. */
+  normalPainted(name: string, w: number, h: number, paint: Paint, repeatX = 1, repeatY = 1): Texture {
+    let source = this.relief.get(name)
+    if (!source) {
+      source = this.makeNormal(canvas(w, h, paint))
+      this.relief.set(name, source)
+    }
+    const clone = source.clone()
+    clone.repeat.set(repeatX, repeatY)
+    return clone
+  }
+
+  private normalTexture(name: string, source: HTMLCanvasElement, repeatX: number, repeatY: number): Texture {
+    let base = this.relief.get(name)
+    if (!base) {
+      base = this.makeNormal(source)
+      this.relief.set(name, base)
+    }
+    const clone = base.clone()
+    clone.repeat.set(repeatX, repeatY)
+    return clone
+  }
+
+  private makeNormal(source: HTMLCanvasElement): Texture {
+    const { width, height } = source
+    const pixels = source.getContext('2d')!.getImageData(0, 0, width, height).data
+    const luminance = (x: number, y: number) => {
+      const i = (y * width + x) * 4
+      return (pixels[i] * 0.2126 + pixels[i + 1] * 0.7152 + pixels[i + 2] * 0.0722) / 255
+    }
+    const data = new Uint8Array(width * height * 4)
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) {
+        const dx = (luminance((x + 1) % width, y) - luminance((x + width - 1) % width, y)) * 2.2
+        const dy = (luminance(x, (y + 1) % height) - luminance(x, (y + height - 1) % height)) * 2.2
+        let nx = -dx
+        let ny = -dy
+        let nz = 1
+        const length = Math.hypot(nx, ny, nz)
+        nx /= length
+        ny /= length
+        nz /= length
+        const i = (y * width + x) * 4
+        data[i] = Math.round((nx * 0.5 + 0.5) * 255)
+        data[i + 1] = Math.round((ny * 0.5 + 0.5) * 255)
+        data[i + 2] = Math.round((nz * 0.5 + 0.5) * 255)
+        data[i + 3] = 255
+      }
+    const texture = new DataTexture(data, width, height, RGBAFormat)
+    texture.flipY = true
+    texture.wrapS = texture.wrapT = RepeatWrapping
+    texture.anisotropy = 8
+    texture.needsUpdate = true
+    return texture
   }
 
   private make(c: HTMLCanvasElement): Texture {

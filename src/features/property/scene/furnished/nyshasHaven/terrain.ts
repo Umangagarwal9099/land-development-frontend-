@@ -1,7 +1,8 @@
-import { CylinderGeometry, DoubleSide, ExtrudeGeometry, Mesh, MeshStandardMaterial, PlaneGeometry, Shape, ShapeGeometry, TorusGeometry, type Material } from 'three'
+import { BufferGeometry, Color, CylinderGeometry, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, InstancedMesh, Mesh, MeshStandardMaterial, Object3D, PlaneGeometry, Shape, ShapeGeometry, TorusGeometry, type Material } from 'three'
 import { PI, type Kit } from '../kit'
 import { levelKit, paintedMat } from '../shared'
 import { palmFrond } from './paints'
+import { rng } from '../textures'
 import {
   BAMBOO_BAR, BASE, BOULDER_DECK, PEBBLE_T, ROAD, KIDS_POOL, LAKE_BED, SPA, LAKE_WATER, LAWN, PLOT, POOL, POOL_T, SHORE, SOUTH_SIDE, SUNKEN, UPPER, WALL_X, WATER_LEVEL, WEIR, SOUTH_END,
   type Ctx, type Rect,
@@ -47,6 +48,59 @@ function pit(ctx: Ctx, [x0, x1, z0, z1]: Rect, floor: number, rim: number, linin
 
 const waterSurface = (ctx: Ctx, [x0, x1, z0, z1]: Rect, y: number) =>
   ctx.k.box(ctx.k.root, x1 - x0, 0.02, z1 - z0, ctx.h.water, (x0 + x1) / 2, y - 0.01, (z0 + z1) / 2, false)
+
+/** Fine, short grass blades to break up the perfectly flat lawn at close range. */
+function lawnBlades(lawn: Kit) {
+  const positions: number[] = []
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * PI * 2
+    const dx = Math.cos(a)
+    const dz = Math.sin(a)
+    const px = -dz
+    const pz = dx
+    const width = 0.14 + (i % 3) * 0.018
+    const baseL = [-px * width / 2, 0, -pz * width / 2]
+    const baseR = [px * width / 2, 0, pz * width / 2]
+    const mid = [dx * 0.08 + px * 0.025, 0.55, dz * 0.08 + pz * 0.025]
+    const tip = [dx * 0.2, 1, dz * 0.2]
+    positions.push(...baseL, ...baseR, ...mid, ...baseR, ...tip, ...mid)
+  }
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+  geometry.computeVertexNormals()
+  const material = new MeshStandardMaterial({ color: '#ffffff', roughness: 0.96, side: DoubleSide })
+  const count = 6200
+  const grass = new InstancedMesh(geometry, material, count)
+  grass.name = 'lawn_grass_detail'
+  grass.receiveShadow = true
+  grass.castShadow = false
+  const random = rng(9173)
+  const transform = new Object3D()
+  const tint = new Color()
+  let placed = 0
+  let attempts = 0
+  while (placed < count && attempts++ < count * 6) {
+    const x = 18.2 + random() * 27.2
+    const z = -33.5 + random() * 45.2
+    if (Math.abs(z - walkCentre(x)) < walkHalf(x) + 0.45) continue
+    if (Math.hypot(x - BAMBOO_BAR.x, z - BAMBOO_BAR.z) < BAMBOO_BAR.r + 1.3) continue
+    if (x < 25 && z > -1.5) continue
+    if (x >= BOULDER_DECK[0] && x <= BOULDER_DECK[1] && z >= BOULDER_DECK[2] - 0.3 && z <= BOULDER_DECK[3] + 0.3) continue
+    if (x > 39.5 && z > 9) continue
+    const scale = 0.08 + random() * 0.06
+    transform.position.set(x, 0.01, z)
+    transform.rotation.y = random() * PI * 2
+    transform.scale.set(scale, 0.045 + random() * 0.035, scale)
+    transform.updateMatrix()
+    grass.setMatrixAt(placed, transform.matrix)
+    tint.setHSL(0.24 + random() * 0.055, 0.22 + random() * 0.2, 0.2 + random() * 0.09)
+    grass.setColorAt(placed, tint)
+    placed++
+  }
+  grass.count = placed
+  grass.computeBoundingSphere()
+  lawn.root.add(grass)
+}
 
 /**
  * The fan of steps from the pool terrace down to the lawn, as photographed: it starts at the corner
@@ -528,8 +582,8 @@ function buildShore(ctx: Ctx) {
 }
 
 /**
- * Planting from the aerial photograph: a dense line of flame-of-the-forest trees in orange bloom
- * and coconut palms along the whole north boundary, palms along the walk and round the pool.
+ * Planting from the aerial photograph: coconut palms along the north boundary, palms along the walk
+ * and pool, and fine grass detail across the open lawn.
  */
 /**
  * A coconut palm: a slender ringed trunk leaning and curving a little, a crown of long arching
@@ -579,6 +633,7 @@ function buildPlanting(ctx: Ctx) {
   const upper = levelKit(k, UPPER)
   const pool = levelKit(k, POOL_T)
   const lawn = levelKit(k, LAWN)
+  lawnBlades(lawn)
   const at = (x: number) => (x < 3 ? upper : x < WALL_X ? pool : lawn)
   // The dense flowering tree screen along the north boundary is omitted to keep the garden open.
   for (let x = -14; x <= 44; x += 7.3) palm(ctx, at(x), x, -23.8 + ((x * 5) % 3) * 0.3, 6.5 + ((x * 3) % 3))

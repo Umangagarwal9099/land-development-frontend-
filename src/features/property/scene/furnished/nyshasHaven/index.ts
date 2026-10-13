@@ -12,7 +12,7 @@ import { buildTerrain } from './terrain'
  * Nysha's Haven, Osman Sagar Lake: the site in 3D, laid out from the aerial photograph. The
  * residence and the arcade building side by side to the west, the infinity pool before the house,
  * the lawn with its round bamboo bar running east to the lake, the boulder deck and the court
- * along the south side, and the walk under flame trees along the north.
+ * along the south side, and the walk beneath palms and planted borders along the north.
  */
 
 /** Site extent (plan metres): the plot, its margins and a reach of the lake. */

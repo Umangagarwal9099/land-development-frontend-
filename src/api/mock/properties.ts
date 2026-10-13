@@ -138,7 +138,7 @@ function nyshasHaven(): Property {
   })
   const rooms: Room[] = [
     area('Arrival & North Walk', 'amenity_arrival', [88, 18], 35,
-      'Arrival through the arched gate at the north-west corner, onto the wide paved walk that runs under flame trees past the house and down to the lawn.',
+      'Arrival through the arched gate at the north-west corner, onto the wide paved walk that runs beneath palms and planted borders past the house and down to the lawn.',
       ['Arched gate in Burma teak', 'Paved walk with semicircular steps', 'Hand-carved Balinese door with rustic brass handles']),
     area('The Residence', 'amenity_residence', [68, 63], 30,
       'A G+1 Balinese-inspired home in red brick cladding and cream textured walls, with Burma teak columns on carved stone bases, a full-width balcony over the pool, and a flat entertainment terrace on the roof behind a shingled slope across the pool front.',

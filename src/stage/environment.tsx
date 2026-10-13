@@ -69,7 +69,7 @@ export function SceneLighting({ radius, center = [0, 0, 0] }: { radius: number; 
 
 export function StudioEnvironment() {
   return (
-    <Environment resolution={128} frames={1} environmentIntensity={0.35}>
+    <Environment resolution={256} frames={1} environmentIntensity={0.45}>
       <color attach="background" args={['#0b0c0f']} />
       <Lightformer intensity={2.2} color="#ffe2b8" position={[0, 6, -8]} scale={[16, 3, 1]} />
       <Lightformer intensity={0.9} color="#b9c8e6" position={[-8, 3, 4]} rotation-y={Math.PI / 2} scale={[12, 2, 1]} />

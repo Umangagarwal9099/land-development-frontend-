@@ -1,6 +1,7 @@
 import { DoubleSide, MeshPhysicalMaterial, MeshStandardMaterial, type MeshStandardMaterialParameters } from 'three'
 import type { Kit } from '../kit'
 import { tiledMat, type Lighting } from '../shared'
+import type { Finish, Paint } from '../textures'
 import type { Photos } from './photos'
 import { boulders, breezeBlock, crazyPaving, pebbleBed, cream, gabion, riverStone, shingles, stackedStone, stoneTile, sukabumi, teakBoards } from './paints'
 
@@ -93,29 +94,59 @@ export const WATER_LEVEL = POOL_T - 0.06
 const std = (p: MeshStandardMaterialParameters) => new MeshStandardMaterial({ roughness: 0.85, ...p })
 
 export function havenMaterials(k: Kit, lighting: Lighting, photos: Photos) {
+  const finish = (name: Finish, repeat: [number, number], roughness: number, color?: string) => {
+    const mat = std({ map: k.tex.finish(name, repeat[0], repeat[1]), roughness, ...(color ? { color } : {}) })
+    mat.normalMap = k.tex.normalFinish(name, repeat[0], repeat[1])
+    mat.normalScale.set(0.12, 0.12)
+    return mat
+  }
+  const paintedFinish = (name: string, paint: Paint, repeat: [number, number], roughness: number) => {
+    const mat = tiledMat(k, name, paint, repeat, { roughness })
+    mat.normalMap = k.tex.normalPainted(`haven-${name}`, 256, 256, paint, repeat[0], repeat[1])
+    mat.normalScale.set(0.12, 0.12)
+    return mat
+  }
   const glow = (color: string, emissive: string, intensity: number, dayFactor: number) =>
     lighting.glow(std({ color, emissive, emissiveIntensity: intensity, roughness: 0.5 }), dayFactor)
   // Surfaces from the photographs, sized to the patch each was cut from (metres across × up).
   const photo = (name: string, [pw, ph]: [number, number], w: number, h: number, p: MeshStandardMaterialParameters = {}) =>
     std({ map: photos.get(name, [w / pw, h / ph]), ...p })
+  const ripplePaint: Paint = (g, w, h) => {
+    const image = g.createImageData(w, h)
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const wave = 128 + 34 * Math.sin(x * 0.12 + Math.sin(y * 0.08) * 1.7) + 18 * Math.sin(y * 0.21 + x * 0.035)
+        const i = (y * w + x) * 4
+        image.data[i] = image.data[i + 1] = image.data[i + 2] = wave
+        image.data[i + 3] = 255
+      }
+    g.putImageData(image, 0, 0)
+  }
+  const poolWater = new MeshPhysicalMaterial({ color: '#3a6657', transparent: true, opacity: 0.93, roughness: 0.08, clearcoat: 1, emissive: '#05201a', emissiveIntensity: 0.4, depthWrite: false })
+  poolWater.normalMap = k.tex.normalPainted('haven-pool-ripples', 128, 128, ripplePaint, 6, 6)
+  poolWater.normalScale.set(0.08, 0.08)
+  const lakeWater = new MeshPhysicalMaterial({ color: '#3d6f73', transparent: true, opacity: 0.88, roughness: 0.12, clearcoat: 1, depthWrite: false })
+  lakeWater.normalMap = k.tex.normalPainted('haven-lake-ripples', 128, 128, ripplePaint, 24, 16)
+  lakeWater.normalScale.set(0.1, 0.1)
   /** Curtained glazing from the photographs, glowing warm at dusk. */
   const glass = (name: string, patch: [number, number], w: number, h: number) => {
-    const mat = photo(name, patch, w, h, { roughness: 0.25, metalness: 0.1 })
+    const mat = new MeshPhysicalMaterial({
+      map: photos.get(name, [w / patch[0], h / patch[1]]),
+      roughness: 0.2,
+      metalness: 0.06,
+      clearcoat: 0.65,
+      clearcoatRoughness: 0.18,
+    })
     mat.emissiveMap = mat.map
     mat.emissive.set('#ffd8a8')
     mat.emissiveIntensity = 0.55
     // By day the sheer curtains read bright white, as photographed; at dusk they glow warm.
-    return lighting.glow(mat, 0.75)
+    return lighting.glow(mat, 0)
   }
   return {
-    cream: (w: number, h: number) => tiledMat(k, 'cream', cream, [w / 2.5, h / 2.5], { roughness: 0.95 }),
+    cream: (w: number, h: number) => paintedFinish('cream', cream, [w / 2.5, h / 2.5], 0.92),
     brick: (w: number, h: number) => {
-      // The patch was cut from the shaded verandah; lift it to the brick's sunlit terracotta by day.
-      const mat = photo('brick', [1.44, 1.58], w, h, { roughness: 0.9 })
-      mat.emissiveMap = mat.map
-      mat.emissive.set('#ffffff')
-      mat.emissiveIntensity = 0.05
-      return lighting.glow(mat, 4)
+      return photo('brick', [1.44, 1.58], w, h, { roughness: 0.92 })
     },
     thatch: (w: number, d: number) => photo('thatch', [1.5, 2.0], w, d, { roughness: 1, side: DoubleSide, color: '#bba27a' }),
     infinityWall: (w: number, h: number) => photo('infinity-wall', [8.5, 2.0], w, h, { roughness: 0.85 }),
@@ -128,30 +159,34 @@ export function havenMaterials(k: Kit, lighting: Lighting, photos: Photos) {
     sandstone: std({ color: '#dcbfa0', roughness: 0.85 }),
     paleStone: std({ color: '#c9cac5', roughness: 0.8 }),
     baseStone: std({ color: '#a9a69c', roughness: 0.9 }),
-    river: (w: number, h: number) => tiledMat(k, 'river', riverStone, [w, h], { roughness: 0.9 }),
-    sukabumi: (w: number, h: number) => tiledMat(k, 'sukabumi', sukabumi, [w, h], { roughness: 0.45 }),
-    boulders: (w: number, d: number) => tiledMat(k, 'boulders', boulders, [w / 2, d / 2], { roughness: 0.95 }),
-    teak: (w: number, h: number) => tiledMat(k, 'teak', teakBoards, [w / 1.2, h / 2.4], { roughness: 0.7 }),
-    gabion: tiledMat(k, 'gabion', gabion, [1, 2], { roughness: 0.9 }),
-    shingles: (w: number, d: number) => tiledMat(k, 'shingles', shingles, [w / 2, d / 2], { roughness: 0.95, color: '#a2a2a8' }),
+    river: (w: number, h: number) => paintedFinish('river', riverStone, [w, h], 0.9),
+    sukabumi: (w: number, h: number) => paintedFinish('sukabumi', sukabumi, [w, h], 0.42),
+    boulders: (w: number, d: number) => paintedFinish('boulders', boulders, [w / 2, d / 2], 0.95),
+    teak: (w: number, h: number) => paintedFinish('teak', teakBoards, [w / 1.2, h / 2.4], 0.72),
+    gabion: paintedFinish('gabion', gabion, [1, 2], 0.9),
+    shingles: (w: number, d: number) => {
+      const mat = paintedFinish('shingles', shingles, [w / 2, d / 2], 0.94)
+      mat.color.set('#a2a2a8')
+      return mat
+    },
     /** Light grey split-stone tiles on the pool's front wall, as photographed. */
-    poolWall: (w: number, h: number) => tiledMat(k, 'stoneTile', stoneTile, [w / 2.4, h / 1.2], { roughness: 0.85 }),
+    poolWall: (w: number, h: number) => paintedFinish('stoneTile', stoneTile, [w / 2.4, h / 1.2], 0.88),
     /** The beige crackle-finish paving of the dining strip. */
-    crazy: (w: number, d: number) => tiledMat(k, 'crazyPaving', crazyPaving, [w / 4, d / 4], { roughness: 0.95 }),
+    crazy: (w: number, d: number) => paintedFinish('crazyPaving', crazyPaving, [w / 4, d / 4], 0.95),
     /** Grey granite treads of the curved steps, and their darker risers. */
     granite: std({ color: '#9d9c95', roughness: 0.7 }),
     graniteRiser: std({ color: '#74736c', roughness: 0.8 }),
     /** Grey-beige river pebbles in the garden below the pool. */
-    riverPebbles: (w: number, d: number) => tiledMat(k, 'pebbleBed', pebbleBed, [w / 2, d / 2], { roughness: 0.9 }),
-    stacked: (w: number, h: number) => tiledMat(k, 'stacked', stackedStone, [w / 1.2, h / 0.6], { roughness: 0.9 }),
-    breeze: (w: number, h: number) => tiledMat(k, 'breeze', breezeBlock, [w / 1.2, h / 1.2], { roughness: 0.9 }),
-    deckStone: (w: number, d: number) => std({ map: k.tex.finish('kota', w / 0.9, d / 0.9), color: '#c6c5c0', roughness: 0.8 }),
+    riverPebbles: (w: number, d: number) => paintedFinish('pebbleBed', pebbleBed, [w / 2, d / 2], 0.9),
+    stacked: (w: number, h: number) => paintedFinish('stacked', stackedStone, [w / 1.2, h / 0.6], 0.9),
+    breeze: (w: number, h: number) => paintedFinish('breeze', breezeBlock, [w / 1.2, h / 1.2], 0.9),
+    deckStone: (w: number, d: number) => finish('kota', [w / 0.9, d / 0.9], 0.82, '#c6c5c0'),
     /** Medium-grey flagstones of the north walk, with dark joints. */
-    flagstone: (w: number, d: number) => std({ map: k.tex.finish('travertineTile', w / 1.2, d / 0.8), color: '#a9acad', roughness: 0.85 }),
-    grass: (w: number, d: number) => std({ map: k.tex.finish('grass', w / 3, d / 3), color: '#92b86e', roughness: 1 }),
-    paving: (w: number, d: number) => k.finish('travertineTile', w / 1.2, d / 0.6, 0.6),
-    setts: (w: number, d: number) => k.finish('kota', w / 0.9, d / 0.9, 0.8),
-    gravel: (w: number, d: number) => std({ map: k.tex.finish('gravel', w / 2, d / 2), color: '#f0dccb', roughness: 1 }),
+    flagstone: (w: number, d: number) => finish('travertineTile', [w / 1.2, d / 0.8], 0.86, '#a9acad'),
+    grass: (w: number, d: number) => finish('grass', [w / 3, d / 3], 1, '#92b86e'),
+    paving: (w: number, d: number) => finish('travertineTile', [w / 1.2, d / 0.6], 0.65),
+    setts: (w: number, d: number) => finish('kota', [w / 0.9, d / 0.9], 0.82),
+    gravel: (w: number, d: number) => finish('gravel', [w / 2, d / 2], 1, '#f0dccb'),
     earth: std({ color: '#3d342a', roughness: 1 }),
     lakeBed: std({ color: '#2a2c26', roughness: 1 }),
     sand: std({ color: '#cdbb94', roughness: 1 }),
@@ -162,11 +197,8 @@ export function havenMaterials(k: Kit, lighting: Lighting, photos: Photos) {
     mesh: std({ color: '#2d3033', transparent: true, opacity: 0.35, depthWrite: false, side: DoubleSide }),
     net: std({ color: '#f0f0ea', transparent: true, opacity: 0.6, depthWrite: false, side: DoubleSide }),
     brass: std({ color: '#b08d57', metalness: 0.9, roughness: 0.3 }),
-    water: lighting.glow(
-      new MeshPhysicalMaterial({ color: '#3a6657', transparent: true, opacity: 0.93, roughness: 0.04, clearcoat: 1, emissive: '#05201a', emissiveIntensity: 0.4, depthWrite: false }),
-      0.3,
-    ),
-    lake: new MeshPhysicalMaterial({ color: '#3d6f73', transparent: true, opacity: 0.88, roughness: 0.12, clearcoat: 1, depthWrite: false }),
+    water: lighting.glow(poolWater, 0),
+    lake: lakeWater,
     // Lit glazing: warm interiors at dusk, dark reflective glass by day.
     window: glow('#2a2c2c', '#ffcf94', 0.9, 0.03),
     lamp: glow('#fff4e2', '#ffd49a', 2.2, 0),

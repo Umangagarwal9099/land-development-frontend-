@@ -1,6 +1,7 @@
 import { AdaptiveDpr, Bvh } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { Component, Suspense, type ReactNode } from 'react'
+import { ACESFilmicToneMapping } from 'three'
 import MasterPlanScene from '../features/masterplan/scene/MasterPlanScene'
 import PropertyScene from '../features/property/scene/PropertyScene'
 import { useStageStore } from '../store/stage'
@@ -24,9 +25,9 @@ export default function Stage() {
         frameloop="demand"
         // PCF shadows; three r18x removed the PCFSoft default that `shadows` would request.
         shadows="percentage"
-        dpr={[1, 1.75]}
+        dpr={[1, 2]}
         performance={{ min: 0.6 }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         camera={{ position: [0, 400, 600], fov: 38, near: 0.5, far: 6000 }}
       >
         <SceneBackground />
