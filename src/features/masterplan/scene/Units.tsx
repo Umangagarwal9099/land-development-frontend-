@@ -9,7 +9,7 @@ import { PLOT_HEIGHT } from './plotGeometry'
 
 const TAP_TOLERANCE_PX = 8
 
-type MaterialKey = 'wall' | 'wallShade' | 'roof' | 'glass' | 'water' | 'deck'
+type MaterialKey = 'wall' | 'wallShade' | 'roof' | 'glass' | 'water' | 'deck' | 'trim' | 'frame'
 
 /** One piece of a massing model, in the plot's local frame (front of the plot faces +z). */
 interface Part {
@@ -31,8 +31,18 @@ const MASSING: Record<PlotUnit['kind'], (w: number, d: number) => Part[]> = {
     return [
       { shape: 'box', material: 'wall', pos: [0, 1.7, d * 0.02], size: [gw, 3.4, gd] },
       { shape: 'box', material: 'glass', pos: [0, 1.5, d * 0.02], size: [gw + 0.06, 1.7, gd + 0.06] },
+      // A warm stone plinth and slim facade bands break up the large massing surfaces.
+      { shape: 'box', material: 'deck', pos: [0, 0.32, d * 0.02], size: [gw + 0.12, 0.28, gd + 0.12] },
+      { shape: 'box', material: 'trim', pos: [0, 2.48, d * 0.02], size: [gw + 0.16, 0.14, gd + 0.16] },
+      // Recessed-looking window mullions and a deep horizontal sunshade give the glass scale.
+      { shape: 'box', material: 'frame', pos: [0, 1.5, d * 0.02 + gd * 0.28], size: [0.16, 1.7, 0.12] },
+      { shape: 'box', material: 'frame', pos: [-gw * 0.25, 1.5, d * 0.02 + gd * 0.28], size: [0.1, 1.7, 0.12] },
+      { shape: 'box', material: 'frame', pos: [gw * 0.25, 1.5, d * 0.02 + gd * 0.28], size: [0.1, 1.7, 0.12] },
+      { shape: 'box', material: 'trim', pos: [0, 2.45, d * 0.02 + gd * 0.31], size: [gw + 0.5, 0.16, 0.7] },
       { shape: 'box', material: 'wallShade', pos: [w * 0.08, 5.0, -d * 0.05], size: [w * 0.62, 3.2, d * 0.4] },
       { shape: 'box', material: 'glass', pos: [w * 0.08, 5.0, -d * 0.05], size: [w * 0.62 + 0.06, 1.3, d * 0.4 + 0.06] },
+      { shape: 'box', material: 'frame', pos: [w * 0.08, 5.0, -d * 0.05 + d * 0.205], size: [0.12, 1.3, 0.1] },
+      { shape: 'box', material: 'trim', pos: [w * 0.08, 4.25, -d * 0.05 + d * 0.24], size: [w * 0.68, 0.16, 0.7] },
       { shape: 'box', material: 'roof', pos: [w * 0.06, 6.72, -d * 0.03], size: [w * 0.74, 0.24, d * 0.5] },
       { shape: 'box', material: 'deck', pos: [0, 0.08, d * 0.38], size: [w * 0.66, 0.16, d * 0.18] },
       { shape: 'box', material: 'water', pos: [-w * 0.08, 0.14, d * 0.38], size: [w * 0.42, 0.1, d * 0.12] },
@@ -79,9 +89,11 @@ export function useMassingMaterials() {
     () => ({
       wall: { color: IVORY, roughness: 0.75 },
       wallShade: { color: '#ddd5c6', roughness: 0.75 },
+      trim: { color: '#c7b89d', roughness: 0.72 },
+      frame: { color: '#51483d', roughness: 0.42, metalness: 0.18 },
       roof: { color: '#2b2d31', roughness: 0.6 },
       // Warm interior light behind glazing gives the dusk "lit model" look.
-      glass: { color: '#1d1a15', roughness: 0.2, metalness: 0.3, emissive: '#ffc774', emissiveIntensity: 0.55 },
+      glass: { color: '#34444a', roughness: 0.24, metalness: 0.32, emissive: '#ffc774', emissiveIntensity: 0.22 },
       water: { color: '#2a7896', roughness: 0.06, metalness: 0.15, emissive: '#0d3d4c', emissiveIntensity: 0.5 },
       deck: { color: '#a8977a', roughness: 0.85 },
     }),
@@ -185,7 +197,7 @@ function PartInstances({ part, plots, material }: { part: Part; plots: Plot[]; m
 /** Translucent gold massing on an empty plot: "this is what could stand here". */
 export function BuildPreview({ plot, kind = 'villa' }: { plot: Plot; kind?: PlotUnit['kind'] }) {
   const f = plotFrame(plot)
-  const parts = MASSING[kind](f.w, f.d).filter((p) => p.material !== 'glass')
+  const parts = MASSING[kind](f.w, f.d).filter((p) => !['glass', 'frame', 'trim'].includes(p.material))
   const gable = useMemo(() => gableGeometry(), [])
   useEffect(() => () => gable.dispose(), [gable])
   return (
