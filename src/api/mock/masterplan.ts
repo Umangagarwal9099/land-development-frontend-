@@ -46,11 +46,6 @@ function scatter(rand: () => number, area: Point2[], count: number, margin = 3):
   ])
 }
 
-const inside = (p: Point2, poly: Point2[]) => {
-  const [[x0, z0], , [x1, z1]] = poly
-  return p[0] > x0 && p[0] < x1 && p[1] > z0 && p[1] < z1
-}
-
 /*
  * Kalakal, traced from the architect's layout (AGGNESTRO LAYOUT PLAN, 23-02-26). Positions are in
  * the drawing's own units, read straight off the PDF: its 40 ft plot frontage measures 29.5 units.
