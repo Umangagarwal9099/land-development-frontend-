@@ -2,9 +2,9 @@ import type { AvailabilityStatus } from '../api/types'
 
 // Shared by the 3D scene and the DOM UI; keep in sync with the tokens in index.css.
 export const statusColor: Record<AvailabilityStatus, string> = {
-  available: '#8fb89a',
-  reserved: '#c98a5a',
-  sold: '#5b616b',
+  available: '#70ad7b',
+  reserved: '#dfa04b',
+  sold: '#cf625d',
 }
 
 export const GOLD = '#d4b26a'

@@ -66,7 +66,7 @@ export function SelectionOutline({ polygon, y = PLOT_HEIGHT }: { polygon: Point2
   )
 }
 
-/** Floating tag above a plot: number, and the home standing on it if any. */
+/** Floating tag above a plot: its number and current availability status. */
 export function PlotTag({ plot, emphasis }: { plot: Plot; emphasis?: boolean }) {
   const [x, z] = centroid(plot.polygon)
   const height = plot.unit ? (plot.unit.kind === 'villa' ? 8.5 : 7.5) : 1.5
@@ -76,15 +76,15 @@ export function PlotTag({ plot, emphasis }: { plot: Plot; emphasis?: boolean }) 
         initial={{ opacity: 0, y: 8, scale: 0.94 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className={`-translate-y-1/2 whitespace-nowrap rounded-full px-4 py-1.5 shadow-2xl ${
+        className={`-translate-y-1/2 whitespace-nowrap rounded-full shadow-2xl ${emphasis ? 'px-4 py-1.5' : 'px-3 py-1'} ${
           emphasis ? 'bg-gold text-ink' : 'glass text-ivory'
         }`}
       >
         <span className="flex items-center gap-2.5">
-          {!emphasis && <span className="h-2 w-2 rounded-full" style={{ background: statusColor[plot.status] }} />}
-          <span className="font-display text-xl font-semibold leading-none">{plot.number}</span>
-          <span className={`text-xs font-semibold uppercase tracking-[0.18em] ${emphasis ? 'text-ink/70' : 'text-ivory/60'}`}>
-            {plot.unit ? plot.unit.name : statusLabel[plot.status]}
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: statusColor[plot.status] }} />
+          <span className={`font-display font-semibold leading-none ${emphasis ? 'text-xl' : 'text-base'}`}>{plot.number}</span>
+          <span className={`font-semibold uppercase tracking-[0.14em] ${emphasis ? 'text-xs text-ink/70' : 'text-[10px] text-ivory/75'}`}>
+            {statusLabel[plot.status]}
           </span>
         </span>
       </motion.div>

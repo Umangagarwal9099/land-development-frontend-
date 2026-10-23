@@ -85,7 +85,7 @@ export default function MasterPlanScene({ slug }: { slug: string }) {
       <Floor y={-PLINTH_HEIGHT} size={radius * 14} />
       <Plinth {...padBox(site, PLINTH_MARGIN)} height={PLINTH_HEIGHT} />
 
-      <Roads roads={plan.roads} selectedId={selectedRoad?.id ?? null} interactive={interactive} onSelect={(r) => select({ kind: 'road', id: r.id })} />
+      <Roads roads={plan.roads} plots={plan.plots} selectedId={selectedRoad?.id ?? null} interactive={interactive} onSelect={(r) => select({ kind: 'road', id: r.id })} />
 
       <mesh
         geometry={plotMesh.geometry}

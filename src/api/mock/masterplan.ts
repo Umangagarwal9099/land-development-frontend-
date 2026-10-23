@@ -38,23 +38,6 @@ const film = (title: string, hue: number, url = SAMPLE_HLS): MediaItem => ({
   thumbUrl: placeholderImage(title, hue, 480, 300),
 })
 
-/** Avenue trees along both kerbs of a straight road rectangle, skipping crossings. */
-function kerbTrees(road: Point2[], spacing: number, inset: number, skip: (p: Point2) => boolean): Point2[] {
-  const [[x0, z0], , [x1, z1]] = road
-  const horizontal = x1 - x0 > z1 - z0
-  const trees: Point2[] = []
-  const len = horizontal ? x1 - x0 : z1 - z0
-  for (let t = spacing / 2; t < len; t += spacing) {
-    for (const side of [0, 1]) {
-      const p: Point2 = horizontal
-        ? [x0 + t, side ? z1 - inset : z0 + inset]
-        : [side ? x1 - inset : x0 + inset, z0 + t]
-      if (!skip(p)) trees.push(p)
-    }
-  }
-  return trees
-}
-
 function scatter(rand: () => number, area: Point2[], count: number, margin = 3): Point2[] {
   const [[x0, z0], , [x1, z1]] = area
   return Array.from({ length: count }, () => [
@@ -233,7 +216,7 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
     { id: 'am_park2', name: 'North Park', kind: 'garden', polygon: area(519, 681, 672.2, 708.25), height: 0,
       description: 'A strip of landscaped open space along the northern boundary, behind blocks L and M.',
       highlights: { Area: '1,252 sq yd', 'Plan ref.': 'Park Area-2' } },
-    { id: 'am_gate', name: 'Main Gate & Security Cabin', kind: 'entrance', polygon: area(1962, AVENUE_N, 1972, AVENUE_S), height: 6,
+    { id: 'am_gate', name: 'Main Gate & Security Cabin', kind: 'entrance', polygon: area(2040, AVENUE_N, 2050, AVENUE_S), height: 6,
       description: 'The single gated entry from the HMDA master plan road, with a security cabin at the head of the main avenue.',
       highlights: { Security: '24 × 7', Approach: '250 ft HMDA road' },
       media: [image('Main gate at night', 40)] },
@@ -251,20 +234,21 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
       highlights: { Area: '305.59 sq yd', 'Plan ref.': 'Utility-4' } },
   ]
 
-  const avenue = roads[0]
-  const crossings = roads.filter((r) => r.id.startsWith('road_x'))
-  const trees: Point2[] = []
-  for (const road of [avenue, ...crossings]) {
-    const others = [avenue, ...crossings].filter((o) => o !== road)
-    trees.push(...kerbTrees(road.polygon, 13, 1.1, (p) => others.some((o) => inside(p, o.polygon))))
+  const soldPlots = new Set([1, 2, 3, 4, 10, 18, 37, 38, 45, 53, 65, 66, 93, 97, 98, 99, 100, 120, 127, 146, 169, 170, 171, 172, 173, 174, 175, 176, 177, 188, 189, 199, 200, 201, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 220, 221, 222, 223, 224, 225, 228])
+  const mortgagePlots = new Set([
+    ...Array.from({ length: 281 - 233 + 1 }, (_, i) => 233 + i),
+    285, 286, 287,
+  ])
+  for (const plot of plots) {
+    const number = Number(plot.id.replace('plot_', ''))
+    plot.status = soldPlots.has(number) ? 'sold' : mortgagePlots.has(number) ? 'reserved' : 'available'
   }
-  // Planted median down the main avenue.
-  const [[ax0], , [ax1]] = avenue.polygon
-  for (let x = ax0 + 6; x < ax1 - 6; x += 9) {
-    const p: Point2 = [x, 0]
-    if (!crossings.some((o) => inside(p, o.polygon))) trees.push(p)
-  }
-  trees.push(...scatter(rand, amenities[0].polygon, 70, 4), ...scatter(rand, amenities[2].polygon, 12, 2))
+
+  // Keep planting within landscaped parks; road edges and the avenue median stay clear.
+  const trees = [
+    ...scatter(rand, amenities[0].polygon, 70, 4),
+    ...scatter(rand, amenities[2].polygon, 12, 2),
+  ]
 
   return { plots, roads, amenities, landscape: { trees } }
 }
@@ -278,7 +262,7 @@ export const masterPlans: MasterPlan[] = [
     thumbnailUrl: placeholderImage('Kalakal', 95, 800, 500),
     startingPrice: Math.min(...kalakal.plots.map((p) => p.price!)),
     stats: [{ label: 'Plots', value: '288' }, { label: 'Parkland', value: '31 ac' }],
-    description: 'A gated plotted layout of 284 residential plots and four commercial plots fronting the proposed 250 ft HMDA master plan road on NH-44. A 60 ft tree-lined main avenue runs the length of the site, crossed by 33 ft roads, with a central park ringed by a cycle track and a reserved social-infrastructure site. Phase 1 villas are complete and open for viewing.',
+    description: 'A gated plotted layout of 284 residential plots and four commercial plots fronting the proposed 250 ft HMDA master plan road on NH-44. A 60 ft main avenue runs the length of the site, crossed by 33 ft roads, with a central park ringed by a cycle track and a reserved social-infrastructure site. Phase 1 villas are complete and open for viewing.',
     highlights: { 'Total land': '≈ 30 acres', Plots: '284 residential + 4 commercial', 'Plot size': '40 × 60 ft', 'Main avenue': '60 ft', 'Internal roads': '33 ft', Parks: '10,977 sq yd', RERA: 'Registered' },
     ...kalakal,
     media: [film('Kallakal', 100, KALAKAL_FILM), image('Aerial at golden hour', 95), image('Tree-lined avenue', 120), image('Phase 1 villas', 40)],

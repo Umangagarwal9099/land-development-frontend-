@@ -10,8 +10,7 @@ const PLOT_GAP_M = 0.35
 const SELECTED = new Color(GOLD_BRIGHT)
 // Filtered-out plots sink into the site base rather than disappearing, so the layout still reads.
 const FILTERED_OUT = new Color('#1c1f21')
-const HOVER_LIFT = 0.18
-const WHITE = new Color('#ffffff')
+const PLOT_BASE = new Color('#8f9689')
 
 /** Plan coordinates are (x, z) on the ground; three.js shapes live in XY, so y = -z before rotating flat. */
 export function toShape(polygon: Point2[]): Shape {
@@ -75,8 +74,8 @@ export function paintPlots(
   plots.forEach((plot, i) => {
     if (plot.id === selectedId) c.copy(SELECTED)
     else if (!visibleStatuses.has(plot.status)) c.copy(FILTERED_OUT)
-    else c.set(statusColor[plot.status])
-    if (plot.id === hoveredId && plot.id !== selectedId) c.lerp(WHITE, HOVER_LIFT)
+    else if (plot.id === hoveredId) c.set(statusColor[plot.status])
+    else c.copy(PLOT_BASE)
     const { start, count } = data.ranges[i]
     for (let v = start; v < start + count; v++) colors.setXYZ(v, c.r, c.g, c.b)
   })

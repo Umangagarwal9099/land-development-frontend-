@@ -24,6 +24,6 @@ export const listingTypeLabel: Record<ListingType, string> = {
 
 export const statusLabel: Record<AvailabilityStatus, string> = {
   available: 'Available',
-  reserved: 'Reserved',
+  reserved: 'Mortgage',
   sold: 'Sold',
 }
