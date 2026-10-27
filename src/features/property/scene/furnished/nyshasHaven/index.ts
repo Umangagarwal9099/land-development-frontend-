@@ -4,6 +4,7 @@ import { Kit } from '../kit'
 import { Lighting, type FurnishedModel } from '../shared'
 import { buildHouse } from './house'
 import { ARCADE, BAMBOO_BAR, BOULDER_DECK, COURT, GF, havenMaterials, LAWN, LIFT, PLOT, POOL_T, TERRACE, THATCH_HALL, UPPER, type Ctx } from './layout'
+import { buildLivingRoom, LIVING, LIVING_RECESS } from './living'
 import { buildOutdoors } from './outdoors'
 import { Photos } from './photos'
 import { buildTerrain } from './terrain'
@@ -30,6 +31,8 @@ const BAR: Zone = [bx - br, bx + br, bz - br, bz + br]
 const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[]; view?: 'overview' | 'eye' }> = {
   amenity_arrival: { y: UPPER, height: 6, zones: [[PLOT.x0, 3, -21.5, -16], [-20.6, -18.6, -16, 12.6]], view: 'overview' },
   amenity_residence: { y: GF, height: 13.5, zones: [[-18.6, 3.2, -12.6, 12.6], [-12, -5, -15.6, -12.6]], view: 'overview' },
+  // Just below the residence's slab, so a tap on the house still opens the residence.
+  amenity_living: { y: GF - 0.01, height: 3.0, zones: [[LIVING.x0, LIVING.x1, LIVING.z0, LIVING.z1], [LIVING_RECESS.x0, LIVING_RECESS.x1, LIVING_RECESS.z0, LIVING_RECESS.z1]], view: 'eye' },
   amenity_terrace: { y: TERRACE, height: 4.6, zones: [[-17.5, -3.5, -11.6, 11.6]], view: 'overview' },
   amenity_pool: { y: POOL_T, height: 4, zones: [[3.2, 17.2, -12, 10.4], THATCH_HALL] },
   amenity_lawn: { y: LAWN, height: 9, zones: [[17.2, 46, -14, BAR[2]], [17.2, BAR[0], BAR[2], BAR[3]], [BAR[1], 46, BAR[2], BAR[3]], [17.2, 46, BAR[3], 9.0]] },
@@ -66,6 +69,7 @@ export function buildNyshasHaven(): FurnishedModel {
   const ctx: Ctx = { k, h: havenMaterials(k, lighting, photos), lighting }
   buildTerrain(ctx)
   buildHouse(ctx)
+  buildLivingRoom(ctx)
   buildOutdoors(ctx)
 
   for (const [x, y, z, intensity, distance, color] of LIGHTS) {

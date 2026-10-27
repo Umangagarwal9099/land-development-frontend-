@@ -153,6 +153,19 @@ export function havenMaterials(k: Kit, lighting: Lighting, photos: Photos) {
     pebbles: (w: number, d: number) => photo('pebbles', [3.0, 1.4], w, d, { roughness: 0.95 }),
     column: photo('column', [1, 1], 1, 1, { roughness: 0.7 }),
     door: photo('door', [1, 1], 1, 1, { roughness: 0.7 }),
+    /** The turbaned portrait over the living-room sofa, cropped square from the photograph. */
+    portrait: photo('portrait', [1, 1], 1, 1, { roughness: 0.62 }),
+    /**
+     * One leaf of the carved double door: the photograph's complete right leaf (from the centre
+     * split to its outer frame), mirrored for the left so both leaves match.
+     */
+    doorLeaf: (mirror: boolean) => {
+      const mat = photo('door', [1, 1], 1, 1, { roughness: 0.7 })
+      const [a, b] = [167 / 424, 411 / 424]
+      mat.map!.repeat.set(mirror ? a - b : b - a, 1)
+      mat.map!.offset.set(mirror ? b : a, 0)
+      return mat
+    },
     glazingGF: (w: number, h: number) => glass('glazing-gf', [1.85, h], w, h),
     glazingFF: (w: number, h: number) => glass('glazing-ff', [1.6, h], w, h),
     /** Pale stone of the column bases, balustrade and floor band, sampled from the photographs. */

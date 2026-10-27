@@ -431,3 +431,394 @@ export const pebbleBed: Paint = (g, w, h) => {
     g.fill()
   }
 }
+
+/* ---------- Living room, from the photograph of its pool wall ---------- */
+
+/** Raw basalt floor: 1200 × 600 mm charcoal tiles with brown-grey mottling; the canvas is 2 × 2 tiles (2.4 × 1.2 m). */
+export const basaltFloor: Paint = (g, w, h) => {
+  const r = rng(51)
+  const [tw, th] = [w / 2, h / 2]
+  for (let ty = 0; ty < 2; ty++)
+    for (let tx = 0; tx < 2; tx++) {
+      const t = r() * 14 - 7
+      g.fillStyle = `rgb(${66 + t},${60 + t},${54 + t})`
+      g.fillRect(tx * tw, ty * th, tw, th)
+      for (let i = 0; i < 70; i++) {
+        g.fillStyle = r() < 0.5 ? `rgba(30,25,21,${0.08 + r() * 0.14})` : `rgba(120,104,88,${0.05 + r() * 0.1})`
+        g.beginPath()
+        g.ellipse(tx * tw + r() * tw, ty * th + r() * th, 6 + r() * 40, 4 + r() * 22, r() * Math.PI, 0, Math.PI * 2)
+        g.fill()
+      }
+      for (let i = 0; i < 1600; i++) {
+        g.fillStyle = `rgba(${r() < 0.5 ? '20,17,15' : '140,128,114'},${r() * 0.3})`
+        g.fillRect(tx * tw + r() * tw, ty * th + r() * th, 1 + r() * 1.5, 1 + r() * 1.5)
+      }
+    }
+  g.fillStyle = '#1c1916'
+  for (let i = 0; i <= 2; i++) {
+    g.fillRect(i * tw - 1.5, 0, 3, h)
+    g.fillRect(0, i * th - 1.5, w, 3)
+  }
+}
+
+/** Fine linen sheer: warm off-white with vertical slub threads. */
+export const sheerWeave: Paint = (g, w, h) => {
+  const r = rng(52)
+  g.fillStyle = '#f2ece2'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 260; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '196,184,166' : '255,252,246'},${0.1 + r() * 0.25})`
+    g.fillRect(r() * w, 0, 0.6 + r() * 1.4, h)
+  }
+}
+
+/** The ceiling-pocket LED wash down a curtain: brightest at the top, gone by mid height. */
+export const curtainWash: Paint = (g, w, h) => {
+  const grad = g.createLinearGradient(0, 0, 0, h)
+  grad.addColorStop(0, '#ffffff')
+  grad.addColorStop(0.05, '#e6e6e6')
+  grad.addColorStop(0.25, '#7a7a7a')
+  grad.addColorStop(0.5, '#222222')
+  grad.addColorStop(1, '#000000')
+  g.fillStyle = grad
+  g.fillRect(0, 0, w, h)
+}
+
+/** Open rattan weave of the bell pendant: close vertical canes bound by horizontal rings, on transparent. */
+export const rattanWeave: Paint = (g, w, h) => {
+  const r = rng(53)
+  g.clearRect(0, 0, w, h)
+  const step = w / 14
+  for (let x = 0; x < w; x += step) {
+    const t = r() * 26
+    g.fillStyle = `rgb(${92 + t},${66 + t * 0.7},${40 + t * 0.4})`
+    g.fillRect(x, 0, 4 + r() * 1.5, h)
+  }
+  for (const y of [0.1, 0.36, 0.62, 0.88]) {
+    g.fillStyle = '#5a4128'
+    g.fillRect(0, y * h, w, 5)
+  }
+}
+
+/** Tight basket weave of the lantern pendant: fine canes over and under, small gaps of light between. */
+export const lanternWeave: Paint = (g, w, h) => {
+  const r = rng(54)
+  g.clearRect(0, 0, w, h)
+  const s = 8
+  for (let y = 0; y < h; y += s)
+    for (let x = 0; x < w; x += s) {
+      const t = r() * 30
+      g.fillStyle = `rgb(${150 + t},${116 + t * 0.8},${78 + t * 0.6})`
+      if (((x + y) / s) % 2 === 0) g.fillRect(x, y + 1, s, s - 3)
+      else g.fillRect(x + 1, y, s - 3, s)
+    }
+}
+
+/** Chunky braided jute (rug, door mat): rows of plaited loops in the given tone. */
+export const juteBraid = (base: [number, number, number], seed: number): Paint => (g, w, h) => {
+  const r = rng(seed)
+  g.fillStyle = `rgb(${base.map((v) => v - 30).join(',')})`
+  g.fillRect(0, 0, w, h)
+  const rows = 16
+  const rh = h / rows
+  for (let y = 0; y < rows; y++)
+    for (let x = 0; x < w; x += rh * 0.8) {
+      const t = r() * 26 - 13
+      g.fillStyle = `rgb(${base.map((v) => Math.min(255, v + t)).join(',')})`
+      g.beginPath()
+      g.ellipse(x + (y % 2) * rh * 0.4, y * rh + rh / 2, rh * 0.42, rh * 0.36, (y % 2 ? 1 : -1) * 0.6, 0, Math.PI * 2)
+      g.fill()
+    }
+}
+
+/** Cream cushion cover printed with a single black palm frond, as on the living-room sofa. */
+export const palmPrint: Paint = (g, w, h) => {
+  g.fillStyle = '#ece4d4'
+  g.fillRect(0, 0, w, h)
+  g.strokeStyle = '#1d1b19'
+  g.lineCap = 'round'
+  g.lineWidth = w * 0.012
+  const stem = (t: number) => [w * (0.18 + 0.66 * t), h * (0.86 - 0.7 * t + 0.12 * Math.sin(t * Math.PI))] as const
+  g.beginPath()
+  for (let i = 0; i <= 20; i++) g.lineTo(...stem(i / 20))
+  g.stroke()
+  g.lineWidth = w * 0.007
+  for (let i = 1; i < 26; i++) {
+    const t = i / 26
+    const [x, y] = stem(t)
+    const len = w * 0.17 * Math.sin(Math.PI * Math.min(1, t * 1.15))
+    for (const s of [-1, 1]) {
+      g.beginPath()
+      g.moveTo(x, y)
+      g.quadraticCurveTo(x + s * len * 0.4, y - len * 0.5, x + s * len * 0.6 + len * 0.3, y - len * (s > 0 ? 0.2 : 0.95))
+      g.stroke()
+    }
+  }
+}
+
+/** What the sheers soften: pale sky, the garden's trees, the terrace rail and paving beyond the glass. */
+export const daylightView: Paint = (g, w, h) => {
+  const r = rng(55)
+  const sky = g.createLinearGradient(0, 0, 0, h)
+  sky.addColorStop(0, '#f4f5f2')
+  sky.addColorStop(0.55, '#e7e9e2')
+  sky.addColorStop(1, '#d9d6cd')
+  g.fillStyle = sky
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 420; i++) {
+    const y = h * (0.2 + r() * 0.5)
+    const t = r() * 40
+    g.fillStyle = `rgba(${110 + t},${132 + t},${92 + t * 0.6},${0.18 + r() * 0.3})`
+    g.beginPath()
+    g.ellipse(r() * w, y, 6 + r() * 26, 5 + r() * 18, 0, 0, Math.PI * 2)
+    g.fill()
+  }
+  g.fillStyle = 'rgba(188,190,184,.9)'
+  g.fillRect(0, h * 0.7, w, h * 0.025)
+  g.fillStyle = '#d6d3cb'
+  g.fillRect(0, h * 0.74, w, h * 0.26)
+}
+
+/* ---------- Living room, south wall ---------- */
+
+/** Warm limewash plaster: soft clouds of lighter and darker trowelling over a sand ground. */
+export const limewash: Paint = (g, w, h) => {
+  const r = rng(61)
+  g.fillStyle = '#e0ccab'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 90; i++) {
+    const [x, y, rad] = [r() * w, r() * h, 30 + r() * 110]
+    const light = r() < 0.5
+    for (const [ox, oy] of [[0, 0], [-w, 0], [w, 0], [0, -h], [0, h]]) {
+      const grad = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, rad)
+      grad.addColorStop(0, light ? `rgba(248,238,218,${0.1 + r() * 0.12})` : `rgba(184,154,112,${0.04 + r() * 0.06})`)
+      grad.addColorStop(1, 'rgba(0,0,0,0)')
+      g.fillStyle = grad
+      g.fillRect(x + ox - rad, y + oy - rad, rad * 2, rad * 2)
+    }
+  }
+  for (let i = 0; i < 700; i++) {
+    g.strokeStyle = `rgba(${r() < 0.5 ? '150,124,92' : '250,240,222'},${0.04 + r() * 0.07})`
+    g.lineWidth = 1 + r() * 3
+    const [x, y, a, l] = [r() * w, r() * h, r() * Math.PI, 8 + r() * 30]
+    g.beginPath()
+    g.moveTo(x, y)
+    g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l * 0.3)
+    g.stroke()
+  }
+}
+
+/** Upholstery linen: a fine slubbed plain weave in warm cream (64 threads across 10 cm). */
+export const linenWeave: Paint = (g, w, h) => {
+  const r = rng(62)
+  g.fillStyle = '#ebe1cf'
+  g.fillRect(0, 0, w, h)
+  const s = w / 64
+  for (let i = 0; i < 64; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '190,174,148' : '255,250,240'},${0.18 + r() * 0.2})`
+    g.fillRect(i * s, 0, s * (0.35 + r() * 0.3), h)
+    g.fillStyle = `rgba(${r() < 0.5 ? '186,170,144' : '255,252,244'},${0.15 + r() * 0.2})`
+    g.fillRect(0, i * s, w, s * (0.35 + r() * 0.3))
+  }
+  for (let i = 0; i < 90; i++) {
+    g.fillStyle = `rgba(170,150,120,${0.15 + r() * 0.2})`
+    g.fillRect(r() * w, r() * h, 2 + r() * 14, 1.2)
+  }
+}
+
+/** Chunky hand knit (poufs, throw): rows of plump V stitches, shaded on the white ground. */
+export const knitStitch: Paint = (g, w, h) => {
+  const r = rng(63)
+  g.fillStyle = '#a99b84'
+  g.fillRect(0, 0, w, h)
+  const [cols, rows] = [16, 16]
+  const [cw, rh] = [w / cols, h / rows]
+  for (let y = 0; y < rows; y++)
+    for (let x = 0; x < cols; x++) {
+      const t = r() * 16 - 8
+      for (const s of [-1, 1]) {
+        const grad = g.createLinearGradient(0, y * rh, 0, (y + 1) * rh)
+        grad.addColorStop(0, `rgb(${236 + t},${226 + t},${206 + t})`)
+        grad.addColorStop(1, `rgb(${196 + t},${184 + t},${162 + t})`)
+        g.fillStyle = grad
+        g.beginPath()
+        g.ellipse(x * cw + cw / 2 + (s * cw) / 4.5, y * rh + rh / 2, cw * 0.24, rh * 0.56, s * 0.55, 0, Math.PI * 2)
+        g.fill()
+      }
+    }
+}
+
+/** Open crochet net in cream cord on transparent: rounded diamond meshes. */
+export const crochetNet: Paint = (g, w, h) => {
+  g.clearRect(0, 0, w, h)
+  g.strokeStyle = '#e6dcc8'
+  g.lineCap = 'round'
+  g.lineWidth = w / 24
+  const n = 4
+  const s = w / n
+  for (let y = -1; y <= n; y++)
+    for (let x = -1; x <= n; x++) {
+      const [cx, cy] = [x * s + (y % 2 ? s / 2 : 0), y * s]
+      g.beginPath()
+      g.ellipse(cx + s / 2, cy + s / 2, s * 0.42, s * 0.5, 0, 0, Math.PI * 2)
+      g.stroke()
+    }
+}
+
+/** Tight basket weave for pillow covers, in the given tone. */
+export const basketWeave = (base: [number, number, number], seed: number): Paint => (g, w) => {
+  const r = rng(seed)
+  const n = 24
+  const s = w / n
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++) {
+      const t = r() * 22 - 11
+      const horiz = (Math.floor(x / 2) + Math.floor(y / 2)) % 2 === 0
+      const grad = horiz ? g.createLinearGradient(0, y * s, 0, (y + 1) * s) : g.createLinearGradient(x * s, 0, (x + 1) * s, 0)
+      grad.addColorStop(0, `rgb(${base.map((v) => v + 18 + t).join(',')})`)
+      grad.addColorStop(1, `rgb(${base.map((v) => v - 22 + t).join(',')})`)
+      g.fillStyle = grad
+      g.fillRect(x * s, y * s, s, s)
+    }
+}
+
+/** Woven stripes of jute, cream and cocoa, running across the cover. */
+export const stripeWeave: Paint = (g, w, h) => {
+  const r = rng(64)
+  const bands = ['#b89a74', '#e3d6bf', '#8a6e52', '#cdb898', '#e3d6bf', '#9c7f5f']
+  let x = 0
+  while (x < w) {
+    const bw = w / 22 + r() * (w / 14)
+    g.fillStyle = bands[Math.floor(r() * bands.length)]
+    g.fillRect(x, 0, bw, h)
+    x += bw
+  }
+  for (let y = 0; y < h; y += 3) {
+    g.fillStyle = `rgba(40,28,18,${0.06 + r() * 0.08})`
+    g.fillRect(0, y, w, 1)
+  }
+}
+
+/** Loose fringe strands radiating outward, on transparent; the middle is hidden by the pillow. */
+export const fringeStrands: Paint = (g, w, h) => {
+  const r = rng(65)
+  g.clearRect(0, 0, w, h)
+  g.lineCap = 'round'
+  for (let i = 0; i < 520; i++) {
+    const t = r() * 40
+    g.strokeStyle = `rgb(${160 + t},${128 + t},${88 + t * 0.7})`
+    g.lineWidth = 1.5 + r() * 1.5
+    const side = Math.floor(r() * 4)
+    const u = r()
+    const [x, y, dx, dy] = [
+      [u * w, 0, 0, 1],
+      [u * w, h, 0, -1],
+      [0, u * h, 1, 0],
+      [w, u * h, -1, 0],
+    ][side]
+    const l = w * (0.06 + r() * 0.05)
+    g.beginPath()
+    g.moveTo(x, y)
+    g.lineTo(x + dx * l + (r() - 0.5) * 6, y + dy * l + (r() - 0.5) * 6)
+    g.stroke()
+  }
+}
+
+/** Reclaimed timber top: three planks along the length, open grain, knots and dark checks. */
+export const rusticPlanks: Paint = (g, w, h) => {
+  const r = rng(66)
+  const ph = h / 3
+  for (let p = 0; p < 3; p++) {
+    const t = r() * 26 - 13
+    g.fillStyle = `rgb(${142 + t},${94 + t * 0.8},${58 + t * 0.6})`
+    g.fillRect(0, p * ph, w, ph)
+    for (let i = 0; i < 120; i++) {
+      const y = p * ph + r() * ph
+      g.strokeStyle = `rgba(${r() < 0.65 ? '70,40,20' : '220,170,120'},${0.08 + r() * 0.16})`
+      g.lineWidth = 0.6 + r() * 2.2
+      g.beginPath()
+      g.moveTo(0, y)
+      for (let x = 0; x <= w; x += 32) g.lineTo(x, y + Math.sin(x * 0.012 + i) * 3 * r())
+      g.stroke()
+    }
+    for (let i = 0; i < 3; i++) {
+      const [kx, ky] = [r() * w, p * ph + ph * (0.2 + r() * 0.6)]
+      g.fillStyle = 'rgba(40,22,10,.75)'
+      g.beginPath()
+      g.ellipse(kx, ky, 6 + r() * 10, 3 + r() * 5, 0, 0, Math.PI * 2)
+      g.fill()
+      g.strokeStyle = 'rgba(30,16,8,.6)'
+      g.lineWidth = 1.5
+      g.beginPath()
+      g.moveTo(kx, ky)
+      g.lineTo(kx + 40 + r() * 80, ky + (r() - 0.5) * 6)
+      g.stroke()
+    }
+    g.fillStyle = 'rgba(30,16,8,.85)'
+    g.fillRect(0, p * ph, w, 2.5)
+  }
+}
+
+/** Vertical wood grain in the given tone, with weathered checks: stumps, pedestals, the log arm. */
+export const woodGrain = (base: [number, number, number], seed: number): Paint => (g, w, h) => {
+  const r = rng(seed)
+  g.fillStyle = `rgb(${base.join(',')})`
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 220; i++) {
+    const x = r() * w
+    g.strokeStyle = `rgba(${r() < 0.6 ? '30,18,10' : '235,200,160'},${0.06 + r() * 0.16})`
+    g.lineWidth = 0.6 + r() * 2.5
+    g.beginPath()
+    g.moveTo(x, 0)
+    for (let y = 0; y <= h; y += 32) g.lineTo(x + Math.sin(y * 0.02 + i) * 4 * r(), y)
+    g.stroke()
+  }
+  for (let i = 0; i < 14; i++) {
+    g.strokeStyle = 'rgba(20,12,6,.55)'
+    g.lineWidth = 1 + r() * 2
+    const [x, y] = [r() * w, r() * h]
+    g.beginPath()
+    g.moveTo(x, y)
+    g.lineTo(x + (r() - 0.5) * 4, y + 30 + r() * 90)
+    g.stroke()
+  }
+}
+
+/** Coiled rope (the lounge chair's round back, the knotted sculpture): concentric cord rings. */
+export const ropeCoil: Paint = (g, w, h) => {
+  const r = rng(67)
+  g.fillStyle = '#5c4c3c'
+  g.fillRect(0, 0, w, h)
+  for (let y = 0; y < h; y += 6) {
+    const t = r() * 26
+    g.fillStyle = `rgb(${128 + t},${108 + t},${84 + t})`
+    g.fillRect(0, y + 1, w, 3.5)
+    for (let x = 0; x < w; x += 7) {
+      g.fillStyle = 'rgba(50,38,26,.35)'
+      g.fillRect(x + ((y / 6) % 2) * 3, y + 1, 1.2, 3.5)
+    }
+  }
+}
+
+/** A dried palm spathe: tan blade with fine parallel ribs and a darker midrib. */
+export const palmRibs: Paint = (g, w, h) => {
+  const r = rng(68)
+  g.fillStyle = '#a6855f'
+  g.fillRect(0, 0, w, h)
+  for (let x = 0; x < w; x += 2) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '90,64,40' : '210,180,140'},${0.15 + r() * 0.3})`
+    g.fillRect(x, 0, 1, h)
+  }
+  g.fillStyle = '#6e5236'
+  g.fillRect(w / 2 - 2, 0, 4, h)
+}
+
+/** The magazine on the coffee table: a pale cover with a dark title band. */
+export const bookCover: Paint = (g, w, h) => {
+  g.fillStyle = '#ece7dc'
+  g.fillRect(0, 0, w, h)
+  g.fillStyle = '#26221e'
+  g.fillRect(w * 0.08, h * 0.08, w * 0.84, h * 0.16)
+  g.fillStyle = '#8a7f72'
+  g.fillRect(w * 0.08, h * 0.32, w * 0.84, h * 0.56)
+}
