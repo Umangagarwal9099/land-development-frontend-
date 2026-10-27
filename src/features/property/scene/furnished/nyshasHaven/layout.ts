@@ -1,4 +1,4 @@
-import { DoubleSide, MeshPhysicalMaterial, MeshStandardMaterial, type MeshStandardMaterialParameters } from 'three'
+import { DoubleSide, MeshPhysicalMaterial, MeshStandardMaterial, MirroredRepeatWrapping, type MeshStandardMaterialParameters } from 'three'
 import type { Kit } from '../kit'
 import { tiledMat, type Lighting } from '../shared'
 import type { Finish, Paint } from '../textures'
@@ -153,6 +153,15 @@ export function havenMaterials(k: Kit, lighting: Lighting, photos: Photos) {
     pebbles: (w: number, d: number) => photo('pebbles', [3.0, 1.4], w, d, { roughness: 0.95 }),
     column: photo('column', [1, 1], 1, 1, { roughness: 0.7 }),
     door: photo('door', [1, 1], 1, 1, { roughness: 0.7 }),
+    /**
+     * The living room's limewash, from a close-up photograph of the wall (lighting flattened so it
+     * tiles), mirrored at each repeat so no seams show. The patch is about 1.6 × 1.3 m of wall.
+     */
+    limewash: (w: number, h: number) => {
+      const mat = photo('limewash', [1.6, 1.3], w, h, { roughness: 0.93 })
+      mat.map!.wrapS = mat.map!.wrapT = MirroredRepeatWrapping
+      return mat
+    },
     /** The turbaned portrait over the living-room sofa, cropped square from the photograph. */
     portrait: photo('portrait', [1, 1], 1, 1, { roughness: 0.62 }),
     /**

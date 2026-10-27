@@ -472,14 +472,10 @@ export const sheerWeave: Paint = (g, w, h) => {
   }
 }
 
-/** The ceiling-pocket LED wash down a curtain: brightest at the top, gone by mid height. */
+/** Glow down a sheer: the ceiling-pocket LED wash at the top, then the daylight through the fabric below. */
 export const curtainWash: Paint = (g, w, h) => {
   const grad = g.createLinearGradient(0, 0, 0, h)
-  grad.addColorStop(0, '#ffffff')
-  grad.addColorStop(0.05, '#e6e6e6')
-  grad.addColorStop(0.25, '#7a7a7a')
-  grad.addColorStop(0.5, '#222222')
-  grad.addColorStop(1, '#000000')
+  for (const [t, v] of [[0, 255], [0.06, 236], [0.25, 168], [0.5, 140], [1, 132]]) grad.addColorStop(t, `rgb(${v},${v},${v})`)
   g.fillStyle = grad
   g.fillRect(0, 0, w, h)
 }
@@ -500,19 +496,6 @@ export const rattanWeave: Paint = (g, w, h) => {
   }
 }
 
-/** Tight basket weave of the lantern pendant: fine canes over and under, small gaps of light between. */
-export const lanternWeave: Paint = (g, w, h) => {
-  const r = rng(54)
-  g.clearRect(0, 0, w, h)
-  const s = 8
-  for (let y = 0; y < h; y += s)
-    for (let x = 0; x < w; x += s) {
-      const t = r() * 30
-      g.fillStyle = `rgb(${150 + t},${116 + t * 0.8},${78 + t * 0.6})`
-      if (((x + y) / s) % 2 === 0) g.fillRect(x, y + 1, s, s - 3)
-      else g.fillRect(x + 1, y, s - 3, s)
-    }
-}
 
 /** Chunky braided jute (rug, door mat): rows of plaited loops in the given tone. */
 export const juteBraid = (base: [number, number, number], seed: number): Paint => (g, w, h) => {
@@ -724,40 +707,6 @@ export const fringeStrands: Paint = (g, w, h) => {
   }
 }
 
-/** Reclaimed timber top: three planks along the length, open grain, knots and dark checks. */
-export const rusticPlanks: Paint = (g, w, h) => {
-  const r = rng(66)
-  const ph = h / 3
-  for (let p = 0; p < 3; p++) {
-    const t = r() * 26 - 13
-    g.fillStyle = `rgb(${142 + t},${94 + t * 0.8},${58 + t * 0.6})`
-    g.fillRect(0, p * ph, w, ph)
-    for (let i = 0; i < 120; i++) {
-      const y = p * ph + r() * ph
-      g.strokeStyle = `rgba(${r() < 0.65 ? '70,40,20' : '220,170,120'},${0.08 + r() * 0.16})`
-      g.lineWidth = 0.6 + r() * 2.2
-      g.beginPath()
-      g.moveTo(0, y)
-      for (let x = 0; x <= w; x += 32) g.lineTo(x, y + Math.sin(x * 0.012 + i) * 3 * r())
-      g.stroke()
-    }
-    for (let i = 0; i < 3; i++) {
-      const [kx, ky] = [r() * w, p * ph + ph * (0.2 + r() * 0.6)]
-      g.fillStyle = 'rgba(40,22,10,.75)'
-      g.beginPath()
-      g.ellipse(kx, ky, 6 + r() * 10, 3 + r() * 5, 0, 0, Math.PI * 2)
-      g.fill()
-      g.strokeStyle = 'rgba(30,16,8,.6)'
-      g.lineWidth = 1.5
-      g.beginPath()
-      g.moveTo(kx, ky)
-      g.lineTo(kx + 40 + r() * 80, ky + (r() - 0.5) * 6)
-      g.stroke()
-    }
-    g.fillStyle = 'rgba(30,16,8,.85)'
-    g.fillRect(0, p * ph, w, 2.5)
-  }
-}
 
 /** Vertical wood grain in the given tone, with weathered checks: stumps, pedestals, the log arm. */
 export const woodGrain = (base: [number, number, number], seed: number): Paint => (g, w, h) => {
@@ -813,12 +762,386 @@ export const palmRibs: Paint = (g, w, h) => {
   g.fillRect(w / 2 - 2, 0, 4, h)
 }
 
-/** The magazine on the coffee table: a pale cover with a dark title band. */
-export const bookCover: Paint = (g, w, h) => {
-  g.fillStyle = '#ece7dc'
+
+/** Chunky ribbed knit of the lounge chair: close vertical ribs of plump stitches in cocoa-taupe. */
+export const ribKnit: Paint = (g, w, h) => {
+  const r = rng(81)
+  g.fillStyle = '#3e3229'
   g.fillRect(0, 0, w, h)
-  g.fillStyle = '#26221e'
-  g.fillRect(w * 0.08, h * 0.08, w * 0.84, h * 0.16)
-  g.fillStyle = '#8a7f72'
-  g.fillRect(w * 0.08, h * 0.32, w * 0.84, h * 0.56)
+  const [cols, rows] = [20, 28]
+  const [cw, rh] = [w / cols, h / rows]
+  for (let x = 0; x < cols; x++)
+    for (let y = 0; y < rows; y++) {
+      const t = r() * 12 - 6
+      const grad = g.createLinearGradient(x * cw, 0, (x + 1) * cw, 0)
+      grad.addColorStop(0, `rgb(${86 + t},${71 + t},${58 + t})`)
+      grad.addColorStop(0.5, `rgb(${122 + t},${104 + t},${86 + t})`)
+      grad.addColorStop(1, `rgb(${82 + t},${67 + t},${54 + t})`)
+      g.fillStyle = grad
+      g.beginPath()
+      g.ellipse(x * cw + cw / 2, y * rh + rh / 2, cw * 0.44, rh * 0.62, 0, 0, Math.PI * 2)
+      g.fill()
+    }
+}
+
+/* ---------- Living room, the coffee table (from its close-up photograph) ---------- */
+
+/**
+ * The reclaimed-teak slab top, seen from above: honey teak with silver-grey weathering along the
+ * grain, a void notched into the back edge and a split running in from each end. The canvas spans
+ * the whole top: left is the table's west end, top is the back (sofa) edge.
+ */
+export const slabTop: Paint = (g, w, h) => {
+  const r = rng(91)
+  const grad = g.createLinearGradient(0, 0, w, 0)
+  grad.addColorStop(0, '#8e5f40')
+  grad.addColorStop(0.5, '#9c6a48')
+  grad.addColorStop(1, '#a86f4a')
+  g.fillStyle = grad
+  g.fillRect(0, 0, w, h)
+  // Grain along the length, with bands of grey weathering.
+  for (let i = 0; i < 340; i++) {
+    const y = r() * h
+    const grey = r() < 0.3
+    g.strokeStyle = grey ? `rgba(168,150,132,${0.08 + r() * 0.14})` : `rgba(${r() < 0.6 ? '74,44,26' : '200,150,110'},${0.06 + r() * 0.14})`
+    g.lineWidth = grey ? 2 + r() * 6 : 0.6 + r() * 2
+    g.beginPath()
+    g.moveTo(0, y)
+    for (let x = 0; x <= w; x += 24) g.lineTo(x, y + Math.sin(x * 0.01 + i) * 2.5 + (r() - 0.5) * 1.2)
+    g.stroke()
+  }
+  const crack = (pts: [number, number][], width: number) => {
+    g.strokeStyle = '#1e140d'
+    g.lineCap = 'round'
+    g.lineWidth = width
+    g.beginPath()
+    pts.forEach(([x, y], i) => (i ? g.lineTo(x * w, y * h) : g.moveTo(x * w, y * h)))
+    g.stroke()
+  }
+  // The void notched into the back edge, near the vase.
+  g.fillStyle = '#1a110b'
+  g.beginPath()
+  g.ellipse(0.71 * w, 0.03 * h, 0.035 * w, 0.06 * h, 0, 0, Math.PI * 2)
+  g.fill()
+  crack([[0.66, 0.05], [0.71, 0.06], [0.76, 0.05]], 3)
+  // The splits running in from each end.
+  crack([[1, 0.44], [0.95, 0.45], [0.91, 0.46], [0.88, 0.455]], 6)
+  crack([[0, 0.53], [0.06, 0.52], [0.13, 0.515], [0.19, 0.52]], 5)
+}
+
+/** The weathered live edge of the slab: eroded grey-tan timber, pitted, with long checks along it. */
+export const liveEdge: Paint = (g, w, h) => {
+  const r = rng(92)
+  g.fillStyle = '#8b7464'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 260; i++) {
+    g.strokeStyle = `rgba(${r() < 0.5 ? '60,40,28' : '196,178,160'},${0.12 + r() * 0.25})`
+    g.lineWidth = 0.8 + r() * 2.5
+    const y = r() * h
+    const x = r() * w
+    g.beginPath()
+    g.moveTo(x, y)
+    g.lineTo(x + 20 + r() * 90, y + (r() - 0.5) * 4)
+    g.stroke()
+  }
+  for (let i = 0; i < 160; i++) {
+    g.fillStyle = `rgba(40,26,18,${0.3 + r() * 0.4})`
+    g.beginPath()
+    g.ellipse(r() * w, r() * h, 1 + r() * 4, 0.6 + r() * 2, 0, 0, Math.PI * 2)
+    g.fill()
+  }
+}
+
+/** Raku-fired glaze of the coffee-table vase: mottled bronze-gold above, smoky black below, crazed all over. */
+export const rakuGlaze: Paint = (g, w, h) => {
+  const r = rng(93)
+  const grad = g.createLinearGradient(0, 0, 0, h)
+  grad.addColorStop(0, '#a58a5c')
+  grad.addColorStop(0.45, '#8c7048')
+  grad.addColorStop(0.75, '#4a3a2a')
+  grad.addColorStop(1, '#2a1f17')
+  g.fillStyle = grad
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 70; i++) {
+    const [x, y] = [r() * w, h * (0.2 + r() * 0.8)]
+    g.fillStyle = `rgba(30,24,18,${0.25 + r() * 0.45})`
+    g.beginPath()
+    g.ellipse(x, y, 4 + r() * 22, 3 + r() * 14, r() * Math.PI, 0, Math.PI * 2)
+    g.fill()
+  }
+  for (let i = 0; i < 40; i++) {
+    g.fillStyle = `rgba(196,170,120,${0.15 + r() * 0.25})`
+    g.beginPath()
+    g.ellipse(r() * w, r() * h * 0.6, 3 + r() * 12, 2 + r() * 8, 0, 0, Math.PI * 2)
+    g.fill()
+  }
+  g.strokeStyle = 'rgba(25,18,12,.35)'
+  g.lineWidth = 0.8
+  for (let i = 0; i < 160; i++) {
+    const [x, y] = [r() * w, r() * h]
+    g.beginPath()
+    g.moveTo(x, y)
+    g.lineTo(x + (r() - 0.5) * 14, y + (r() - 0.5) * 14)
+    g.stroke()
+  }
+}
+
+/** The "Images of India" coffee-table book: a black-and-white photograph under the title. */
+export const indiaCover: Paint = (g, w, h) => {
+  const r = rng(94)
+  g.fillStyle = '#6f6862'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 160; i++) {
+    const t = Math.floor(40 + r() * 170)
+    g.fillStyle = `rgba(${t},${t - 4},${t - 8},${0.25 + r() * 0.4})`
+    g.fillRect(r() * w, h * 0.3 + r() * h * 0.7, 4 + r() * 30, 4 + r() * 40)
+  }
+  g.fillStyle = 'rgba(20,18,16,.55)'
+  g.fillRect(0, 0, w, h * 0.3)
+  g.fillStyle = '#efe9dd'
+  g.textAlign = 'center'
+  g.font = `${Math.round(h * 0.06)}px serif`
+  g.fillText('IMAGES OF', w / 2, h * 0.11)
+  g.font = `bold ${Math.round(h * 0.15)}px serif`
+  g.fillText('INDIA', w / 2, h * 0.26)
+}
+
+/* ---------- Living room, the corner by the curtains (from its close-up photograph) ---------- */
+
+/** Densely coiled seagrass (the lantern's shoulder and hem): twisted golden strands in tight horizontal rows. */
+export const seagrassCoil: Paint = (g, w, h) => {
+  const r = rng(101)
+  g.fillStyle = '#5a3a1e'
+  g.fillRect(0, 0, w, h)
+  const rows = 22
+  const rh = h / rows
+  for (let y = 0; y < rows; y++)
+    for (let x = -20; x < w; x += 10 + r() * 14) {
+      const t = r() * 40
+      g.fillStyle = `rgb(${170 + t},${124 + t * 0.8},${70 + t * 0.5})`
+      g.beginPath()
+      g.ellipse(x + 10, y * rh + rh / 2 + (r() - 0.5) * 2, 12 + r() * 8, rh * 0.42, (r() - 0.5) * 0.3, 0, Math.PI * 2)
+      g.fill()
+    }
+}
+
+/** The lantern's open body: a loose square grid of twisted seagrass strands on transparent. */
+export const seagrassGrid: Paint = (g, w, h) => {
+  const r = rng(102)
+  g.clearRect(0, 0, w, h)
+  const n = 6
+  const s = w / n
+  const strand = (x0: number, y0: number, x1: number, y1: number) => {
+    const t = r() * 40
+    g.strokeStyle = `rgb(${166 + t},${118 + t * 0.8},${66 + t * 0.5})`
+    g.lineWidth = 6 + r() * 3
+    g.beginPath()
+    g.moveTo(x0, y0)
+    g.quadraticCurveTo((x0 + x1) / 2 + (r() - 0.5) * 6, (y0 + y1) / 2 + (r() - 0.5) * 6, x1, y1)
+    g.stroke()
+  }
+  for (let i = 0; i <= n; i++) {
+    strand(i * s, 0, i * s + (r() - 0.5) * 6, h)
+    strand(0, i * s, w, i * s + (r() - 0.5) * 6)
+  }
+  // Twists where the strands cross.
+  for (let i = 0; i <= n; i++)
+    for (let j = 0; j <= n; j++) {
+      g.fillStyle = 'rgba(90,58,30,.8)'
+      g.beginPath()
+      g.ellipse(i * s, j * s, 6, 5, r() * Math.PI, 0, Math.PI * 2)
+      g.fill()
+    }
+}
+
+/** Old fired clay with a smoky patina (the ribbed amphora): near-black brown with ash-grey bloom. */
+export const clayPatina: Paint = (g, w, h) => {
+  const r = rng(103)
+  g.fillStyle = '#3a2a20'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 260; i++) {
+    g.fillStyle = r() < 0.6 ? `rgba(120,108,96,${0.08 + r() * 0.18})` : `rgba(20,14,10,${0.15 + r() * 0.3})`
+    g.beginPath()
+    g.ellipse(r() * w, r() * h, 3 + r() * 18, 2 + r() * 10, r() * Math.PI, 0, Math.PI * 2)
+    g.fill()
+  }
+}
+
+/** Grey stone with a weathered crust (the studded pot and the tall pedestal), in the given ground. */
+export const weatheredStone = (base: [number, number, number], seed: number): Paint => (g, w, h) => {
+  const r = rng(seed)
+  g.fillStyle = `rgb(${base.join(',')})`
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 420; i++) {
+    const light = r() < 0.5
+    const t = r() * 30
+    g.fillStyle = light ? `rgba(${150 + t},${140 + t},${122 + t},${0.1 + r() * 0.22})` : `rgba(${44 + t},${38 + t},${32 + t},${0.06 + r() * 0.14})`
+    g.beginPath()
+    g.ellipse(r() * w, r() * h, 2 + r() * 26, 2 + r() * 16, r() * Math.PI, 0, Math.PI * 2)
+    g.fill()
+  }
+  for (let i = 0; i < 2500; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '20,16,12' : '190,180,160'},${r() * 0.35})`
+    g.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2)
+  }
+}
+
+/* ---------- Living room, the north wall (from its photograph) ---------- */
+
+/** The log console's rosewood: long grain down the canvas (the log's length), dark checks and a split. */
+export const logGrain: Paint = (g, w, h) => {
+  const r = rng(111)
+  g.fillStyle = '#7a3f22'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 300; i++) {
+    const x = r() * w
+    g.strokeStyle = `rgba(${r() < 0.6 ? '40,16,8' : '190,110,70'},${0.06 + r() * 0.16})`
+    g.lineWidth = 0.6 + r() * 3
+    g.beginPath()
+    g.moveTo(x, 0)
+    for (let y = 0; y <= h; y += 24) g.lineTo(x + Math.sin(y * 0.015 + i) * 5 * r(), y)
+    g.stroke()
+  }
+  g.strokeStyle = 'rgba(22,10,5,.85)'
+  for (const [x, wd] of [[0.42, 4], [0.7, 2.5]]) {
+    g.lineWidth = wd
+    g.beginPath()
+    g.moveTo(x * w, h * 0.15)
+    for (let y = h * 0.15; y <= h; y += 16) g.lineTo(x * w + Math.sin(y * 0.03) * 4, y)
+    g.stroke()
+  }
+}
+
+/** Cream cotton macramé on transparent: a fan of half-hitches, an arc of wooden beads, diamond knots and a long fringe. */
+export const macrameKnots: Paint = (g, w, h) => {
+  const r = rng(112)
+  g.clearRect(0, 0, w, h)
+  const cream = '#efe6d4'
+  g.strokeStyle = cream
+  g.lineCap = 'round'
+  // The cords falling the full length, gathered into the knotted body.
+  for (let i = 0; i < 46; i++) {
+    const x = w * (0.08 + (0.84 * i) / 45)
+    g.lineWidth = 3
+    g.beginPath()
+    g.moveTo(x, 0)
+    g.lineTo(x + (r() - 0.5) * 6, h * (0.82 + r() * 0.17))
+    g.stroke()
+  }
+  // The fan of half-hitches under the dowel.
+  for (let ring = 0; ring < 5; ring++) {
+    g.lineWidth = 7
+    g.beginPath()
+    g.ellipse(w / 2, 0, w * (0.12 + ring * 0.07), h * (0.07 + ring * 0.035), 0, 0, Math.PI)
+    g.stroke()
+  }
+  // The arc of wooden beads.
+  for (let i = 0; i <= 14; i++) {
+    const a = Math.PI * (i / 14)
+    g.fillStyle = '#c8a67a'
+    g.beginPath()
+    g.arc(w / 2 + Math.cos(a) * w * 0.44, Math.sin(a) * h * 0.26, w * 0.018, 0, Math.PI * 2)
+    g.fill()
+  }
+  // Rows of square-knot diamonds.
+  g.lineWidth = 6
+  for (let row = 0; row < 4; row++)
+    for (let i = 0; i < 4 - (row % 2); i++) {
+      const cx = w * (0.22 + i * 0.19 + (row % 2) * 0.095)
+      const cy = h * (0.36 + row * 0.08)
+      g.beginPath()
+      g.moveTo(cx, cy - h * 0.035)
+      g.lineTo(cx + w * 0.07, cy)
+      g.lineTo(cx, cy + h * 0.035)
+      g.lineTo(cx - w * 0.07, cy)
+      g.closePath()
+      g.stroke()
+    }
+}
+
+/** Dried grass behind the macramé: long brown strands fanning down, on transparent. */
+export const driedGrass: Paint = (g, w, h) => {
+  const r = rng(113)
+  g.clearRect(0, 0, w, h)
+  g.lineCap = 'round'
+  for (let i = 0; i < 700; i++) {
+    const t = r() * 50
+    g.strokeStyle = `rgba(${120 + t},${88 + t * 0.8},${56 + t * 0.5},${0.6 + r() * 0.4})`
+    g.lineWidth = 1 + r() * 2
+    const x = w * (0.05 + r() * 0.9)
+    const y0 = h * r() * 0.3
+    g.beginPath()
+    g.moveTo(x, y0)
+    g.quadraticCurveTo(x + (r() - 0.5) * 30, y0 + h * 0.3, x + (r() - 0.5) * 50, y0 + h * (0.4 + r() * 0.35))
+    g.stroke()
+  }
+}
+
+/** Weathered carving (the temple fragment, the lamp base): grey-brown wood or stone with rosettes in relief. */
+export const carvedRelief = (base: [number, number, number], seed: number): Paint => (g, w, h) => {
+  const r = rng(seed)
+  g.fillStyle = `rgb(${base.join(',')})`
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 6; i++) {
+    const [cx, cy, rad] = [w * (0.15 + r() * 0.7), h * (0.2 + r() * 0.6), w * (0.08 + r() * 0.1)]
+    for (let p = 0; p < 10; p++) {
+      const a = (p / 10) * Math.PI * 2
+      g.fillStyle = 'rgba(30,22,16,.35)'
+      g.beginPath()
+      g.ellipse(cx + Math.cos(a) * rad * 0.6, cy + Math.sin(a) * rad * 0.6, rad * 0.32, rad * 0.14, a, 0, Math.PI * 2)
+      g.fill()
+    }
+    g.fillStyle = 'rgba(210,196,176,.35)'
+    g.beginPath()
+    g.arc(cx, cy, rad * 0.22, 0, Math.PI * 2)
+    g.fill()
+  }
+  for (let i = 0; i < 1500; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '25,18,12' : '220,206,186'},${r() * 0.3})`
+    g.fillRect(r() * w, r() * h, 1 + r() * 3, 1 + r() * 2)
+  }
+}
+
+/** Natural burlap (the lamp shade): an open plain weave of beige jute. */
+export const burlap: Paint = (g, w, h) => {
+  const r = rng(114)
+  g.fillStyle = '#b89a72'
+  g.fillRect(0, 0, w, h)
+  const s = w / 48
+  for (let i = 0; i < 48; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '120,96,66' : '226,206,172'},${0.25 + r() * 0.3})`
+    g.fillRect(i * s, 0, s * 0.55, h)
+    g.fillRect(0, i * s, w, s * 0.5)
+  }
+}
+
+/** The west window's Roman blind: brown damask with a tree motif, folded in horizontal pleats. */
+export const damaskBlind: Paint = (g, w, h) => {
+  const r = rng(115)
+  g.fillStyle = '#5a4535'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 40; i++) {
+    const [x, y] = [r() * w, r() * h]
+    g.strokeStyle = 'rgba(150,124,96,.45)'
+    g.lineWidth = 2
+    g.beginPath()
+    g.moveTo(x, y + 30)
+    g.lineTo(x, y - 10)
+    g.stroke()
+    for (let b = 0; b < 5; b++) {
+      g.fillStyle = 'rgba(150,124,96,.35)'
+      g.beginPath()
+      g.ellipse(x + (r() - 0.5) * 30, y - 10 - r() * 25, 10 + r() * 8, 7 + r() * 6, 0, 0, Math.PI * 2)
+      g.fill()
+    }
+  }
+  for (let f = 1; f < 6; f++) {
+    const y = (h * f) / 6
+    const grad = g.createLinearGradient(0, y - 14, 0, y + 6)
+    grad.addColorStop(0, 'rgba(0,0,0,0)')
+    grad.addColorStop(0.7, 'rgba(20,14,10,.5)')
+    grad.addColorStop(1, 'rgba(220,200,170,.25)')
+    g.fillStyle = grad
+    g.fillRect(0, y - 14, w, 20)
+  }
 }
