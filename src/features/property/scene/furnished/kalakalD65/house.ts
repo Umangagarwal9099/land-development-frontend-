@@ -60,6 +60,11 @@ const STONE: R = [-2.94, -1.11]
 const TALL: R = [-2.73, -1.68]
 const DOOR: R = [-1.02, -0.14]
 export const STEPS: R = [-1.45, 0.2]
+/** The kitchen (see kitchen.ts): inner extents in the back-right corner, with its 2.50 m false ceiling. */
+export const KITCHEN = { x0: X1 - T - 3.9, z0: BACK + T, w: 3.9, d: 3.4, h: 2.5 }
+/** The kitchen window in the right wall, centred over the right-hand run: house z, and heights above site ground. */
+const KW_MID = KITCHEN.z0 + (0.6 + (KITCHEN.d - 2.7) + 1.63) / 2
+export const KITCHEN_WINDOW = { z0: KW_MID - 0.3, z1: KW_MID + 0.3, y0: GFL + 1.05, y1: GFL + 2.25 }
 
 /** A box given by its extents. */
 function bx(k: Kit, p: Object3D, [x0, x1]: R, [y0, y1]: R, [z0, z1]: R, mat: Material | Material[], cast = true) {
@@ -171,10 +176,10 @@ export function buildShell(ctx: Ctx) {
 
   // Sides and back. Openings follow the floor plans (toilet ventilators, dining and bedroom windows).
   holed(k, 'z', [BACK, FACE - T], [0, ROOF], [X0, X0 + T], [[-8.57, -7.33, 1.31, 2.71], [-8.57, -7.9, 5.2, 5.8]], white)
-  holed(k, 'z', [BACK + T, CAR_BACK - T], [0, FFL], [X1 - T, X1], [[-8.76, -8.1, 2.3, 2.9]], white)
+  holed(k, 'z', [BACK + T, CAR_BACK - T], [0, FFL], [X1 - T, X1], [[-8.76, -8.1, 2.3, 2.9], [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1, KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1]], white)
   holed(k, 'z', [BACK + T, FACE], [FFL, ROOF], [X1 - T, X1], [[-3.81, -2.95, 5.0, 5.6]], white)
   holed(k, 'x', [X0, X1], [0, ROOF], [BACK, BACK + T], [
-    [-2.48, -1.33, 1.31, 2.71], [1.43, 2.67, 1.31, 2.71], [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97],
+    [-2.48, -1.33, 1.31, 2.71], [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97],
   ], white)
 
   // First floor slab, then the projecting box: slab and beam, legs, roof and fascia.
@@ -259,11 +264,12 @@ export function buildFacade(ctx: Ctx) {
   glazing(ctx, 'x', [-0.97, -0.26], [FFL, 5.72], FACE - 0.1)
   glazing(ctx, 'x', [0.28, 2.16], [FFL, 5.71], FACE - 0.1, { mullions: [1.22] })
   glazing(ctx, 'x', [0.72, 2.48], [1.34, 2.44], CAR_BACK - 0.1, { mullions: [1.31, 1.73] })
-  for (const [a0, a1, y0, y1] of [[-2.48, -1.33, 1.31, 2.71], [1.43, 2.67, 1.31, 2.71], [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97]])
+  for (const [a0, a1, y0, y1] of [[-2.48, -1.33, 1.31, 2.71], [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97]])
     glazing(ctx, 'x', [a0, a1], [y0, y1], BACK + 0.1, { mullions: [(a0 + a1) / 2] })
   glazing(ctx, 'z', [-8.57, -7.33], [1.31, 2.71], X0 + 0.1, { mullions: [-7.95] })
   glazing(ctx, 'z', [-8.57, -7.9], [5.2, 5.8], X0 + 0.1)
   glazing(ctx, 'z', [-8.76, -8.1], [2.3, 2.9], X1 - 0.1)
+  glazing(ctx, 'z', [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1], [KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], X1 - 0.1, { mullions: [(KITCHEN_WINDOW.z0 + KITCHEN_WINDOW.z1) / 2] })
   glazing(ctx, 'z', [-3.81, -2.95], [5.0, 5.6], X1 - 0.1)
 
   // Sheers drawn to the sides, as in the reference.

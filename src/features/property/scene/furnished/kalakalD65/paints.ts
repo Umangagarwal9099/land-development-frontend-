@@ -56,12 +56,12 @@ export const ledgestone: Paint = (g, w, h) => {
   }
 }
 
-/** Warm teak boards with the grain running along v; the canvas is four 150 mm boards. */
-export const teak: Paint = (g, w, h) => {
-  const r = rng(77)
+/** Wood boards with the grain running along v, four 150 mm boards to the canvas, around a base colour. */
+const boards = (tone: number[], seed: number): Paint => (g, w, h) => {
+  const r = rng(seed)
   const pw = w / 4
   for (let p = 0; p < 4; p++) {
-    const base = [146 + r() * 16, 100 + r() * 10, 64 + r() * 8]
+    const base = [tone[0] + r() * 16, tone[1] + r() * 10, tone[2] + r() * 8]
     g.fillStyle = rgb(base)
     g.fillRect(p * pw, 0, pw, h)
     for (let i = 0; i < 90; i++) {
@@ -77,6 +77,11 @@ export const teak: Paint = (g, w, h) => {
     g.fillRect(p * pw, 0, 2, h)
   }
 }
+
+/** Warm teak, for the façade battens, soffits and door. */
+export const teak = boards([146, 100, 64], 77)
+/** Warm natural oak, for the kitchen's fluted panels, shelving and boards. */
+export const lightOak = boards([176, 124, 82], 78)
 
 /** Light grey granite-look pavers, 600 × 600 mm; the canvas is a 2.4 m square. */
 export const pavers: Paint = (g, w, h) => {
@@ -152,5 +157,63 @@ export const foliage = (ground: number[], seed: number): Paint => (g, w, h) => {
     g.beginPath()
     g.ellipse(x, y, 2 + r() * 4, 1 + r() * 2, r() * Math.PI, 0, 7)
     g.fill()
+  }
+}
+
+/** Large-format 600 × 1200 mm porcelain in warm light beige, softly clouded; the canvas is 2.4 m square. */
+export const porcelain: Paint = (g, w, h) => {
+  const r = rng(53)
+  g.fillStyle = '#b9b0a2'
+  g.fillRect(0, 0, w, h)
+  const cols = 4
+  const rows = 2
+  const tw = w / cols
+  const th = h / rows
+  for (let i = 0; i < cols; i++)
+    for (let j = 0; j < rows; j++) {
+      const t = r() * 8 - 4
+      g.fillStyle = rgb([221, 213, 200], t)
+      g.fillRect(i * tw + 1, j * th + 1, tw - 2, th - 2)
+      for (let k = 0; k < 14; k++) {
+        const x = i * tw + r() * tw
+        const y = j * th + r() * th
+        const rad = 20 + r() * 70
+        const gr = g.createRadialGradient(x, y, 0, x, y, rad)
+        gr.addColorStop(0, `rgba(${r() < 0.5 ? '190,178,160' : '240,234,224'},.18)`)
+        gr.addColorStop(1, 'rgba(0,0,0,0)')
+        g.fillStyle = gr
+        g.fillRect(Math.max(i * tw + 1, x - rad), Math.max(j * th + 1, y - rad), Math.min(rad * 2, tw - 2), Math.min(rad * 2, th - 2))
+      }
+    }
+}
+
+/** Warm cream marble for the splashback: soft beige clouding with faint, low-contrast veins; 1.2 m square. */
+export const creamMarble: Paint = (g, w, h) => {
+  const r = rng(117)
+  g.fillStyle = '#e8ddcc'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 90; i++) {
+    const x = r() * w
+    const y = r() * h
+    const rad = 30 + r() * 120
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad)
+    gr.addColorStop(0, `rgba(${r() < 0.5 ? '212,198,178' : '246,240,230'},${0.05 + r() * 0.07})`)
+    gr.addColorStop(1, 'rgba(0,0,0,0)')
+    g.fillStyle = gr
+    g.fillRect(x - rad, y - rad, rad * 2, rad * 2)
+  }
+  for (let i = 0; i < 9; i++) {
+    g.strokeStyle = `rgba(${r() < 0.6 ? '176,160,138' : '250,246,238'},${0.12 + r() * 0.16})`
+    g.lineWidth = 0.8 + r() * 2.2
+    g.beginPath()
+    let x = -20
+    let y = r() * h
+    g.moveTo(x, y)
+    while (x < w + 20) {
+      x += 30 + r() * 60
+      y += r() * 50 - 22
+      g.lineTo(x, y)
+    }
+    g.stroke()
   }
 }

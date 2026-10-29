@@ -1,13 +1,13 @@
 import { DoubleSide, MeshPhysicalMaterial, MeshStandardMaterial, Vector2, type MeshStandardMaterialParameters } from 'three'
 import type { Kit } from '../kit'
 import { tiledMat, type Lighting } from '../shared'
-import { asphalt, exteriorPaint, foliage, ledgestone, pavers, teak } from './paints'
+import { asphalt, creamMarble, exteriorPaint, foliage, ledgestone, lightOak, pavers, porcelain, teak } from './paints'
 
 const std = (p: MeshStandardMaterialParameters) => new MeshStandardMaterial({ roughness: 0.8, ...p })
 const hexRgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
 
 /** Real-world size, in metres, of one tile of each painted surface. */
-const TILE = { stone: 0.6, teak: 0.6, pavers: 2.4, asphalt: 4, white: 2, greige: 2 } as const
+const TILE = { stone: 0.6, teak: 0.6, pavers: 2.4, asphalt: 4, white: 2, greige: 2, porcelain: 2.4, splash: 1.2, oak: 0.6 } as const
 type Surface = keyof typeof TILE
 
 const PAINTS = {
@@ -17,6 +17,9 @@ const PAINTS = {
   asphalt,
   white: exteriorPaint([247, 245, 241], 5),
   greige: exteriorPaint([214, 207, 196], 6),
+  porcelain,
+  splash: creamMarble,
+  oak: lightOak,
 }
 
 const PARAMS: Record<Surface, MeshStandardMaterialParameters> = {
@@ -26,6 +29,9 @@ const PARAMS: Record<Surface, MeshStandardMaterialParameters> = {
   asphalt: { roughness: 0.95 },
   white: { roughness: 0.88 },
   greige: { roughness: 0.86 },
+  porcelain: { roughness: 0.22 },
+  splash: { roughness: 0.3 },
+  oak: { roughness: 0.6 },
 }
 
 /** The residence's finishes, matched to the reference elevation. */
@@ -59,7 +65,8 @@ export function d65Materials(k: Kit, lighting: Lighting) {
     aluminium: std({ color: '#18191b', roughness: 0.38, metalness: 0.55 }),
     groove: std({ color: '#9d978d', roughness: 0.9 }),
     interior: std({ color: '#efe5d6', roughness: 0.92 }),
-    interiorFloor: k.finish('marble', 3, 3, 0.25),
+    // The kitchen's large-format porcelain runs through the ground and first floors.
+    interiorFloor: surface('porcelain', 7.2, 11),
     roofing: std({ color: '#b9b3a9', roughness: 0.95 }),
     stepStone: std({ color: '#ebe8e2', roughness: 0.5 }),
     coping: std({ color: '#d9d5ce', roughness: 0.7 }),

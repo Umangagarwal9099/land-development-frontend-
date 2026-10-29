@@ -1,4 +1,4 @@
-import type { MediaItem, Property, Room } from '../types'
+import type { Floor, MediaItem, Property, Room } from '../types'
 import { placeholderImage } from './placeholders'
 
 // Served from public/videos/. Absolute so assetUrl() doesn't resolve it against the R2 domain.
@@ -106,6 +106,7 @@ function nyshasHaven(): Property {
  * the 33 ft cross road, +x north to the 60 ft avenue; the house front stands 3 m inside the plot.
  */
 function kalakalD65(): Property {
+  const G: Floor = { id: id('floor'), name: 'Ground Floor', level: 0, groupName: 'floor_G' }
   const room = (name: string, meshName: string, [lengthM, widthM]: [number, number], description: string, specs: string[]): Room => {
     const length = Math.round(lengthM * M_TO_FT)
     const width = Math.round(widthM * M_TO_FT)
@@ -117,6 +118,15 @@ function kalakalD65(): Property {
     }
   }
   const rooms: Room[] = [
+    {
+      id: id('room'), name: 'Kitchen', kind: 'room', meshName: 'room_kitchen', floorId: G.id,
+      dimensions: { length: 13, width: 11, unit: 'ft' }, areaSqft: 143,
+      description:
+        'A U-shaped kitchen with a breakfast bar: sage handle-less cabinetry, a black French-door fridge and built-in ovens in a tall wall of units, a fluted oak panel with black open shelves and a lit glass cabinet over a stone splashback, and a 1.50 m bar with a fluted oak front and two upholstered stools under black pendants.',
+      specs: ['3.90 × 3.40 m, 2.50 m false ceiling', 'Sage matt lacquer, handle-less fronts', 'White stone worktops, marble splashback', 'Black undermount sink and gooseneck tap', 'Gas hob in black glass', 'Warm LED under-cabinet and shelf lighting'],
+      amenities: ['Breakfast bar, 0.95 m high', 'French-door fridge', 'Built-in oven and compact oven', 'Open shelving'],
+      media: [],
+    },
     room('Entrance', 'amenity_entrance', [2.4, 1.65],
       'Three white stone risers up to a covered landing under the first-floor box, and a flush teak main door with a full-height black pull, lit by an up-down wall lamp.',
       ['Teak main door, horizontal grooves', 'White stone steps and landing', 'Recessed downlight in the porch ceiling']),
@@ -141,7 +151,7 @@ function kalakalD65(): Property {
       Plot: 'D-65 · 40′ × 60′ (2,400 sq ft)', Facing: 'North-east corner, 33 ft and 60 ft roads', Floors: 'Ground + 1',
       'Façade': '25′ wide · 7.9 m to the top of the frame', Parking: 'Covered carport', Finishes: 'Ledgestone, teak, white render, black aluminium',
     },
-    model: { kind: 'furnished', design: 'kalakal-d65' }, floors: [], rooms,
+    model: { kind: 'furnished', design: 'kalakal-d65' }, floors: [G], rooms,
     presets: [
       { id: 'front', name: 'Front elevation', position: [2.5, 5.0, 22.5], target: [0.2, 3.4, 5.5], fov: 38 },
       { id: 'corner', name: 'North-east corner', position: [15.5, 6.5, 19.5], target: [0.5, 3.4, 3], fov: 40 },

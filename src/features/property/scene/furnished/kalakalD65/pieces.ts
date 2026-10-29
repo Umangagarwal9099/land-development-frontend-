@@ -97,6 +97,14 @@ export function arecaPot(p: P, x: number, z: number, s: number, y: number, pot: 
   }
 }
 
+/** A small leafy plant (herbs, a pothos) in a pot, for counters and shelves. */
+export function herbPot(p: P, parent: Object3D, x: number, y: number, z: number, s = 1, pot: Material = p.c.pot) {
+  const { k } = p
+  k.cyl(parent, 0.07 * s, 0.055 * s, 0.13 * s, pot, x, y + 0.065 * s, z, 20)
+  const parts: [number, number, number, number][] = [[0, 0.2, 0, 0.09], [0.06, 0.17, 0.03, 0.07], [-0.05, 0.18, -0.03, 0.07], [0.01, 0.27, 0.02, 0.06]]
+  parts.forEach(([a, b, cc, r], i) => foliageClump(p, parent, r * s, x + a * s, y + b * s, z + cc * s, 0.9, i))
+}
+
 /** A frangipani: a short forked trunk under a spreading, flat-topped crown. */
 export function frangipani(p: P, x: number, z: number, s: number) {
   const { k, c } = p
