@@ -7,11 +7,11 @@ import { bowls, carafe, cutleryCrock, mug, plates, tumblers, wineGlasses } from 
 
 /*
  * The ground-floor kitchen, modelled from the client's kitchen reference (render + dimensioned
- * plan), enlarged at the client's request to 3.90 × 3.40 m, with a 2.50 m false ceiling.
+ * plan), enlarged at the client's request to 4.20 × 3.70 m, with a 2.50 m false ceiling.
  * Sage handle-less cabinetry, tall units on the left wall (oven tower, open-shelf column, black
  * French-door fridge, end tall unit), the sink on the back run under a fluted oak panel,
  * black-framed open shelves and a glass cabinet, the hob on the right-hand run under the window,
- * and a 1.50 m breakfast bar with a fluted oak front and two stools.
+ * and a 1.80 m breakfast bar (lengthened from the reference's 1.50 m) with a fluted oak front and two stools.
  *
  * Kitchen frame: X from the left (inner) wall towards the right exterior wall, Y from the back
  * wall towards the room, h above the kitchen floor. It sits in the house's back-right corner,
@@ -29,6 +29,8 @@ const DY = KD - 2.7
 
 const TOP = 0.9
 const BAR_TOP = 0.95
+/** Breakfast bar length, from the right wall: 300 mm longer than the reference, for two stools at ease. */
+const BAR_L = 1.8
 const UNDER = 1.51
 const PANEL_TOP = 2.1
 const BASE_D = 0.6
@@ -340,7 +342,7 @@ function uppers(K: KC) {
 /** Breakfast bar: stone top and waterfall end, fluted oak front lit from under the top, two stools, two pendants. */
 function bar(K: KC) {
   const { bx, m, k, g } = K
-  const X: R = [1.6 + DX, KW]
+  const X: R = [KW - BAR_L, KW]
   const Y: R = [1.63 + DY, 2.3 + DY]
   bx([X[0] + 0.05, X[1]], [0, BAR_TOP - 0.05], [Y[0], Y[1] - 0.1], m.sage)
   const slat = m.oak(0.06, 1)
@@ -371,9 +373,10 @@ function bar(K: KC) {
   cutleryCrock(k, g, KW - 0.14, BAR_TOP + 0.03, NY[0] + 0.14)
   plates(k, g, KW - 0.14, BAR_TOP + 0.03, NY[1] - 0.17, 4, 'side')
 
-  for (const x of [2.03, 2.65]) {
-    counterStool(k, g, x + DX, 2.64 + DY, PI)
-    contactShadow(K, x + DX, 2.64 + DY, 0.62, 0.6, 0.55)
+  // Two stools at 600 mm centres, set towards the bar's open end, clear of the shelving at the wall.
+  for (const x of [X[0] + 0.5, X[0] + 1.1]) {
+    counterStool(k, g, x, 2.64 + DY, PI)
+    contactShadow(K, x, 2.64 + DY, 0.62, 0.6, 0.55)
   }
   // Soft occlusion where the bar and the base units meet the floor.
   contactShadow(K, (X[0] + X[1]) / 2, Y[1] - 0.05, X[1] - X[0] + 0.1, 0.32, 0.45)

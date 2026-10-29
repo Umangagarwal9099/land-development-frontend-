@@ -61,7 +61,7 @@ const TALL: R = [-2.73, -1.68]
 const DOOR: R = [-1.02, -0.14]
 export const STEPS: R = [-1.45, 0.2]
 /** The kitchen (see kitchen.ts): inner extents in the back-right corner, with its 2.50 m false ceiling. */
-export const KITCHEN = { x0: X1 - T - 3.9, z0: BACK + T, w: 3.9, d: 3.4, h: 2.5 }
+export const KITCHEN = { x0: X1 - T - 4.2, z0: BACK + T, w: 4.2, d: 3.7, h: 2.5 }
 /** The kitchen window in the right wall, centred over the right-hand run: house z, and heights above site ground. */
 const KW_MID = KITCHEN.z0 + (0.6 + (KITCHEN.d - 2.7) + 1.63) / 2
 export const KITCHEN_WINDOW = { z0: KW_MID - 0.3, z1: KW_MID + 0.3, y0: GFL + 1.05, y1: GFL + 2.25 }

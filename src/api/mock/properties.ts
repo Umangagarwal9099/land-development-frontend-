@@ -120,11 +120,11 @@ function kalakalD65(): Property {
   const rooms: Room[] = [
     {
       id: id('room'), name: 'Kitchen', kind: 'room', meshName: 'room_kitchen', floorId: G.id,
-      dimensions: { length: 13, width: 11, unit: 'ft' }, areaSqft: 143,
+      dimensions: { length: 14, width: 12, unit: 'ft' }, areaSqft: 167,
       description:
-        'A U-shaped kitchen with a breakfast bar: sage handle-less cabinetry, a black French-door fridge and built-in ovens in a tall wall of units, a fluted oak panel with black open shelves and a lit glass cabinet over a stone splashback, and a 1.50 m bar with a fluted oak front and two upholstered stools under black pendants.',
-      specs: ['3.90 × 3.40 m, 2.50 m false ceiling', 'Sage matt lacquer, handle-less fronts', 'White stone worktops, marble splashback', 'Black undermount sink and gooseneck tap', 'Gas hob in black glass', 'Warm LED under-cabinet and shelf lighting'],
-      amenities: ['Breakfast bar, 0.95 m high', 'French-door fridge', 'Built-in oven and compact oven', 'Open shelving'],
+        'A U-shaped kitchen with a breakfast bar: sage handle-less cabinetry, a black French-door fridge and built-in ovens in a tall wall of units, a fluted oak panel with black open shelves and a lit glass cabinet over a stone splashback, and a 1.80 m bar with a fluted oak front and two upholstered stools under black pendants.',
+      specs: ['4.20 × 3.70 m, 2.50 m false ceiling', 'Sage matt lacquer, handle-less fronts', 'White stone worktops, marble splashback', 'Black undermount sink and gooseneck tap', 'Gas hob in black glass', 'Warm LED under-cabinet and shelf lighting'],
+      amenities: ['Breakfast bar, 1.80 m long, 0.95 m high', 'French-door fridge', 'Built-in oven and compact oven', 'Open shelving'],
       media: [],
     },
     room('Entrance', 'amenity_entrance', [2.4, 1.65],
