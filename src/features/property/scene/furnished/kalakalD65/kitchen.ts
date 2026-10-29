@@ -8,7 +8,7 @@ import { bakingTray, bottle, bowls, carafe, cutleryCrock, cutleryTray, foodConta
 
 /*
  * The ground-floor kitchen, modelled from the client's kitchen reference (render + dimensioned
- * plan), enlarged at the client's request to 4.20 × 3.70 m, with a 2.50 m false ceiling.
+ * plan), enlarged at the client's request to 3.40 × 3.70 m, with a 2.50 m false ceiling.
  * Sage handle-less cabinetry, tall units on the left wall (oven tower, open-shelf column, black
  * French-door fridge, end tall unit), the sink on the back run under a fluted oak panel,
  * black-framed open shelves and a glass cabinet, the hob on the right-hand run under the window,

@@ -22,8 +22,13 @@ const DOOR_OPEN_ANGLE = -Math.PI / 2
 
 const isDoor = (name: string) => name.startsWith('door_')
 const isDrawer = (name: string) => name.startsWith('drawer_')
-/** Doors swing on their hinge, drawers slide on their runners; both open and close on a tap. */
-const isOpenable = (name: string) => isDoor(name) || isDrawer(name)
+/** Light switches toggle their circuit; spinners (a ceiling fan) start and stop. */
+const isSwitch = (name: string) => name.startsWith('switch_')
+const isSpinner = (name: string) => name.startsWith('spin_')
+/** Everything a tap operates: doors swing, drawers and sliders run, switches and fans toggle. */
+const isOpenable = (name: string) => isDoor(name) || isDrawer(name) || isSwitch(name) || isSpinner(name)
+/** A tap within this long of the last on the same object is ignored, so a double tap can't flicker it. */
+const RETRIGGER_MS = 450
 
 function isVisibleInScene(obj: Object3D): boolean {
   for (let o: Object3D | null = obj; o; o = o.parent) if (!o.visible) return false
@@ -66,6 +71,8 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
 
   const [hovered, setHovered] = useState<{ room: Room; box: Box3 } | null>(null)
   const [hoveredOpenable, setHoveredOpenable] = useState<{ node: Object3D; box: Box3 } | null>(null)
+  // A brief highlight on the object just tapped, so touch users see what they operated.
+  const [tapped, setTapped] = useState<{ box: Box3; key: number } | null>(null)
   useCursor(hovered !== null || hoveredOpenable !== null)
 
   useEffect(() => {
@@ -144,8 +151,18 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
     const openable = openableAt(e)
     if (openable) {
       e.stopPropagation()
-      openable.userData.open = !openable.userData.open
+      const now = performance.now()
+      if (now - ((openable.userData.lastTap as number | undefined) ?? -Infinity) < RETRIGGER_MS) return
+      openable.userData.lastTap = now
+      if (isSwitch(openable.name)) {
+        openable.userData.on = !(openable.userData.on ?? true)
+        ;(openable.userData.toggle as ((on: boolean) => void) | undefined)?.(openable.userData.on)
+      } else if (isSpinner(openable.name)) openable.userData.on = !openable.userData.on
+      else openable.userData.open = !openable.userData.open
       setHoveredOpenable(null)
+      const box = frontBox(openable)
+      setTapped({ box, key: now })
+      window.setTimeout(() => setTapped((t) => (t?.key === now ? null : t)), 380)
       invalidate()
       return
     }
@@ -211,6 +228,7 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
 
       {root && <OpenableAnimator root={root} version={modelVersion} />}
       {hoveredOpenable && <OpenableOutline box={hoveredOpenable.box} />}
+      {tapped && <OpenableOutline key={tapped.key} box={tapped.box} strong />}
 
       {/* Artist models can't be restyled per room, so they get a gold volume around the selection. */}
       {selectionBox && property.model.kind === 'gltf' && !roomViewId && <SelectionVolume box={selectionBox} />}
@@ -284,13 +302,13 @@ function frontBox(node: Object3D) {
 }
 
 /** A thin gold outline round the door or drawer front under the pointer. */
-function OpenableOutline({ box }: { box: Box3 }) {
+function OpenableOutline({ box, strong }: { box: Box3; strong?: boolean }) {
   const size = box.getSize(new Vector3())
   const center = box.getCenter(new Vector3())
   return (
     <mesh position={center} raycast={() => null} renderOrder={3}>
       <boxGeometry args={[size.x + 0.012, size.y + 0.012, size.z + 0.012]} />
-      <meshBasicMaterial color={GOLD} transparent opacity={0.1} depthWrite={false} />
+      <meshBasicMaterial color={GOLD} transparent opacity={strong ? 0.22 : 0.1} depthWrite={false} />
       <Edges color={GOLD} lineWidth={1.5} />
     </mesh>
   )
@@ -311,7 +329,7 @@ function OpenableAnimator({ root, version }: { root: Object3D; version: number }
       } else if (isDrawer(o.name)) {
         o.userData.closedPos ??= o.position.clone()
         found.push(o)
-      }
+      } else if (isSwitch(o.name) || isSpinner(o.name)) found.push(o)
     })
     return found
     // version: re-scan when a new model (or LOD) mounts under the same root.
@@ -322,7 +340,20 @@ function OpenableAnimator({ root, version }: { root: Object3D; version: number }
   useFrame((state, delta) => {
     for (const part of parts) {
       const { open } = part.userData
-      if (isDoor(part.name)) {
+      if (isSpinner(part.name)) {
+        // Spins up and runs down gently, about its own vertical axis.
+        const speed = MathUtils.damp((part.userData.speed as number | undefined) ?? 0, part.userData.on ? 4.2 : 0, 1.6, delta)
+        part.userData.speed = speed < 0.002 && !part.userData.on ? 0 : speed
+        if (!part.userData.speed) continue
+        part.rotation.y += part.userData.speed * delta
+      } else if (isSwitch(part.name)) {
+        // The rocker tips over: down for on, up for off.
+        const rocker = part.getObjectByName('rocker')
+        if (!rocker) continue
+        const tip = (part.userData.on ?? true) ? -0.14 : 0.14
+        if (Math.abs(rocker.rotation.x - tip) < 0.001) continue
+        rocker.rotation.x = MathUtils.damp(rocker.rotation.x, tip, 18, delta)
+      } else if (isDoor(part.name)) {
         const angle = part.userData.closedY + (open ? ((part.userData.openAngle as number | undefined) ?? DOOR_OPEN_ANGLE) : 0)
         if (Math.abs(part.rotation.y - angle) < 0.001) continue
         // oxlint-disable-next-line react/immutability -- three.js objects are mutated per frame by design

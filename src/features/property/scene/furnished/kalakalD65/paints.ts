@@ -217,3 +217,154 @@ export const creamMarble: Paint = (g, w, h) => {
     g.stroke()
   }
 }
+
+/* ---------- Bedroom finishes ---------- */
+
+/** Dark warm walnut boards, for the bedroom's wall panels and wardrobe. */
+export const walnut = boards([112, 74, 50], 79)
+
+/** Engineered oak floorboards, 190 mm wide in staggered lengths; the canvas is 0.76 × 2.4 m. */
+export const oakFloor: Paint = (g, w, h) => {
+  const r = rng(131)
+  const cols = 4
+  const bw = w / cols
+  g.fillStyle = '#5a4430'
+  g.fillRect(0, 0, w, h)
+  for (let c = 0; c < cols; c++) {
+    let y = -r() * h * 0.5
+    while (y < h) {
+      const len = h * (0.35 + r() * 0.4)
+      const t = r() * 22 - 11
+      const base = [168 + t, 128 + t * 0.8, 92 + t * 0.6]
+      g.fillStyle = rgb(base)
+      for (const off of [-h, 0, h]) {
+        g.fillRect(c * bw + 1, y + off + 1, bw - 2, len - 2)
+        for (let i = 0; i < 26; i++) {
+          const x = c * bw + 2 + r() * (bw - 4)
+          g.strokeStyle = `rgba(${r() < 0.6 ? '86,58,36' : '220,186,140'},${0.08 + r() * 0.12})`
+          g.lineWidth = 0.6 + r() * 1.6
+          g.beginPath()
+          g.moveTo(x, y + off)
+          g.bezierCurveTo(x + r() * 4 - 2, y + off + len * 0.3, x + r() * 4 - 2, y + off + len * 0.7, x + r() * 3 - 1.5, y + off + len)
+          g.stroke()
+        }
+      }
+      y += len
+    }
+  }
+}
+
+/** Polished white marble with soft grey veining running diagonally; the canvas is a 1.2 m square. */
+export const whiteMarble: Paint = (g, w, h) => {
+  const r = rng(141)
+  g.fillStyle = '#f2f0ec'
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 60; i++) {
+    const x = r() * w
+    const y = r() * h
+    const rad = 40 + r() * 140
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad)
+    gr.addColorStop(0, `rgba(${r() < 0.5 ? '214,212,208' : '252,251,248'},${0.05 + r() * 0.06})`)
+    gr.addColorStop(1, 'rgba(0,0,0,0)')
+    g.fillStyle = gr
+    g.fillRect(x - rad, y - rad, rad * 2, rad * 2)
+  }
+  const vein = (x: number, y: number, len: number, width: number, alpha: number) => {
+    const branches: [number, number][] = []
+    g.strokeStyle = `rgba(110,106,102,${alpha})`
+    g.lineWidth = width
+    g.beginPath()
+    g.moveTo(x, y)
+    for (let i = 0; i < len; i++) {
+      const cx = x + 12 + r() * 20
+      const cy = y + r() * 26 - 6
+      x += 26 + r() * 30
+      y += 8 + r() * 26 - 6
+      g.quadraticCurveTo(cx, cy, x, y)
+      if (r() < 0.1) branches.push([x, y])
+    }
+    g.stroke()
+    // Branches are drawn once the main vein is stroked, each as its own path.
+    if (len > 3) for (const [bx, by] of branches) vein(bx, by, Math.floor(len / 3), width * 0.5, alpha * 0.7)
+  }
+  // A few bold grey veins with fine branches, and a haze of hairline ones.
+  for (let i = 0; i < 4; i++) vein(-40 + r() * w * 0.5, -40 + r() * h, 22, 3 + r() * 4, 0.35 + r() * 0.2)
+  for (let i = 0; i < 5; i++) vein(-40 + r() * w * 0.5, -40 + r() * h, 20, 1.2 + r() * 1.8, 0.3 + r() * 0.2)
+  for (let i = 0; i < 10; i++) vein(-40 + r() * w, -40 + r() * h, 10, 0.6, 0.2 + r() * 0.15)
+}
+
+/** Ivory-and-grey trellis (quatrefoil) rug; the canvas is a 0.8 m square. */
+export const trellisRug: Paint = (g, w, h) => {
+  const r = rng(151)
+  g.fillStyle = '#e8e4dc'
+  g.fillRect(0, 0, w, h)
+  g.strokeStyle = '#8d8e8c'
+  g.lineWidth = w * 0.018
+  const n = 4
+  const s = w / n
+  for (let i = -1; i <= n; i++)
+    for (let j = -1; j <= n; j++) {
+      const cx = i * s + s / 2
+      const cy = j * s + s / 2
+      g.beginPath()
+      g.moveTo(cx, cy - s / 2)
+      g.quadraticCurveTo(cx + s * 0.18, cy - s * 0.18, cx + s / 2, cy)
+      g.quadraticCurveTo(cx + s * 0.18, cy + s * 0.18, cx, cy + s / 2)
+      g.quadraticCurveTo(cx - s * 0.18, cy + s * 0.18, cx - s / 2, cy)
+      g.quadraticCurveTo(cx - s * 0.18, cy - s * 0.18, cx, cy - s / 2)
+      g.stroke()
+    }
+  for (let i = 0; i < 9000; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '120,118,114' : '255,255,255'},${r() * 0.12})`
+    g.fillRect(r() * w, r() * h, 1.5, 1.5)
+  }
+}
+
+/** Chunky knit in warm grey-brown: cabled ribs running across; the canvas is a 0.4 m square. */
+export const knit: Paint = (g, w, h) => {
+  const r = rng(161)
+  g.fillStyle = '#6f6458'
+  g.fillRect(0, 0, w, h)
+  const rows = 24
+  const rh = h / rows
+  for (let j = 0; j < rows; j++)
+    for (let x = 0; x < w; x += rh * 0.8) {
+      const t = r() * 16 - 8
+      g.fillStyle = rgb([128, 116, 102], t)
+      g.beginPath()
+      g.ellipse(x + rh * 0.4, j * rh + rh / 2, rh * 0.42, rh * 0.36, (j % 2 ? 1 : -1) * 0.6, 0, Math.PI * 2)
+      g.fill()
+    }
+}
+
+/** A cushion cover in a small ivory-on-charcoal diamond weave; the canvas is one 450 mm face. */
+export const diamondWeave: Paint = (g, w, h) => {
+  g.fillStyle = '#4a4744'
+  g.fillRect(0, 0, w, h)
+  g.strokeStyle = '#d9d2c6'
+  g.lineWidth = 2
+  const s = w / 12
+  for (let i = -12; i < 24; i++) {
+    g.beginPath()
+    g.moveTo(i * s, 0)
+    g.lineTo(i * s + h, h)
+    g.stroke()
+    g.beginPath()
+    g.moveTo(i * s, h)
+    g.lineTo(i * s + h, 0)
+    g.stroke()
+  }
+}
+
+/** Plain-weave upholstery in warm beige; the canvas is a 0.3 m square. */
+export const upholstery = (tone: number[], seed: number): Paint => (g, w, h) => {
+  const r = rng(seed)
+  g.fillStyle = rgb(tone)
+  g.fillRect(0, 0, w, h)
+  for (let y = 0; y < h; y += 2)
+    for (let x = 0; x < w; x += 2) {
+      const t = (r() - 0.5) * 16 + ((x + y) % 4 === 0 ? 4 : -3)
+      g.fillStyle = rgb(tone, t)
+      g.fillRect(x, y, 2, 2)
+    }
+}

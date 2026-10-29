@@ -2,7 +2,8 @@ import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from 'three'
 import { GOLD } from '../../../../../lib/palette'
 import { Kit } from '../kit'
 import { Lighting, type FurnishedModel } from '../shared'
-import { buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, KITCHEN, STEPS, type Ctx } from './house'
+import { BEDROOM, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, KITCHEN, STEPS, type Ctx } from './house'
+import { buildBedroom } from './bedroom'
 import { buildKitchen } from './kitchen'
 import { d65Materials } from './materials'
 import { buildContext, buildPlot, HOUSE_Z, PLOT, SITE } from './site'
@@ -24,6 +25,7 @@ const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[] }> = {
   amenity_carport: { y: 0.05, height: 3.6, zones: [[CARPORT[0], CARPORT[1], HOUSE_Z + CAR_BACK, HOUSE_Z]] },
   amenity_balcony: { y: FFL, height: 2.9, zones: [[-1.12, CARPORT[1], HOUSE_Z + FACE, HOUSE_Z]] },
   room_kitchen: { y: GFL, height: KITCHEN.h, zones: [[KITCHEN.x0, KITCHEN.x0 + KITCHEN.w, HOUSE_Z + KITCHEN.z0, HOUSE_Z + KITCHEN.z0 + KITCHEN.d]] },
+  room_bedroom_g: { y: GFL, height: 2.65, zones: [[BEDROOM.x0, BEDROOM.x0 + BEDROOM.w, HOUSE_Z + BEDROOM.z0 - BEDROOM.l, HOUSE_Z + BEDROOM.z0]] },
   amenity_garden: { y: 0.04, height: 2.6, zones: [[PLOT.x0 + 0.23, STEPS[0] - 0.05, HOUSE_Z + FACE, PLOT.z1]] },
 }
 
@@ -53,6 +55,7 @@ export function buildKalakalD65(context = true): FurnishedModel {
   buildFacade(ctx)
   buildBalcony(ctx)
   buildKitchen(ctx)
+  buildBedroom(ctx)
   buildPlot(ctx)
   if (context) buildContext(ctx)
 
