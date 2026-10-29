@@ -1,4 +1,4 @@
-import type { Amenity, AvailabilityStatus, MasterPlan, MediaItem, Plot, PlotUnit, Point2, Road } from '../types'
+import type { Amenity, AvailabilityStatus, MasterPlan, MediaItem, Plot, Point2, Road } from '../types'
 import { placeholderImage } from './placeholders'
 
 // Public sample stream so the film player path can be exercised; replace with R2-hosted HLS.
@@ -110,7 +110,6 @@ const highwayEdge = (y: number) => 1897.6 + 0.3636 * (y - 512.6)
 
 function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'landscape'> {
   const rand = mulberry32(42)
-  const villa: PlotUnit = { kind: 'villa', name: 'Aranya Villa', propertySlug: 'aranya-villa' }
   const plots: Plot[] = []
   const statusRoll = (): AvailabilityStatus => {
     const roll = rand()
@@ -162,9 +161,6 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
 
       const status = statusRoll()
       const areaSqft = Math.round(frontage * depth)
-      const standard = frontage === 40 && depth === 60
-      // Phase 1 (blocks B–D, by the entrance) already has villas standing on most sold plots.
-      const built = col < 6 && standard && status !== 'available' && rand() < 0.75
       plots.push({
         id: `plot_${num}`,
         number: `${block}-${String(num).padStart(2, '0')}`,
@@ -176,7 +172,6 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
         isCorner: k === 0,
         status,
         price: areaSqft * (k === 0 ? 3600 : 3300),
-        unit: built ? villa : undefined,
       })
     }
     reach.push({ top: edge[-1], bottom: edge[1] })
@@ -204,29 +199,9 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
       description: 'The layout’s main park, ringed by a 2 m cycle track, with a 1,00,000 litre rainwater sump beneath its north-east corner.',
       highlights: { Area: '9,725 sq yd', Size: '369′9″ × 225′9″', 'Cycle track': '2 m wide', 'Rainwater sump': '1,00,000 L', 'Plan ref.': 'Park Area-1' },
       media: [image('Central Park — morning', 110), image('Cycle track', 95)] },
-    { id: 'am_social', name: 'Clubhouse', kind: 'clubhouse', polygon: area(696.6, 668, 812, AVENUE_N), height: 8,
-      description: 'The community’s clubhouse, facing the main avenue beside Central Park: a grand lobby, indoor games, a video gaming lounge, a fitness centre and a 25 m six-lane training pool.',
-      highlights: { Area: '3,678.19 sq yd', Size: '150′ × 214′9″', Pool: '25 m · 6 lanes' },
-      media: [image('Clubhouse — arrival court', 30)], propertySlug: 'kalakal-clubhouse' },
     { id: 'am_park2', name: 'North Park', kind: 'garden', polygon: area(519, 681, 672.2, 708.25), height: 0,
       description: 'A strip of landscaped open space along the northern boundary, behind blocks L and M.',
       highlights: { Area: '1,252 sq yd', 'Plan ref.': 'Park Area-2' } },
-    { id: 'am_gate', name: 'Main Gate & Security Cabin', kind: 'entrance', polygon: area(2040, AVENUE_N, 2050, AVENUE_S), height: 6,
-      description: 'The single gated entry from the HMDA master plan road, with a security cabin at the head of the main avenue.',
-      highlights: { Security: '24 × 7', Approach: '250 ft HMDA road' },
-      media: [image('Main gate at night', 40)] },
-    { id: 'am_stp_north', name: 'STP — North', kind: 'utility', polygon: area(346, 690, 451, 708.25), height: 3,
-      description: 'Sewage treatment plant on the northern boundary.',
-      highlights: { Area: '618.96 sq yd', 'Plan ref.': 'Utility-1' } },
-    { id: 'am_oht', name: 'Overhead Water Tank', kind: 'utility', polygon: area(188, 959.3, 220.6, 986), height: 14,
-      description: 'The overhead water tank at the south-west corner of the site.',
-      highlights: { Area: '172.57 sq yd', 'Plan ref.': 'Utility-2' } },
-    { id: 'am_yard', name: 'Utility Yard', kind: 'utility', polygon: area(470.8, 988.75, 627.9, 1010), height: 2.5,
-      description: 'A service yard on the southern boundary holding the G.B and DB units marked on the layout.',
-      highlights: { Area: '698.02 sq yd', Length: '246 ft', 'Plan ref.': 'Utility-3' } },
-    { id: 'am_stp_east', name: 'STP & Transformer', kind: 'utility', polygon: area(1647, 1047.75, 1804, 1063), height: 3,
-      description: 'Sewage treatment plant and electrical transformer behind blocks B and C.',
-      highlights: { Area: '305.59 sq yd', 'Plan ref.': 'Utility-4' } },
   ]
 
   const soldPlots = new Set([1, 2, 3, 4, 10, 18, 37, 38, 45, 53, 65, 66, 93, 97, 98, 99, 100, 120, 127, 146, 169, 170, 171, 172, 173, 174, 175, 176, 177, 188, 189, 199, 200, 201, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 220, 221, 222, 223, 224, 225, 228])
@@ -238,11 +213,13 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
     const number = Number(plot.id.replace('plot_', ''))
     plot.status = soldPlots.has(number) ? 'sold' : mortgagePlots.has(number) ? 'reserved' : 'available'
   }
+  // D-65, the corner plot at the head of block D, carries the first fully modelled home.
+  plots.find((p) => p.id === 'plot_65')!.unit = { kind: 'villa', name: 'Residence D-65', propertySlug: 'kalakal-d65', design: 'kalakal-d65' }
 
   // Keep planting within landscaped parks; road edges and the avenue median stay clear.
   const trees = [
     ...scatter(rand, amenities[0].polygon, 70, 4),
-    ...scatter(rand, amenities[2].polygon, 12, 2),
+    ...scatter(rand, amenities[1].polygon, 12, 2),
   ]
 
   return { plots, roads, amenities, landscape: { trees } }
@@ -257,10 +234,10 @@ export const masterPlans: MasterPlan[] = [
     thumbnailUrl: placeholderImage('Kalakal', 95, 800, 500),
     startingPrice: Math.min(...kalakal.plots.map((p) => p.price!)),
     stats: [{ label: 'Plots', value: '288' }, { label: 'Parkland', value: '31 ac' }],
-    description: 'A gated plotted layout of 284 residential plots and four commercial plots fronting the proposed 250 ft HMDA master plan road on NH-44. A 60 ft main avenue runs the length of the site, crossed by 33 ft roads, with a central park ringed by a cycle track and a reserved social-infrastructure site. Phase 1 villas are complete and open for viewing.',
+    description: 'A gated plotted layout of 284 residential plots and four commercial plots fronting the proposed 250 ft HMDA master plan road on NH-44. A 60 ft main avenue runs the length of the site, crossed by 33 ft roads, with a central park ringed by a cycle track.',
     highlights: { 'Total land': '≈ 30 acres', Plots: '284 residential + 4 commercial', 'Plot size': '40 × 60 ft', 'Main avenue': '60 ft', 'Internal roads': '33 ft', Parks: '10,977 sq yd', RERA: 'Registered' },
     ...kalakal,
-    media: [film('Kallakal', 100, KALAKAL_FILM), image('Aerial at golden hour', 95), image('Tree-lined avenue', 120), image('Phase 1 villas', 40)],
+    media: [film('Kallakal', 100, KALAKAL_FILM), image('Aerial at golden hour', 95), image('Tree-lined avenue', 120)],
     nearby: [
       { name: 'Delhi Public School', distance: '1.2 km' },
       { name: 'City Hospital', distance: '3.5 km' },

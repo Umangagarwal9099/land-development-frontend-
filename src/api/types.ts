@@ -79,7 +79,7 @@ export interface Room {
 }
 
 /** Interior designs built procedurally in the front end (walls, finishes, furniture, lighting). */
-export type FurnishedDesign = 'kalakal-clubhouse' | 'nyshas-haven'
+export type FurnishedDesign = 'nyshas-haven' | 'kalakal-d65'
 
 /** A real exported model, a generated stand-in used until the 3D artist delivers, or a furnished design model. */
 export type ModelSource =
@@ -118,6 +118,8 @@ export interface PlotUnit {
   name: string
   /** Slug of the Property to open when the buyer steps inside. */
   propertySlug: string
+  /** A home modelled in full: the master plan draws this design instead of the generic massing. */
+  design?: FurnishedDesign
 }
 
 export interface Plot {

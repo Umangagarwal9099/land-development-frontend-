@@ -1,10 +1,13 @@
 import { Edges } from '@react-three/drei'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { BufferGeometry, ExtrudeGeometry, InstancedMesh, Matrix4, Object3D, Shape } from 'three'
-import type { Plot, PlotUnit } from '../../../api/types'
+import { BufferGeometry, ExtrudeGeometry, InstancedMesh, Light, Matrix4, Object3D, Shape } from 'three'
+import type { FurnishedDesign, Plot, PlotUnit } from '../../../api/types'
 import { bounds, centroid } from '../../../lib/geometry'
 import { GOLD, IVORY } from '../../../lib/palette'
+import { disposeObject } from '../../../lib/three'
+import { useStageStore } from '../../../store/stage'
+import { FURNISHED_DESIGNS } from '../../property/scene/furnished'
 import { PLOT_HEIGHT } from './plotGeometry'
 
 const TAP_TOLERANCE_PX = 8
@@ -112,18 +115,63 @@ interface UnitsProps {
 export function Units({ plots, interactive, onSelect, onHover }: UnitsProps) {
   const byKind = useMemo(() => {
     const groups: Record<PlotUnit['kind'], Plot[]> = { villa: [], farmhouse: [] }
-    for (const p of plots) if (p.unit) groups[p.unit.kind].push(p)
+    for (const p of plots) if (p.unit && !p.unit.design) groups[p.unit.kind].push(p)
     return groups
   }, [plots])
+  const designed = useMemo(() => plots.filter((p) => p.unit?.design && FURNISHED_DESIGNS[p.unit.design].buildOnPlot), [plots])
 
   return (
     <>
+      {designed.map((p) => (
+        <DesignUnit key={p.id} plot={p} design={p.unit!.design!} interactive={interactive} onSelect={onSelect} onHover={onHover} />
+      ))}
       {(Object.keys(byKind) as PlotUnit['kind'][]).map((kind) =>
         byKind[kind].length > 0 ? (
           <UnitKind key={kind} kind={kind} plots={byKind[kind]} interactive={interactive} onSelect={onSelect} onHover={onHover} />
         ) : null,
       )}
     </>
+  )
+}
+
+/** A home modelled in full, standing on its plot and facing its road. */
+function DesignUnit({ plot, design, interactive, onSelect, onHover }: Omit<UnitsProps, 'plots'> & { plot: Plot; design: FurnishedDesign }) {
+  const invalidate = useThree((s) => s.invalidate)
+  const model = useMemo(() => {
+    const m = FURNISHED_DESIGNS[design].buildOnPlot!()
+    // The plan has hundreds of materials; the model's own point lights would cost every one of them.
+    const lights: Object3D[] = []
+    m.root.traverse((o) => o instanceof Light && lights.push(o))
+    for (const l of lights) l.removeFromParent()
+    return m
+  }, [design])
+  useEffect(() => () => disposeObject(model.root), [model])
+
+  const daylight = useStageStore((s) => s.daylight)
+  useEffect(() => {
+    model.setDaylight?.(daylight)
+    invalidate()
+  }, [model, daylight, invalidate])
+
+  const f = plotFrame(plot)
+  return (
+    <group
+      position={[f.cx, PLOT_HEIGHT, f.cz]}
+      rotation-y={f.rotation}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        if (!interactive || e.delta > TAP_TOLERANCE_PX) return
+        e.stopPropagation()
+        onSelect(plot)
+      }}
+      onPointerMove={(e: ThreeEvent<PointerEvent>) => {
+        if (!interactive || e.pointerType !== 'mouse') return
+        e.stopPropagation()
+        onHover(plot)
+      }}
+      onPointerLeave={() => onHover(null)}
+    >
+      <primitive object={model.root} />
+    </group>
   )
 }
 
