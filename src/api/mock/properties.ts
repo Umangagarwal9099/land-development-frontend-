@@ -12,6 +12,12 @@ function image(title: string, hue: number): MediaItem {
   return { id: id('m'), kind: 'image', title, url, thumbUrl: placeholderImage(title, hue, 480, 300) }
 }
 
+/** A floor plan drawing served from public/plans/ (absolute, so assetUrl() leaves it alone). */
+function floorPlan(title: string, file: string): MediaItem {
+  const url = `${window.location.origin}/plans/${file}`
+  return { id: id('m'), kind: 'floorplan', title, url, thumbUrl: url }
+}
+
 const M_TO_FT = 3.28084
 
 /**
@@ -100,26 +106,27 @@ function nyshasHaven(): Property {
  * the 33 ft cross road, +x north to the 60 ft avenue; the house front stands 3 m inside the plot.
  */
 function kalakalD65(): Property {
-  const room = (name: string, meshName: string, [lengthM, widthM]: [number, number], hue: number, description: string, specs: string[]): Room => {
+  const room = (name: string, meshName: string, [lengthM, widthM]: [number, number], description: string, specs: string[]): Room => {
     const length = Math.round(lengthM * M_TO_FT)
     const width = Math.round(widthM * M_TO_FT)
     return {
       id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
       dimensions: { length, width, unit: 'ft' }, areaSqft: length * width, description, specs, amenities: [],
-      media: [image(`${name} — view 1`, hue)],
+      // Only real drawings are shown for this home; no placeholder renders.
+      media: [],
     }
   }
   const rooms: Room[] = [
-    room('Entrance', 'amenity_entrance', [2.4, 1.65], 30,
+    room('Entrance', 'amenity_entrance', [2.4, 1.65],
       'Three white stone risers up to a covered landing under the first-floor box, and a flush teak main door with a full-height black pull, lit by an up-down wall lamp.',
       ['Teak main door, horizontal grooves', 'White stone steps and landing', 'Recessed downlight in the porch ceiling']),
-    room('Carport', 'amenity_carport', [5.3, 3.06], 40,
+    room('Carport', 'amenity_carport', [5.3, 3.06],
       'A covered carport beneath the balcony with a teak-boarded ceiling and recessed downlights, opening straight onto the drive.',
       ['Teak soffit with four downlights', 'Granite-look paving', 'Grooved back wall with a three-pane window']),
-    room('Balcony', 'amenity_balcony', [4.63, 2.1], 200,
+    room('Balcony', 'amenity_balcony', [4.63, 2.1],
       'The first-floor balcony inside the white box: frameless glass balustrade, a teak lattice screen at one end and a teak ceiling, opening from two glazed doors.',
       ['Frameless glass balustrade, black top rail', 'Teak lattice screen', 'Teak soffit with downlights']),
-    room('Front Garden', 'amenity_garden', [4.9, 5.1], 110,
+    room('Front Garden', 'amenity_garden', [4.9, 5.1],
       'A lawn before the stone pier, edged with a low hedge, with a planted bed at the foot of the stone and stepping slabs to the entrance.',
       ['Lawn with hedge border', 'Stepping-stone path', 'Spike and path lights']),
   ]
@@ -145,7 +152,9 @@ function kalakalD65(): Property {
       { id: 'entrance', name: 'Entrance, eye level', position: [-2.2, 1.75, 13.5], target: [-0.5, 1.0, 5], fov: 50 },
       { id: 'top', name: 'Plan view', position: [0, 60, -0.01], target: [0, 0, 0] },
     ],
-    media: [image('Residence D-65 — front elevation', 30), image('Residence D-65 — corner view', 200)],
+    media: [
+      floorPlan('Ground floor plan', 'd65-ground-floor.png'), floorPlan('First floor plan', 'd65-first-floor.png'),
+    ],
   }
 }
 

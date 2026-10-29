@@ -48,6 +48,8 @@ export function Amenities({ amenities, selectedId, interactive, onSelect }: Prop
 }
 
 function AmenityModel({ amenity, w, d }: { amenity: Amenity; w: number; d: number }) {
+  // A building site whose model hasn't been designed yet: a flat, marked pad.
+  if (amenity.height === 0 && amenity.kind !== 'park' && amenity.kind !== 'garden') return <SitePad w={w} d={d} />
   switch (amenity.kind) {
     case 'clubhouse':
       return <Clubhouse w={w} d={d} h={amenity.height || 8} />
@@ -212,6 +214,17 @@ function Utility({ w, d, h }: { w: number; d: number; h: number }) {
         <Stone />
       </mesh>
     </group>
+  )
+}
+
+/** Paved pad with a gold outline, standing in for a building until its model is designed. */
+function SitePad({ w, d }: { w: number; d: number }) {
+  return (
+    <mesh position-y={0.1} receiveShadow>
+      <boxGeometry args={[w, 0.2, d]} />
+      <meshStandardMaterial color="#5d5850" roughness={0.95} />
+      <Edges color={GOLD} />
+    </mesh>
   )
 }
 

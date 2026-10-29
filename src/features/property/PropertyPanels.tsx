@@ -75,6 +75,7 @@ export function RoomDetails({ property, room }: { property: Property; room: Room
 
 export function PropertyOverview({ property, onPlayFilm }: { property: Property; onPlayFilm?: () => void }) {
   const showPrices = useStaffStore((s) => s.showPrices)
+  const plans = property.media.filter((m) => m.kind === 'floorplan')
   return (
     <>
       <PanelTitle eyebrow="About the residence" title={property.name} />
@@ -86,6 +87,11 @@ export function PropertyOverview({ property, onPlayFilm }: { property: Property;
       <PanelSection title="Highlights">
         <Facts items={Object.entries(property.highlights)} />
       </PanelSection>
+      {plans.length > 0 && (
+        <PanelSection title="Floor plans">
+          <MediaStrip items={plans} />
+        </PanelSection>
+      )}
       <PanelSection title="Gallery">
         <MediaStrip items={property.media} />
       </PanelSection>

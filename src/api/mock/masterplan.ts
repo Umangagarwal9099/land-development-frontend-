@@ -23,13 +23,6 @@ const rect = (x: number, z: number, w: number, d: number): Point2[] => [
 ]
 
 let mediaSeq = 0
-const image = (title: string, hue: number): MediaItem => ({
-  id: `mpm_${++mediaSeq}`,
-  kind: 'image',
-  title,
-  url: placeholderImage(title, hue),
-  thumbUrl: placeholderImage(title, hue, 480, 300),
-})
 const film = (title: string, hue: number, url = SAMPLE_HLS): MediaItem => ({
   id: `mpm_${++mediaSeq}`,
   kind: 'video',
@@ -194,15 +187,34 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
   const highway: Point2[] = [at(highwayEdge(470), 470), at(highwayEdge(470) + 196.8, 470), at(highwayEdge(1120) + 196.8, 1120), at(highwayEdge(1120), 1120)]
   roads.push({ id: 'road_hmda', name: 'HMDA Master Plan Road (NH-44)', widthFt: 250, polygon: highway })
 
+  // Building sites keep height 0 (drawn as flat, marked pads) until their 3D models are designed.
   const amenities: Amenity[] = [
     { id: 'am_park', name: 'Central Park', kind: 'park', polygon: area(812, 659.85, 1079.8, AVENUE_N), height: 0,
       description: 'The layout’s main park, ringed by a 2 m cycle track, with a 1,00,000 litre rainwater sump beneath its north-east corner.',
-      highlights: { Area: '9,725 sq yd', Size: '369′9″ × 225′9″', 'Cycle track': '2 m wide', 'Rainwater sump': '1,00,000 L', 'Plan ref.': 'Park Area-1' },
-      media: [image('Central Park — morning', 110), image('Cycle track', 95)] },
+      highlights: { Area: '9,725 sq yd', Size: '369′9″ × 225′9″', 'Cycle track': '2 m wide', 'Rainwater sump': '1,00,000 L', 'Plan ref.': 'Park Area-1' } },
+    { id: 'am_social', name: 'Clubhouse', kind: 'clubhouse', polygon: area(696.6, 668, 812, AVENUE_N), height: 0,
+      description: 'The community’s clubhouse, facing the main avenue beside Central Park: a grand lobby, indoor games, a video gaming lounge, a fitness centre and a 25 m six-lane training pool.',
+      highlights: { Area: '3,678.19 sq yd', Size: '150′ × 214′9″', Pool: '25 m · 6 lanes' } },
     { id: 'am_park2', name: 'North Park', kind: 'garden', polygon: area(519, 681, 672.2, 708.25), height: 0,
       description: 'A strip of landscaped open space along the northern boundary, behind blocks L and M.',
       highlights: { Area: '1,252 sq yd', 'Plan ref.': 'Park Area-2' } },
+    { id: 'am_gate', name: 'Main Gate & Security Cabin', kind: 'entrance', polygon: area(2040, AVENUE_N, 2050, AVENUE_S), height: 0,
+      description: 'The single gated entry from the HMDA master plan road, with a security cabin at the head of the main avenue.',
+      highlights: { Security: '24 × 7', Approach: '250 ft HMDA road' } },
+    { id: 'am_stp_north', name: 'STP — North', kind: 'utility', polygon: area(346, 690, 451, 708.25), height: 0,
+      description: 'Sewage treatment plant on the northern boundary.',
+      highlights: { Area: '618.96 sq yd', 'Plan ref.': 'Utility-1' } },
+    { id: 'am_oht', name: 'Overhead Water Tank', kind: 'utility', polygon: area(188, 959.3, 220.6, 986), height: 0,
+      description: 'The overhead water tank at the south-west corner of the site.',
+      highlights: { Area: '172.57 sq yd', 'Plan ref.': 'Utility-2' } },
+    { id: 'am_yard', name: 'Utility Yard', kind: 'utility', polygon: area(470.8, 988.75, 627.9, 1010), height: 0,
+      description: 'A service yard on the southern boundary holding the G.B and DB units marked on the layout.',
+      highlights: { Area: '698.02 sq yd', Length: '246 ft', 'Plan ref.': 'Utility-3' } },
+    { id: 'am_stp_east', name: 'STP & Transformer', kind: 'utility', polygon: area(1647, 1047.75, 1804, 1063), height: 0,
+      description: 'Sewage treatment plant and electrical transformer behind blocks B and C.',
+      highlights: { Area: '305.59 sq yd', 'Plan ref.': 'Utility-4' } },
   ]
+
 
   const soldPlots = new Set([1, 2, 3, 4, 10, 18, 37, 38, 45, 53, 65, 66, 93, 97, 98, 99, 100, 120, 127, 146, 169, 170, 171, 172, 173, 174, 175, 176, 177, 188, 189, 199, 200, 201, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 220, 221, 222, 223, 224, 225, 228])
   const mortgagePlots = new Set([
@@ -219,7 +231,7 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
   // Keep planting within landscaped parks; road edges and the avenue median stay clear.
   const trees = [
     ...scatter(rand, amenities[0].polygon, 70, 4),
-    ...scatter(rand, amenities[1].polygon, 12, 2),
+    ...scatter(rand, amenities[2].polygon, 12, 2),
   ]
 
   return { plots, roads, amenities, landscape: { trees } }
@@ -237,7 +249,7 @@ export const masterPlans: MasterPlan[] = [
     description: 'A gated plotted layout of 284 residential plots and four commercial plots fronting the proposed 250 ft HMDA master plan road on NH-44. A 60 ft main avenue runs the length of the site, crossed by 33 ft roads, with a central park ringed by a cycle track.',
     highlights: { 'Total land': '≈ 30 acres', Plots: '284 residential + 4 commercial', 'Plot size': '40 × 60 ft', 'Main avenue': '60 ft', 'Internal roads': '33 ft', Parks: '10,977 sq yd', RERA: 'Registered' },
     ...kalakal,
-    media: [film('Kallakal', 100, KALAKAL_FILM), image('Aerial at golden hour', 95), image('Tree-lined avenue', 120)],
+    media: [film('Kallakal', 100, KALAKAL_FILM)],
     nearby: [
       { name: 'Delhi Public School', distance: '1.2 km' },
       { name: 'City Hospital', distance: '3.5 km' },

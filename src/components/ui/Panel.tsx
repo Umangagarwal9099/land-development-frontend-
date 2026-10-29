@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { AnimatePresence, motion, type Variants } from 'framer-motion'
-import { Play, Rotate3d, X } from 'lucide-react'
+import { LayoutGrid, Play, Rotate3d, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { AvailabilityStatus, MediaItem } from '../../api/types'
 import { assetUrl } from '../../config'
@@ -160,6 +160,7 @@ export function Paragraph({ children }: { children: ReactNode }) {
 const mediaBadge: Partial<Record<MediaItem['kind'], { icon: typeof Play; label: string }>> = {
   video: { icon: Play, label: 'Film' },
   pano: { icon: Rotate3d, label: '360°' },
+  floorplan: { icon: LayoutGrid, label: 'Floor plan' },
 }
 
 /** Horizontal strip of large thumbnails; opens the full-screen viewer. */
@@ -181,7 +182,8 @@ export function MediaStrip({ items }: { items: MediaItem[] }) {
               alt={m.title ?? ''}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-lux)] group-hover:scale-105 group-active:scale-95"
+              // Drawings are shown whole on white; photographs fill the frame.
+              className={`h-full w-full ${m.kind === 'floorplan' ? 'bg-white object-contain p-2 pt-10' : 'object-cover'} transition-transform duration-700 ease-[var(--ease-lux)] group-hover:scale-105 group-active:scale-95`}
             />
             <span className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent" />
             {badge && (
