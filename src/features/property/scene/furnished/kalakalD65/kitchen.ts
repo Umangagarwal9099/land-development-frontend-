@@ -2,8 +2,9 @@ import { CylinderGeometry, DoubleSide, FrontSide, Group, Mesh, MeshBasicMaterial
 import type { Paint } from '../textures'
 import { PI } from '../kit'
 import { GFL, KITCHEN, KITCHEN_WINDOW, type Ctx } from './house'
+import { cabinet, type Bay, type Unit } from './cabinets'
 import { counterStool } from './stool'
-import { bowls, carafe, cutleryCrock, mug, plates, tumblers, wineGlasses } from './tableware'
+import { bakingTray, bottle, bowls, carafe, cutleryCrock, cutleryTray, foodContainer, mug, packet, pan, plates, pot, storageJar, towels, tumblers, utensilLying, wineGlasses } from './tableware'
 
 /*
  * The ground-floor kitchen, modelled from the client's kitchen reference (render + dimensioned
@@ -83,6 +84,9 @@ function kitchenMaterials(ctx: Ctx) {
     oak,
     sage: std({ color: '#8b8d79', roughness: 0.55 }),
     carcass: std({ color: '#2b2b28', roughness: 0.8 }),
+    // Cabinet interiors in pale melamine, drawer boxes in light grey.
+    interior: std({ color: '#ebe8e2', roughness: 0.7 }),
+    drawerBox: std({ color: '#cfd0cc', roughness: 0.55, metalness: 0.1 }),
     plinth: std({ color: '#3a3a36', roughness: 0.9 }),
     stone,
     splash: ctx.c.surface('splash', 2.5, 0.6),
@@ -173,24 +177,56 @@ function fronts({ bx, m }: KC, axis: 'x' | 'y', [a0, a1]: R, [h0, h1]: R, face: 
     }
 }
 
+/** Centre of a bay along x or z. */
+const mid = (b: Bay, axis: 'x' | 'z') => (axis === 'x' ? (b.x0 + b.x1) / 2 : (b.z0 + b.z1) / 2)
+
+/**
+ * A working cabinet in one of the kitchen's runs, spanning a0 … a1 along the run and h0 … h1 in
+ * height. Each run gets its own frame with the cabinet front facing into the room.
+ */
+function place(K: KC, run: 'back' | 'left' | 'right' | 'upper', [a0, a1]: R, [h0, h1]: R, unit: Unit) {
+  const f = new Group()
+  const d = run === 'upper' ? UPPER_D : BASE_D
+  if (run === 'back' || run === 'upper') f.position.set(a0, h0, d)
+  else if (run === 'left') {
+    f.position.set(BASE_D, h0, a1)
+    f.rotation.y = PI / 2
+  } else {
+    f.position.set(KW - BASE_D, h0, a0)
+    f.rotation.y = -PI / 2
+  }
+  K.g.add(f)
+  cabinet(K.k, f, a1 - a0, h1 - h0, d, unit, { front: K.m.sage, interior: K.m.interior, drawer: K.m.drawerBox })
+}
+
 /** Left wall, back to front: oven tower, open-shelf column, black fridge and an end tall unit. */
 function tallUnits(K: KC) {
   const { bx, m, k, g } = K
   const D = BASE_D
   // Oven tower: two drawers, a built-in oven and a compact oven, a cabinet over.
-  bx([0, D - 0.02], [0.1, KH], [0, 0.62], m.carcass)
+  bx([0, D - 0.02], [0.86, 1.92], [0, 0.62], m.carcass)
   bx([0, D - 0.06], [0, 0.1], [0, 0.62], m.plinth)
-  fronts(K, 'y', [0, 0.62], [0.1, 0.86], D - 0.02, [], [0.48])
-  fronts(K, 'y', [0, 0.62], [1.92, KH], D - 0.02, [])
+  place(K, 'left', [0, 0.62], [0.1, 0.86], { kind: 'drawers', id: 'oven', rows: [0.38], fill: [
+    (p, b) => { for (let i = 0; i < 3; i++) bakingTray(k, p, mid(b, 'x'), b.floors[0] + i * 0.022, mid(b, 'z'), 0.4, 0.34) },
+    (p, b) => { towels(k, p, b.x0 + 0.12, b.floors[0], mid(b, 'z'), 0.2, 0.3, 4); foodContainer(k, p, b.x1 - 0.13, b.floors[0], mid(b, 'z') - 0.1, 0.18, 0.18, 0.09); foodContainer(k, p, b.x1 - 0.13, b.floors[0], mid(b, 'z') + 0.12, 0.18, 0.14, 0.07) },
+  ] })
+  place(K, 'left', [0, 0.62], [1.92, KH], { kind: 'door', id: 'over_oven', hinge: 'left', shelves: [0.3], fill: (p, b) => {
+    for (const [i, f] of (['pasta', 'rice', 'lentils', 'coffee'] as const).entries()) storageJar(k, p, b.x0 + 0.07 + i * 0.135, b.floors[0], mid(b, 'z'), f, 1.1)
+    packet(k, p, b.x0 + 0.12, b.floors[1], mid(b, 'z'), 0.19, 0.24, 0.07, 'A')
+    packet(k, p, b.x0 + 0.33, b.floors[1], mid(b, 'z'), 0.17, 0.22, 0.07, 'C')
+  } })
   for (const [h0, h1] of [[0.86, 1.46], [1.46, 1.92]] as R[]) {
     bx([D - 0.02, D], [h0 + 0.01, h1 - 0.01], [0.02, 0.6], m.blackGlass)
     bx([D, D + 0.03], [h1 - 0.1, h1 - 0.08], [0.08, 0.54], m.steel)
   }
   // Open-shelf column over a cabinet: oak-lined, with jars and a plant.
   const C: R = [0.62, 0.98 + DY / 2]
-  bx([0, D - 0.02], [0.1, 1.2], C, m.carcass)
   bx([0, D - 0.06], [0, 0.1], C, m.plinth)
-  fronts(K, 'y', C, [0.1, 1.2], D - 0.02, [], [0.48, 0.86])
+  place(K, 'left', C, [0.1, 1.2], { kind: 'drawers', id: 'column', rows: [0.38, 0.76], fill: [
+    (p, b) => { for (const [i, sz] of [0, 1, 2].entries()) pot(k, p, b.x0 + 0.14 + i * 0.27, b.floors[0], mid(b, 'z'), 1.0 - sz * 0.1) },
+    (p, b) => { for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) storageJar(k, p, b.x0 + 0.08 + i * 0.15, b.floors[0], b.z0 + 0.12 + j * 0.2, (['pasta', 'lentils', 'rice', 'coffee', 'lentils'] as const)[i], 0.75) },
+    (p, b) => cutleryTray(k, p, b.x0, b.x1, b.floors[0], b.z0, b.z1),
+  ] })
   // The open column above: sage sides and top around an oak-lined back.
   bx([0, D - 0.02], [1.2, KH], [C[0], C[0] + 0.02], m.sage)
   bx([0, D - 0.02], [1.2, KH], [C[1] - 0.02, C[1]], m.sage)
@@ -219,9 +255,36 @@ function tallUnits(K: KC) {
   bx([0, D - 0.02], [1.85, KH], F, m.carcass)
   fronts(K, 'y', F, [1.86, KH], D - 0.02, [(F[0] + F[1]) / 2])
   // End tall unit, floor to ceiling, two-door.
-  bx([0, D - 0.02], [0.1, KH], [F[1], KD], m.carcass)
+  // End tall unit: a four-door larder, floor to ceiling.
   bx([0, D - 0.06], [0, 0.1], [F[1], KD - 0.02], m.plinth)
-  fronts(K, 'y', [F[1], KD], [0.1, KH], D - 0.02, [(F[1] + KD) / 2], [1.3])
+  const L = (F[1] + KD) / 2
+  const shelves = [0.4, 0.8]
+  place(K, 'left', [F[1], L], [0.1, 1.3], { kind: 'door', id: 'larder_1', hinge: 'left', shelves, fill: (p, b) => {
+    packet(k, p, b.x0 + 0.12, b.floors[0], mid(b, 'z'), 0.2, 0.3, 0.08, 'A')
+    packet(k, p, b.x0 + 0.36, b.floors[0], mid(b, 'z'), 0.18, 0.27, 0.08, 'B')
+    for (const [i, f] of (['pasta', 'lentils', 'rice'] as const).entries()) storageJar(k, p, b.x0 + 0.1 + i * 0.17, b.floors[1], mid(b, 'z'), f, 1.2)
+    for (let i = 0; i < 4; i++) bottle(k, p, b.x0 + 0.07 + i * 0.13, b.floors[2], mid(b, 'z'), i % 2 ? 'sauce' : 'oil', 1.1)
+  } })
+  place(K, 'left', [L, KD - 0.02], [0.1, 1.3], { kind: 'door', id: 'larder_2', hinge: 'left', shelves, fill: (p, b) => {
+    for (let i = 0; i < 3; i++) foodContainer(k, p, b.x0 + 0.1 + i * 0.19, b.floors[0], mid(b, 'z'), 0.16, 0.24, 0.12)
+    packet(k, p, b.x0 + 0.15, b.floors[1], mid(b, 'z'), 0.22, 0.3, 0.08, 'C')
+    packet(k, p, b.x0 + 0.4, b.floors[1], mid(b, 'z'), 0.18, 0.25, 0.07, 'A')
+    for (const [i, f] of (['coffee', 'rice', 'pasta'] as const).entries()) storageJar(k, p, b.x0 + 0.1 + i * 0.17, b.floors[2], mid(b, 'z'), f, 1.0)
+  } })
+  place(K, 'left', [F[1], L], [1.3, KH], { kind: 'door', id: 'larder_3', hinge: 'left', shelves, fill: (p, b) => {
+    plates(k, p, b.x0 + 0.17, b.floors[0], mid(b, 'z'), 8)
+    plates(k, p, b.x1 - 0.14, b.floors[0], mid(b, 'z'), 6, 'side')
+    bowls(k, p, b.x0 + 0.12, b.floors[1], mid(b, 'z'), 4)
+    bowls(k, p, b.x0 + 0.34, b.floors[1], mid(b, 'z'), 3, 'oatmeal')
+    tumblers(k, p, b.x0 + 0.06, b.floors[2], mid(b, 'z') - 0.05, 5, 'x', 0.11)
+    tumblers(k, p, b.x0 + 0.11, b.floors[2], mid(b, 'z') + 0.07, 4, 'x', 0.11)
+  } })
+  place(K, 'left', [L, KD - 0.02], [1.3, KH], { kind: 'door', id: 'larder_4', hinge: 'left', shelves, fill: (p, b) => {
+    for (let i = 0; i < 4; i++) mug(k, p, b.x0 + 0.08 + i * 0.14, b.floors[0], mid(b, 'z'), 0.4, i % 2 ? 'oatmeal' : 'charcoal')
+    wineGlasses(k, p, b.x0 + 0.08, b.floors[1], mid(b, 'z'), 4, 'x', 0.14)
+    carafe(k, p, b.x0 + 0.12, b.floors[2], mid(b, 'z'))
+    bowls(k, p, b.x0 + 0.38, b.floors[2], mid(b, 'z'), 3, 'charcoal')
+  } })
   bx([0, D], [0, KH], [KD - 0.02, KD], m.sage)
 }
 
@@ -229,11 +292,37 @@ function tallUnits(K: KC) {
 function backRun(K: KC) {
   const { bx, m, k, g } = K
   const X: R = [BASE_D, KW]
-  bx(X, [0.1, TOP - 0.04], [0, BASE_D - 0.02], m.carcass)
   bx(X, [0, 0.1], [0, BASE_D - 0.06], m.plinth)
-  fronts(K, 'x', X, [0.1, TOP - 0.04], BASE_D, [1.2, 1.62 + DX / 2, 2.18 + DX / 2, 2.4 + DX, 2.98 + DX], [])
-  // Drawer stack in the back-right corner run.
-  fronts(K, 'x', [2.4 + DX, 2.98 + DX], [0.1, TOP - 0.04], BASE_D + 0.0005, [], [0.36, 0.6])
+  const [s1, s2, s3, s4] = [1.62 + DX / 2, 2.18 + DX / 2, 2.4 + DX, 2.98 + DX]
+  const H: R = [0.1, TOP - 0.04]
+  // The sink cabinet and the blind corner stay closed; the rest open.
+  for (const span of [[s1, s2], [s4, KW]] as R[]) {
+    bx(span, H, [0, BASE_D - 0.02], m.carcass)
+    fronts(K, 'x', span, H, BASE_D, [])
+  }
+  place(K, 'back', [BASE_D, 1.2], H, { kind: 'door', id: 'base_1', hinge: 'right', shelves: [0.36], fill: (p, b) => {
+    pot(k, p, b.x0 + 0.13, b.floors[0], mid(b, 'z'), 1.0)
+    pot(k, p, b.x1 - 0.12, b.floors[0], mid(b, 'z'), 0.85)
+    pan(k, p, mid(b, 'x') - 0.02, b.floors[1], mid(b, 'z') + 0.03, -2.3, 0.85)
+  } })
+  place(K, 'back', [1.2, s1], H, { kind: 'door', id: 'base_2', hinge: 'right', shelves: [0.36], fill: (p, b) => {
+    for (const [i, f] of (['pasta', 'lentils', 'rice', 'coffee'] as const).entries()) storageJar(k, p, b.x0 + 0.08 + i * 0.13, b.floors[0], mid(b, 'z'), f, 1.15)
+    for (let i = 0; i < 3; i++) foodContainer(k, p, b.x0 + 0.12 + i * 0.22, b.floors[1], mid(b, 'z'), 0.18, 0.26, 0.1)
+  } })
+  place(K, 'back', [s2, s3], H, { kind: 'door', id: 'base_3', hinge: 'left', shelves: [0.36], fill: (p, b) => {
+    plates(k, p, b.x0 + 0.17, b.floors[0], mid(b, 'z'), 8)
+    bowls(k, p, b.x1 - 0.15, b.floors[0], mid(b, 'z'), 4)
+    for (let i = 0; i < 4; i++) mug(k, p, b.x0 + 0.08 + i * 0.16, b.floors[1], mid(b, 'z') - 0.08, 0.5, i % 2 ? 'oatmeal' : 'charcoal')
+    tumblers(k, p, b.x0 + 0.1, b.floors[1], mid(b, 'z') + 0.1, 5, 'x', 0.12)
+  } })
+  place(K, 'back', [s3, s4], H, { kind: 'drawers', id: 'base', rows: [0.26, 0.5], fill: [
+    (p, b) => { pot(k, p, b.x0 + 0.13, b.floors[0], mid(b, 'z') - 0.1, 0.95); pot(k, p, b.x1 - 0.13, b.floors[0], mid(b, 'z') + 0.1, 0.8) },
+    (p, b) => {
+      for (const [i, kind] of (['spatula', 'ladle', 'whisk', 'spatula'] as const).entries()) utensilLying(k, p, b.x0 + 0.07 + i * 0.12, b.floors[0], b.z1 - 0.22, kind)
+      foodContainer(k, p, mid(b, 'x'), b.floors[0], b.z0 + 0.09, 0.32, 0.12, 0.08)
+    },
+    (p, b) => cutleryTray(k, p, b.x0, b.x1, b.floors[0], b.z0, b.z1),
+  ] })
   // Worktop around the sink cut-out.
   const S = { x0: 1.62 + DX / 2, x1: 2.18 + DX / 2, y0: 0.08, y1: 0.5 }
   bx([X[0], S.x0], [TOP - 0.04, TOP], [0, 0.62], m.stone)
@@ -267,9 +356,18 @@ function backRun(K: KC) {
 function rightRun(K: KC) {
   const { bx, m, k, g } = K
   const Y: R = [BASE_D, 1.63 + DY]
-  bx([KW - BASE_D + 0.02, KW], [0.1, TOP - 0.04], Y, m.carcass)
   bx([KW - BASE_D + 0.06, KW], [0, 0.1], Y, m.plinth)
-  fronts(K, 'y', Y, [0.1, TOP - 0.04], KW - BASE_D, [(Y[0] + Y[1]) / 2], [], m.sage)
+  const ym = (Y[0] + Y[1]) / 2
+  const H: R = [0.1, TOP - 0.04]
+  place(K, 'right', [Y[0], ym], H, { kind: 'door', id: 'right', hinge: 'right', shelves: [0.36], fill: (p, b) => {
+    for (let i = 0; i < 5; i++) bottle(k, p, b.x0 + 0.08 + i * 0.13, b.floors[0], mid(b, 'z') + (i % 2) * 0.08, i % 3 ? 'oil' : 'sauce', 1.0)
+    for (let i = 0; i < 3; i++) foodContainer(k, p, b.x0 + 0.13 + i * 0.25, b.floors[1], mid(b, 'z'), 0.2, 0.26, 0.11)
+  } })
+  // Deep pan drawers under the hob.
+  place(K, 'right', [ym, Y[1]], H, { kind: 'drawers', id: 'hob', rows: [0.38], fill: [
+    (p, b) => { for (let i = 0; i < 3; i++) pot(k, p, b.x0 + 0.15 + i * 0.28, b.floors[0], mid(b, 'z'), 1.05 - i * 0.12) },
+    (p, b) => { pan(k, p, b.x0 + 0.2, b.floors[0], mid(b, 'z'), -PI / 2, 1.0); pan(k, p, b.x0 + 0.52, b.floors[0], mid(b, 'z'), -PI / 2, 0.85) },
+  ] })
   bx([KW - 0.62, KW], [TOP - 0.04, TOP], Y, m.stone)
   k.cyl(g, 0.06, 0.06, 0.18, m.glass, KW - 0.4, TOP + 0.09, Y[1] - 0.15, 16)
   // Black glass gas hob with four burners and a pan, centred under the window.
@@ -303,18 +401,21 @@ function uppers(K: KC) {
   bx(OX, [2.294, 2.3], [0.2, 0.26], m.led, false)
   bx(OX, [PANEL_TOP + 0.03, KH], [0, 0.01], m.oak(1, 0.3))
   // Lower shelf: plates and bowls in one bay, a row of glasses in the other; mugs and bowls above.
-  const mid = (OX[0] + OX[1]) / 2
+  const om = (OX[0] + OX[1]) / 2
   const lo = PANEL_TOP + 0.03
   plates(k, g, OX[0] + 0.19, lo, 0.16, 6)
-  bowls(k, g, mid - 0.17, lo, 0.16, 3)
-  tumblers(k, g, mid + 0.12, lo, 0.15, 5, 'x', 0.1)
+  bowls(k, g, om - 0.17, lo, 0.16, 3)
+  tumblers(k, g, om + 0.12, lo, 0.15, 5, 'x', 0.1)
   for (const [i, glaze] of (['oatmeal', 'charcoal', 'oatmeal'] as const).entries()) mug(k, g, OX[0] + 0.13 + i * 0.15, 2.315, 0.15, 0.3, glaze)
-  bowls(k, g, mid + 0.2, 2.315, 0.16, 2, 'charcoal')
+  bowls(k, g, om + 0.2, 2.315, 0.16, 2, 'charcoal')
   plates(k, g, OX[1] - 0.17, 2.315, 0.16, 4, 'side')
 
   // Sage wall cabinet over the panel's right part.
-  bx([OX[1], PX[1]], [PANEL_TOP, KH], [0, UPPER_D - 0.02], m.carcass)
-  fronts(K, 'x', [OX[1], PX[1]], [PANEL_TOP, KH], UPPER_D, [(OX[1] + PX[1]) / 2])
+  const um = (OX[1] + PX[1]) / 2
+  place(K, 'upper', [OX[1], um], [PANEL_TOP, KH], { kind: 'door', id: 'wall_1', hinge: 'left', fill: (p, b) => tumblers(k, p, b.x0 + 0.07, b.floors[0], mid(b, 'z'), 6, 'x', 0.1) })
+  place(K, 'upper', [um, PX[1]], [PANEL_TOP, KH], { kind: 'door', id: 'wall_2', hinge: 'right', fill: (p, b) => {
+    for (let i = 0; i < 5; i++) mug(k, p, b.x0 + 0.08 + i * 0.12, b.floors[0], mid(b, 'z'), 0.3, i % 2 ? 'oatmeal' : 'charcoal')
+  } })
 
   // Glass-front cabinet in a black frame, oak-lined and lit, over the hob.
   const GX: R = [2.33 + DX, 2.82 + DX]
@@ -335,8 +436,11 @@ function uppers(K: KC) {
   bowls(k, g, GX[0] + 0.14, 2.19, 0.17, 3)
   plates(k, g, GX[1] - 0.15, 2.19, 0.17, 5, 'side')
   // Narrow sage cabinet in the back-right corner.
-  bx([GX[1], KW], [UNDER, KH], [0, UPPER_D - 0.02], m.carcass)
-  fronts(K, 'x', [GX[1], KW], [UNDER, KH], UPPER_D, [])
+  place(K, 'upper', [GX[1], KW], [UNDER, KH], { kind: 'door', id: 'wall_corner', hinge: 'left', shelves: [0.33, 0.66], fill: (p, b) => {
+    bowls(k, p, mid(b, 'x'), b.floors[0], mid(b, 'z'), 4)
+    mug(k, p, mid(b, 'x'), b.floors[1], mid(b, 'z'), 0.6, 'charcoal')
+    storageJar(k, p, mid(b, 'x'), b.floors[2], mid(b, 'z'), 'coffee', 1.0)
+  } })
 }
 
 /** Breakfast bar: stone top and waterfall end, fluted oak front lit from under the top, two stools, two pendants. */

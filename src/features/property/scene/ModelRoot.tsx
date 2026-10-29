@@ -21,6 +21,9 @@ const TAP_TOLERANCE_PX = 8
 const DOOR_OPEN_ANGLE = -Math.PI / 2
 
 const isDoor = (name: string) => name.startsWith('door_')
+const isDrawer = (name: string) => name.startsWith('drawer_')
+/** Doors swing on their hinge, drawers slide on their runners; both open and close on a tap. */
+const isOpenable = (name: string) => isDoor(name) || isDrawer(name)
 
 function isVisibleInScene(obj: Object3D): boolean {
   for (let o: Object3D | null = obj; o; o = o.parent) if (!o.visible) return false
@@ -46,6 +49,7 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
   }, [onReady])
 
   const invalidate = useThree((s) => s.invalidate)
+  const gl = useThree((s) => s.gl)
   const controls = useStageStore((s) => s.controls)
   const ambient = useStageStore((s) => s.ambient)
   const activeLevel = useViewerStore((s) => s.activeLevel)
@@ -61,7 +65,8 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
   const selectedRoom = property.rooms.find((r) => r.id === selectedRoomId) ?? null
 
   const [hovered, setHovered] = useState<{ room: Room; box: Box3 } | null>(null)
-  useCursor(hovered !== null)
+  const [hoveredOpenable, setHoveredOpenable] = useState<{ node: Object3D; box: Box3 } | null>(null)
+  useCursor(hovered !== null || hoveredOpenable !== null)
 
   useEffect(() => {
     if (!root) return
@@ -121,26 +126,50 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
 
   const hotspotAt = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
     if (!isVisibleInScene(e.object)) return null
-    return findNamedAncestor(e.object, (n) => roomsByMesh.has(n) || isDoor(n))
+    return findNamedAncestor(e.object, (n) => roomsByMesh.has(n))
   }
 
+  /**
+   * The first surface the pointer really touches: visible, and not cut away by the room viewer's
+   * section box (clipped geometry is still hit by the raycaster). Only that surface may open a
+   * door or drawer, so a tap on a worktop never opens the cupboard beneath it.
+   */
+  const firstSurface = (e: ThreeEvent<PointerEvent | MouseEvent>) =>
+    e.intersections.find((i) => isVisibleInScene(i.object) && gl.clippingPlanes.every((p) => p.distanceToPoint(i.point) >= -0.001))?.object
+  const openableAt = (e: ThreeEvent<PointerEvent | MouseEvent>) =>
+    e.object === firstSurface(e) ? findNamedAncestor(e.object, isOpenable) : null
+
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    if (!picking || e.delta > TAP_TOLERANCE_PX) return
+    if (!interactive || e.delta > TAP_TOLERANCE_PX) return
+    const openable = openableAt(e)
+    if (openable) {
+      e.stopPropagation()
+      openable.userData.open = !openable.userData.open
+      setHoveredOpenable(null)
+      invalidate()
+      return
+    }
+    // Inside a room, a tap on any other solid surface ends there.
+    if (roomViewId) {
+      if (e.object === firstSurface(e)) e.stopPropagation()
+      return
+    }
+    if (!picking) return
     // Hidden (cut-away) floors are still hit by the raycaster; let the event reach what is behind them.
     const target = hotspotAt(e)
     if (!target) return
     e.stopPropagation()
-    if (isDoor(target.name)) {
-      target.userData.open = !target.userData.open
-      invalidate()
-      return
-    }
     // Tap a room: it highlights, the camera flies in and the room viewer opens.
     openRoom(roomsByMesh.get(target.name)!)
   }
 
   const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (!picking || e.pointerType !== 'mouse') return
+    if (!interactive || e.pointerType !== 'mouse') return
+    if (e.object === firstSurface(e)) {
+      const openable = findNamedAncestor(e.object, isOpenable)
+      if (openable !== hoveredOpenable?.node) setHoveredOpenable(openable ? { node: openable, box: frontBox(openable) } : null)
+    }
+    if (!picking) return
     const target = hotspotAt(e)
     if (!target) return
     e.stopPropagation()
@@ -154,7 +183,10 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
       ref={setRoot}
       onClick={handleClick}
       onPointerMove={handlePointerMove}
-      onPointerLeave={() => setHovered(null)}
+      onPointerLeave={() => {
+        setHovered(null)
+        setHoveredOpenable(null)
+      }}
       onPointerMissed={(e) => picking && e.type === 'click' && selectRoom(null)}
     >
       {property.model.kind === 'gltf' ? (
@@ -177,7 +209,8 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
         />
       )}
 
-      {root && <DoorAnimator root={root} version={modelVersion} />}
+      {root && <OpenableAnimator root={root} version={modelVersion} />}
+      {hoveredOpenable && <OpenableOutline box={hoveredOpenable.box} />}
 
       {/* Artist models can't be restyled per room, so they get a gold volume around the selection. */}
       {selectionBox && property.model.kind === 'gltf' && !roomViewId && <SelectionVolume box={selectionBox} />}
@@ -241,13 +274,42 @@ function SelectionVolume({ box, faint }: { box: Box3; faint?: boolean }) {
   )
 }
 
-/** Eases every door_* node toward its open/closed angle; only requests frames while moving. */
-function DoorAnimator({ root, version }: { root: Object3D; version: number }) {
-  const doors = useMemo(() => {
+/** The box round a door's or drawer's front panel (marked `userData.front`), for the hover outline. */
+function frontBox(node: Object3D) {
+  let front: Object3D = node
+  node.traverse((o) => {
+    if (o.userData.front) front = o
+  })
+  return new Box3().setFromObject(front)
+}
+
+/** A thin gold outline round the door or drawer front under the pointer. */
+function OpenableOutline({ box }: { box: Box3 }) {
+  const size = box.getSize(new Vector3())
+  const center = box.getCenter(new Vector3())
+  return (
+    <mesh position={center} raycast={() => null} renderOrder={3}>
+      <boxGeometry args={[size.x + 0.012, size.y + 0.012, size.z + 0.012]} />
+      <meshBasicMaterial color={GOLD} transparent opacity={0.1} depthWrite={false} />
+      <Edges color={GOLD} lineWidth={1.5} />
+    </mesh>
+  )
+}
+
+/**
+ * Eases every door_* toward its open or closed angle (about its hinge: `userData.openAngle`, a
+ * quarter turn by default) and every drawer_* along its runners (`userData.slide`, in its
+ * parent's frame). Only requests frames while something is moving.
+ */
+function OpenableAnimator({ root, version }: { root: Object3D; version: number }) {
+  const parts = useMemo(() => {
     const found: Object3D[] = []
     root.traverse((o) => {
       if (isDoor(o.name)) {
         o.userData.closedY ??= o.rotation.y
+        found.push(o)
+      } else if (isDrawer(o.name)) {
+        o.userData.closedPos ??= o.position.clone()
         found.push(o)
       }
     })
@@ -256,12 +318,21 @@ function DoorAnimator({ root, version }: { root: Object3D; version: number }) {
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [root, version])
 
+  const target = useMemo(() => new Vector3(), [])
   useFrame((state, delta) => {
-    for (const door of doors) {
-      const target = door.userData.closedY + (door.userData.open ? DOOR_OPEN_ANGLE : 0)
-      if (Math.abs(door.rotation.y - target) < 0.001) continue
-      // oxlint-disable-next-line react/immutability -- three.js objects are mutated per frame by design
-      door.rotation.y = MathUtils.damp(door.rotation.y, target, 8, delta)
+    for (const part of parts) {
+      const { open } = part.userData
+      if (isDoor(part.name)) {
+        const angle = part.userData.closedY + (open ? ((part.userData.openAngle as number | undefined) ?? DOOR_OPEN_ANGLE) : 0)
+        if (Math.abs(part.rotation.y - angle) < 0.001) continue
+        // oxlint-disable-next-line react/immutability -- three.js objects are mutated per frame by design
+        part.rotation.y = MathUtils.damp(part.rotation.y, angle, 7, delta)
+      } else {
+        target.copy(part.userData.closedPos as Vector3)
+        if (open) target.add(new Vector3().fromArray(part.userData.slide as number[]))
+        if (part.position.distanceToSquared(target) < 1e-8) continue
+        part.position.set(MathUtils.damp(part.position.x, target.x, 7, delta), MathUtils.damp(part.position.y, target.y, 7, delta), MathUtils.damp(part.position.z, target.z, 7, delta))
+      }
       state.invalidate()
     }
   })
