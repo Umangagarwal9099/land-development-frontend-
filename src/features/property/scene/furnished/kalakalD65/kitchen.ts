@@ -517,13 +517,8 @@ function lighting({ g, ctx }: KC) {
     ctx.lighting.light(l, 1)
     return l
   }
-  // One ceiling light casts real shadows (stools, bar, cabinet edges); the rest are soft fill.
-  const key = add(1.6 + DX / 2, 2.38, 1.5 + DY / 2, 8, 6, '#fff1de')
-  key.castShadow = true
-  key.shadow.mapSize.set(1024, 1024)
-  key.shadow.bias = -0.002
-  key.shadow.normalBias = 0.02
-  key.shadow.camera.near = 0.05
+  // The main ceiling light; grounding comes from the contact shadows under the stools and bar.
+  add(1.6 + DX / 2, 2.38, 1.5 + DY / 2, 8, 6, '#fff1de')
   add(0.95, 2.35, 0.9, 4, 5, '#fff1de')
   add(2.3 + DX, 2.35, 0.9, 4, 5, '#fff1de')
   add(1.6 + DX / 2, 2.3, 2.1 + DY, 4, 5, '#fff1de')

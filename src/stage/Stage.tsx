@@ -29,6 +29,10 @@ export default function Stage() {
         performance={{ min: 0.6 }}
         gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         camera={{ position: [0, 400, 600], fov: 38, near: 0.5, far: 6000 }}
+        // Development only: exposes the renderer state for profiling (draw calls, frame times).
+        onCreated={(state) => {
+          if (import.meta.env.DEV) (window as unknown as { __stage: unknown }).__stage = state
+        }}
       >
         <SceneBackground />
         <CameraRig />

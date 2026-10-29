@@ -61,8 +61,28 @@ export default function PropertyScene({ slug }: { slug: string }) {
   const radius = Math.hypot(site.maxX - site.minX, site.maxZ - site.minZ) / 2
   useFog(radius * 3, radius * 9)
 
-  const onReady = useCallback(() => setSceneReady(true), [setSceneReady])
+  const gl = useThree((st) => st.gl)
+  const invalidate = useThree((st) => st.invalidate)
+  const daylight = useStageStore((st) => st.daylight)
+  const onReady = useCallback(() => {
+    gl.shadowMap.needsUpdate = true
+    setSceneReady(true)
+  }, [gl, setSceneReady])
   usePropertyCamera(property, site, radius)
+
+  // The property's shadows only change when the sun moves or something in the model does, so the
+  // shadow maps aren't re-rendered on every frame the camera moves: only when asked (needsUpdate).
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false
+    gl.shadowMap.needsUpdate = true
+    return () => {
+      gl.shadowMap.autoUpdate = true
+    }
+  }, [gl])
+  useEffect(() => {
+    gl.shadowMap.needsUpdate = true
+    invalidate()
+  }, [gl, daylight, invalidate])
 
   return (
     <group>

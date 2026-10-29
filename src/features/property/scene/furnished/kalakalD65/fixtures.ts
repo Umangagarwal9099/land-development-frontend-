@@ -24,7 +24,13 @@ export function circuit(): Circuit {
 /** Switches a circuit on or off, keeping each glow's own colour for when it comes back on. */
 export function setCircuit(c: Circuit, on: boolean) {
   c.on = on
-  for (const l of c.lights) l.visible = on
+  // Lights are dimmed to zero, never hidden: hiding one changes the scene's light count, which
+  // makes three.js recompile every material's shader, a visible hitch on the tap.
+  for (const l of c.lights) {
+    if (!on && !l.userData.off) l.userData.restore = l.intensity
+    l.userData.off = !on
+    l.intensity = on ? ((l.userData.restore as number | undefined) ?? l.intensity) : 0
+  }
   for (const m of c.glows) {
     m.userData.on ??= m.emissive.clone()
     m.emissive.copy(on ? m.userData.on : m.emissive.clone().setScalar(0))

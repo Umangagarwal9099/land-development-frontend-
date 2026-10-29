@@ -7,7 +7,7 @@ import { bounds, centroid } from '../../../lib/geometry'
 import { GOLD, IVORY } from '../../../lib/palette'
 import { disposeObject } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
-import { FURNISHED_DESIGNS } from '../../property/scene/furnished'
+import { FURNISHED_DESIGNS, furnishedModel, isCached, prewarmFurnished } from '../../property/scene/furnished'
 import { PLOT_HEIGHT } from './plotGeometry'
 
 const TAP_TOLERANCE_PX = 8
@@ -138,14 +138,16 @@ export function Units({ plots, interactive, onSelect, onHover }: UnitsProps) {
 function DesignUnit({ plot, design, interactive, onSelect, onHover }: Omit<UnitsProps, 'plots'> & { plot: Plot; design: FurnishedDesign }) {
   const invalidate = useThree((s) => s.invalidate)
   const model = useMemo(() => {
-    const m = FURNISHED_DESIGNS[design].buildOnPlot!()
+    const m = furnishedModel(design, true)
     // The plan has hundreds of materials; the model's own point lights would cost every one of them.
     const lights: Object3D[] = []
     m.root.traverse((o) => o instanceof Light && lights.push(o))
     for (const l of lights) l.removeFromParent()
     return m
   }, [design])
-  useEffect(() => () => disposeObject(model.root), [model])
+  useEffect(() => () => void (isCached(design) || disposeObject(model.root)), [model, design])
+  // Anyone looking at this home on the plan may step inside next: build its full model while idle.
+  useEffect(() => prewarmFurnished(design), [design])
 
   const daylight = useStageStore((s) => s.daylight)
   useEffect(() => {

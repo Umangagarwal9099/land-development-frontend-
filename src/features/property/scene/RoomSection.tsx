@@ -151,6 +151,9 @@ export function RoomSection({
 
       controls.minDistance = 0.3
       controls.maxDistance = sphere.radius * 3.2
+      // Inside a room, zoom straight along the view rather than towards the cursor: the target
+      // then stays on the room, with no drift or sideways slide while pinching or scrolling.
+      controls.dollyToCursor = false
       // Low enough to stand in the room and look straight across it.
       controls.maxPolarAngle = MathUtils.degToRad(92)
       controls.setBoundary(volume.clone().expandByScalar(0.5))
@@ -168,6 +171,7 @@ export function RoomSection({
       saved.current = null
       controls.minDistance = min
       controls.maxDistance = max
+      controls.dollyToCursor = true
       controls.maxPolarAngle = polar
       controls.setBoundary(new Box3(new Vector3(site.min.x, 0, site.min.z), new Vector3(site.max.x, 14, site.max.z)))
       useStageStore.getState().setHome(home)

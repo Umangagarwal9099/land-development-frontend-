@@ -1,7 +1,7 @@
 import { Edges, Html, useCursor } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { motion } from 'framer-motion'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Box3, MathUtils, Mesh, Sphere, Vector3, type Object3D } from 'three'
 import type { Floor, Property, Room } from '../../../api/types'
 import { frameSphere } from '../../../lib/camera'
@@ -337,7 +337,10 @@ function OpenableAnimator({ root, version }: { root: Object3D; version: number }
   }, [root, version])
 
   const target = useMemo(() => new Vector3(), [])
+  const step = useMemo(() => new Vector3(), [])
+  const moving = useRef(false)
   useFrame((state, delta) => {
+    let moved = false
     for (const part of parts) {
       const { open } = part.userData
       if (isSpinner(part.name)) {
@@ -346,6 +349,9 @@ function OpenableAnimator({ root, version }: { root: Object3D; version: number }
         part.userData.speed = speed < 0.002 && !part.userData.on ? 0 : speed
         if (!part.userData.speed) continue
         part.rotation.y += part.userData.speed * delta
+        // A turning fan keeps the frames coming but needn't redraw the room's shadows.
+        state.invalidate()
+        continue
       } else if (isSwitch(part.name)) {
         // The rocker tips over: down for on, up for off.
         const rocker = part.getObjectByName('rocker')
@@ -360,12 +366,19 @@ function OpenableAnimator({ root, version }: { root: Object3D; version: number }
         part.rotation.y = MathUtils.damp(part.rotation.y, angle, 7, delta)
       } else {
         target.copy(part.userData.closedPos as Vector3)
-        if (open) target.add(new Vector3().fromArray(part.userData.slide as number[]))
+        if (open) target.add(step.fromArray(part.userData.slide as number[]))
         if (part.position.distanceToSquared(target) < 1e-8) continue
         part.position.set(MathUtils.damp(part.position.x, target.x, 7, delta), MathUtils.damp(part.position.y, target.y, 7, delta), MathUtils.damp(part.position.z, target.z, 7, delta))
       }
+      moved = true
       state.invalidate()
     }
+    // Shadows are redrawn once a door or drawer comes to rest (see PropertyScene), not every frame.
+    if (moving.current && !moved) {
+      state.gl.shadowMap.needsUpdate = true
+      state.invalidate()
+    }
+    moving.current = moved
   })
   return null
 }

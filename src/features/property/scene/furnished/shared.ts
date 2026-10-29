@@ -1,4 +1,4 @@
-import { Group, MeshStandardMaterial, type MeshBasicMaterial, type MeshStandardMaterialParameters, type PointLight, type Texture } from 'three'
+import { Group, MeshStandardMaterial, PointLight, Vector3, type MeshBasicMaterial, type MeshStandardMaterialParameters, type Texture } from 'three'
 import { Kit } from './kit'
 import type { Paint } from './textures'
 
@@ -11,6 +11,10 @@ export interface FurnishedModel {
   setDaylight?: (daylight: boolean) => void
   /** Resolves when textures loaded after the build (e.g. photographs) have arrived. */
   ready?: Promise<void>
+  /** With a light pool: lights the zone in view ('exterior', or a room's hotspot name)... */
+  setZone?: (zone: string) => void
+  /** ...and keeps the pool in step with switches and day/night, each frame. */
+  syncLights?: () => void
 }
 
 /**
@@ -33,7 +37,12 @@ export class Lighting {
 
   set(daylight: boolean) {
     for (const i of this.items) i.mat.emissiveIntensity = daylight ? i.day : i.night
-    for (const l of this.lamps) l.light.intensity = daylight ? l.day : l.night
+    for (const l of this.lamps) {
+      const value = daylight ? l.day : l.night
+      // A lamp switched off stays off; it comes back at the new level when switched on.
+      if (l.light.userData.off) l.light.userData.restore = value
+      else l.light.intensity = value
+    }
   }
 }
 
@@ -74,4 +83,64 @@ export function levelKit(k: Kit, y: number) {
   g.position.y = y
   k.root.add(g)
   return new Kit(g, k)
+}
+
+/**
+ * A fixed set of real point lights standing in for a model's many logical ones. Every point light
+ * in a scene is evaluated for every pixel of every material, so a house with 26 lamps pays for 26
+ * even inside one room. The pool keeps a constant count (no shader recompiles as views change)
+ * and is filled with the lights of the current zone: the exterior, or the room being viewed.
+ * Logical lights keep their roles: circuits and day/night still set their intensity.
+ */
+export class LightPool {
+  private pool: PointLight[] = []
+  private active: { light: PointLight; at: Vector3 }[] = []
+  private zones = new Map<string, { light: PointLight; at: Vector3 }[]>()
+
+  constructor(root: Group, zoneOf: (light: PointLight) => string, size = 8) {
+    root.updateMatrixWorld(true)
+    const toRoot = root.matrixWorld.clone().invert()
+    const lights: PointLight[] = []
+    root.traverse((o) => {
+      if ((o as PointLight).isPointLight) lights.push(o as PointLight)
+    })
+    for (const light of lights) {
+      const at = light.getWorldPosition(new Vector3()).applyMatrix4(toRoot)
+      const zone = zoneOf(light)
+      if (!this.zones.has(zone)) this.zones.set(zone, [])
+      this.zones.get(zone)!.push({ light, at })
+      // Off the scene graph: the renderer no longer counts it, the pool lights in its place.
+      light.removeFromParent()
+    }
+    for (let i = 0; i < size; i++) {
+      const l = new PointLight('#ffffff', 0, 1, 2)
+      l.name = 'pool_light'
+      root.add(l)
+      this.pool.push(l)
+    }
+    this.setZone('exterior')
+  }
+
+  /** Lights the zone (a room's hotspot name, or 'exterior'), strongest lamps first. */
+  setZone(zone: string) {
+    const lights = this.zones.get(zone) ?? this.zones.get('exterior') ?? []
+    this.active = [...lights].sort((a, b) => b.light.intensity * b.light.distance - a.light.intensity * a.light.distance).slice(0, this.pool.length)
+    this.sync()
+  }
+
+  /** Copies the zone's logical lights onto the pool; cheap enough to run every rendered frame. */
+  sync() {
+    this.pool.forEach((p, i) => {
+      const a = this.active[i]
+      if (!a) {
+        p.intensity = 0
+        return
+      }
+      p.position.copy(a.at)
+      p.color.copy(a.light.color)
+      p.intensity = a.light.intensity
+      p.distance = a.light.distance
+      p.decay = a.light.decay
+    })
+  }
 }

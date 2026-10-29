@@ -1,7 +1,7 @@
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from 'three'
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, type Object3D } from 'three'
 import { GOLD } from '../../../../../lib/palette'
 import { Kit } from '../kit'
-import { Lighting, type FurnishedModel } from '../shared'
+import { LightPool, Lighting, type FurnishedModel } from '../shared'
 import { BEDROOM, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, KITCHEN, STEPS, type Ctx } from './house'
 import { buildBedroom } from './bedroom'
 import { buildKitchen } from './kitchen'
@@ -75,5 +75,14 @@ export function buildKalakalD65(context = true): FurnishedModel {
     highlights.set(name, mat)
   }
 
-  return { root, highlights, setDaylight: (day) => lighting.set(day) }
+  // Each lamp belongs to the room it stands in; everything else (façade, windows, garden) is exterior.
+  const zoneOf = (light: Object3D) => {
+    for (let o: Object3D | null = light; o; o = o.parent) {
+      if (o.name === 'kitchen') return 'room_kitchen'
+      if (o.name === 'bedroom_g') return 'room_bedroom_g'
+    }
+    return 'exterior'
+  }
+  const pool = new LightPool(root, zoneOf)
+  return { root, highlights, setDaylight: (day) => lighting.set(day), setZone: (z) => pool.setZone(z), syncLights: () => pool.sync() }
 }
