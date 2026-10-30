@@ -1,6 +1,7 @@
 import { CylinderGeometry, Group, IcosahedronGeometry, MeshPhysicalMaterial, MeshStandardMaterial, type Material, type Object3D } from 'three'
 import { PI, type Kit } from '../kit'
 import type { D65Materials } from './materials'
+import { pottedPothos } from './plant'
 
 /*
  * Planting and the car for the D-65 residence. Palm and areca fronds are chains of short
@@ -97,12 +98,9 @@ export function arecaPot(p: P, x: number, z: number, s: number, y: number, pot: 
   }
 }
 
-/** A small leafy plant (herbs, a pothos) in a pot, for counters and shelves. */
+/** A small potted pothos for counters and shelves (see plant.ts); each placement grows its own way. */
 export function herbPot(p: P, parent: Object3D, x: number, y: number, z: number, s = 1, pot: Material = p.c.pot) {
-  const { k } = p
-  k.cyl(parent, 0.07 * s, 0.055 * s, 0.13 * s, pot, x, y + 0.065 * s, z, 20)
-  const parts: [number, number, number, number][] = [[0, 0.2, 0, 0.09], [0.06, 0.17, 0.03, 0.07], [-0.05, 0.18, -0.03, 0.07], [0.01, 0.27, 0.02, 0.06]]
-  parts.forEach(([a, b, cc, r], i) => foliageClump(p, parent, r * s, x + a * s, y + b * s, z + cc * s, 0.9, i))
+  pottedPothos(p.k, parent, x, y, z, s, pot, Math.round(Math.abs(x * 131 + z * 71 + y * 17)) + 1)
 }
 
 /** A frangipani: a short forked trunk under a spreading, flat-topped crown. */

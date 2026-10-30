@@ -368,3 +368,82 @@ export const upholstery = (tone: number[], seed: number): Paint => (g, w, h) => 
       g.fillRect(x, y, 2, 2)
     }
 }
+
+/* ---------- Bathroom finishes ---------- */
+
+/** Large-format 600 × 1200 mm matt porcelain in warm greige, set vertically; the canvas is 2.4 m square. */
+export const bathWall: Paint = (g, w, h) => {
+  const r = rng(181)
+  g.fillStyle = '#b9ad9e'
+  g.fillRect(0, 0, w, h)
+  const cols = 4
+  const rows = 2
+  const tw = w / cols
+  const th = h / rows
+  for (let i = 0; i < cols; i++)
+    for (let j = 0; j < rows; j++) {
+      const t = r() * 6 - 3
+      g.fillStyle = rgb([214, 204, 190], t)
+      g.fillRect(i * tw + 1, j * th + 1, tw - 2, th - 2)
+      // A soft, stone-like cloud in each tile.
+      for (let k = 0; k < 10; k++) {
+        const x = i * tw + r() * tw
+        const y = j * th + r() * th
+        const rad = 20 + r() * 60
+        const gr = g.createRadialGradient(x, y, 0, x, y, rad)
+        gr.addColorStop(0, `rgba(${r() < 0.5 ? '196,184,168' : '232,224,212'},.16)`)
+        gr.addColorStop(1, 'rgba(0,0,0,0)')
+        g.fillStyle = gr
+        g.fillRect(Math.max(i * tw + 1, x - rad), Math.max(j * th + 1, y - rad), Math.min(rad * 2, tw - 2), Math.min(rad * 2, th - 2))
+      }
+    }
+}
+
+/**
+ * Beige 75 × 300 mm tiles in a 45° herringbone, for the shower wall. Each row of the stair is a
+ * flat tile and an upright one; rows repeat every (4, −4) tile widths, then the whole is turned
+ * 45°, which makes the pattern repeat squarely every 4√2 tile widths: the canvas is 0.424 m.
+ */
+export const herringbone: Paint = (g, w, h) => {
+  const r = rng(191)
+  g.fillStyle = '#a99c89'
+  g.fillRect(0, 0, w, h)
+  const unit = w / (4 * Math.SQRT2)
+  const s = unit / Math.SQRT2
+  // (x, y) in tile widths → canvas, turned 45°.
+  g.setTransform(s, -s, s, s, w / 2, h / 2)
+  const joint = 0.06
+  for (let m = -6; m <= 6; m++)
+    for (let k = -14; k <= 14; k++) {
+      const x = k + 4 * m
+      const y = k - 4 * m
+      for (const [dx, dy, ww, hh] of [[0, 0, 4, 1], [0, 1, 1, 4]] as const) {
+        g.fillStyle = rgb([212, 201, 186], r() * 10 - 5)
+        g.fillRect(x + dx + joint / 2, y + dy + joint / 2, ww - joint, hh - joint)
+      }
+    }
+  g.setTransform(1, 0, 0, 1, 0, 0)
+}
+
+/** A soft, defocused reflection of a warm-lit room, for mirrors (real-time reflections cost a second render). */
+export const mirrorReflection: Paint = (g, w, h) => {
+  const r = rng(201)
+  const gr = g.createLinearGradient(0, 0, 0, h)
+  gr.addColorStop(0, '#bdb4a7')
+  gr.addColorStop(0.45, '#d7cdbf')
+  gr.addColorStop(1, '#a89e91')
+  g.fillStyle = gr
+  g.fillRect(0, 0, w, h)
+  // The door and wall opposite, and the glow of a ceiling light, all slightly out of focus.
+  g.fillStyle = 'rgba(120,96,70,.35)'
+  g.fillRect(w * 0.1, h * 0.35, w * 0.32, h * 0.65)
+  const light = g.createRadialGradient(w * 0.62, h * 0.08, 0, w * 0.62, h * 0.08, w * 0.35)
+  light.addColorStop(0, 'rgba(255,246,230,.9)')
+  light.addColorStop(1, 'rgba(255,246,230,0)')
+  g.fillStyle = light
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 4000; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '0,0,0' : '255,255,255'},${r() * 0.03})`
+    g.fillRect(r() * w, r() * h, 2, 2)
+  }
+}

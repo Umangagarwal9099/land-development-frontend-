@@ -39,9 +39,9 @@ export class Lighting {
     for (const i of this.items) i.mat.emissiveIntensity = daylight ? i.day : i.night
     for (const l of this.lamps) {
       const value = daylight ? l.day : l.night
-      // A lamp switched off stays off; it comes back at the new level when switched on.
-      if (l.light.userData.off) l.light.userData.restore = value
-      else l.light.intensity = value
+      // A lamp on a dimmed circuit keeps its dimming; its full brightness follows day and night.
+      if (l.light.userData.full !== undefined) l.light.userData.full = value
+      l.light.intensity = value * ((l.light.userData.level as number | undefined) ?? 1)
     }
   }
 }

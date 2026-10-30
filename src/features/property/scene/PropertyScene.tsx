@@ -65,6 +65,7 @@ export default function PropertyScene({ slug }: { slug: string }) {
   const invalidate = useThree((st) => st.invalidate)
   const daylight = useStageStore((st) => st.daylight)
   const onReady = useCallback(() => {
+    // oxlint-disable-next-line react/immutability -- the renderer is configured imperatively
     gl.shadowMap.needsUpdate = true
     setSceneReady(true)
   }, [gl, setSceneReady])
@@ -73,6 +74,7 @@ export default function PropertyScene({ slug }: { slug: string }) {
   // The property's shadows only change when the sun moves or something in the model does, so the
   // shadow maps aren't re-rendered on every frame the camera moves: only when asked (needsUpdate).
   useEffect(() => {
+    // oxlint-disable-next-line react/immutability -- the renderer is configured imperatively
     gl.shadowMap.autoUpdate = false
     gl.shadowMap.needsUpdate = true
     return () => {
@@ -80,6 +82,7 @@ export default function PropertyScene({ slug }: { slug: string }) {
     }
   }, [gl])
   useEffect(() => {
+    // oxlint-disable-next-line react/immutability -- the renderer is configured imperatively
     gl.shadowMap.needsUpdate = true
     invalidate()
   }, [gl, daylight, invalidate])

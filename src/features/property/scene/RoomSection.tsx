@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { CameraControls } from '@react-three/drei'
-import { Box3, MathUtils, PerspectiveCamera, Plane, Sphere, Vector3 } from 'three'
+import { BackSide, Box3, BoxGeometry, MathUtils, Mesh, MeshBasicMaterial, PerspectiveCamera, Plane, Sphere, Vector3 } from 'three'
 import { settle } from '../../../lib/async'
 import { BASE_SMOOTH_TIME } from '../../../lib/camera'
 import { useStageStore } from '../../../store/stage'
@@ -19,6 +19,14 @@ const ROOM_FOV = 56
 const EYE = 1.6
 const PIVOT = 1.05
 
+/**
+ * Indoors the camera stays in the room. It never comes nearer the walls than this (its near plane,
+ * 10 cm ahead with a ~9 cm half-width, then never cuts into a wall or sees past its end) …
+ */
+const CAMERA_RADIUS = 0.14
+/** … and the point it turns about keeps this far from them, so there is always room to orbit. */
+const PIVOT_CLEARANCE = 0.35
+
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
 /** The volume the section box keeps for a room hotspot (floor slab, block volume or GLB node). */
@@ -29,9 +37,17 @@ function roomVolume(hotspot: Box3): Box3 {
   return b
 }
 
+/** The space an indoor camera may move in: the room's interior, held off its walls, floor and ceiling. */
+function cameraSpace(room: Box3): Box3 {
+  const b = room.clone().expandByVector(new Vector3(-CAMERA_RADIUS, 0, -CAMERA_RADIUS))
+  b.min.y += 0.25
+  b.max.y -= CAMERA_RADIUS
+  return b
+}
+
 /**
  * Stands the camera inside the room at eye height, turning around the room's centre: orbiting
- * then looks around the room 360°, and zooming out rises over the walls to a dollhouse view.
+ * then looks around the room 360°. Outdoors, zooming out rises to an overview.
  */
 async function enterRoom(controls: CameraControls, volume: Box3, focus: Box3, smoothTime: number, outdoor: boolean, view?: 'overview' | 'eye') {
   const c = focus.getCenter(new Vector3())
@@ -40,9 +56,11 @@ async function enterRoom(controls: CameraControls, volume: Box3, focus: Box3, sm
   // A large outdoor area (a pool, a court) or a solid building opens from a raised vantage over
   // it; zoom in to walk it. A hotspot can ask for either view explicitly.
   const overview = view ? view === 'overview' : outdoor && half > 5
-  // Stay well inside the walls, even in narrow rooms.
-  const distance = overview ? Math.max(half * 1.7, 9) : MathUtils.clamp(half * 0.8, 1.1, 4.5)
-  const polar = overview ? MathUtils.degToRad(56) : Math.acos(MathUtils.clamp((EYE - PIVOT) / distance, 0.05, 0.9))
+  // Stay well inside the walls, even in narrow rooms (a small bathroom is under 2 m across).
+  const distance = overview ? Math.max(half * 1.7, 9) : outdoor ? MathUtils.clamp(half * 0.8, 1.1, 4.5) : MathUtils.clamp(Math.min(half * 0.8, half - CAMERA_RADIUS - 0.1), 0.5, 4.5)
+  // Eye height where there is room for it; standing close in a small room, look less steeply down.
+  const rise = Math.min(EYE - PIVOT, distance * 0.45)
+  const polar = overview ? MathUtils.degToRad(56) : Math.acos(MathUtils.clamp(rise / distance, 0.05, 0.9))
   controls.smoothTime = smoothTime
   await settle(
     Promise.all([
@@ -137,6 +155,25 @@ export function RoomSection({
   })
 
   const volume = useMemo(() => (room ? roomVolume(room) : null), [room])
+  // Indoors, an invisible inside-out box at the camera's limits: camera-controls casts from the
+  // pivot through the corners of the near plane and pulls the camera in to the first hit, so
+  // orbiting, panning and zooming (wheel or pinch) all stop at the walls, at any distance.
+  const collider = useMemo(() => {
+    if (!room || outdoor) return null
+    const space = cameraSpace(room)
+    const size = space.getSize(new Vector3())
+    const mesh = new Mesh(new BoxGeometry(size.x, size.y, size.z), new MeshBasicMaterial({ side: BackSide }))
+    space.getCenter(mesh.position)
+    mesh.updateMatrixWorld(true)
+    return { mesh, space }
+  }, [room, outdoor])
+  useEffect(
+    () => () => {
+      collider?.mesh.geometry.dispose()
+      ;(collider?.mesh.material as MeshBasicMaterial | undefined)?.dispose()
+    },
+    [collider],
+  )
 
   useEffect(() => {
     if (!controls) return
@@ -150,13 +187,27 @@ export function RoomSection({
       const frame = (smoothTime: number) => enterRoom(controls, volume, focus ?? volume, smoothTime, outdoor, view)
 
       controls.minDistance = 0.3
-      controls.maxDistance = sphere.radius * 3.2
       // Inside a room, zoom straight along the view rather than towards the cursor: the target
       // then stays on the room, with no drift or sideways slide while pinching or scrolling.
       controls.dollyToCursor = false
       // Low enough to stand in the room and look straight across it.
       controls.maxPolarAngle = MathUtils.degToRad(92)
-      controls.setBoundary(volume.clone().expandByScalar(0.5))
+      if (collider) {
+        // Zoom out no further than across the room; the walls hold the camera in before that.
+        const size = collider.space.getSize(new Vector3())
+        controls.maxDistance = Math.max(1, Math.hypot(size.x, size.z))
+        const pivot = collider.space.clone().expandByVector(new Vector3(-PIVOT_CLEARANCE, 0, -PIVOT_CLEARANCE))
+        // A room narrower than twice the clearance keeps its pivot on the centre line.
+        for (const a of ['x', 'z'] as const)
+          if (pivot.min[a] > pivot.max[a]) pivot.min[a] = pivot.max[a] = (collider.space.min[a] + collider.space.max[a]) / 2
+        controls.setBoundary(pivot)
+        // Walls hold the camera from when it has flown into the room (see below), not on the way in.
+        controls.colliderMeshes = []
+      } else {
+        controls.maxDistance = sphere.radius * 3.2
+        controls.setBoundary(volume.clone().expandByScalar(0.5))
+        controls.colliderMeshes = []
+      }
       stage.setHome(() => {
         stage.setAutoRotate(false)
         void frame(0.7)
@@ -164,7 +215,9 @@ export function RoomSection({
 
       setRoomReady(false)
       void Promise.all([animateTo(volume, ROOM_FOV), frame(0.85)]).then(() => {
-        if (!cancelled) setRoomReady(true)
+        if (cancelled) return
+        if (collider) controls.colliderMeshes = [collider.mesh]
+        setRoomReady(true)
       })
     } else if (saved.current) {
       const { fov, min, max, polar, home } = saved.current
@@ -172,6 +225,7 @@ export function RoomSection({
       controls.minDistance = min
       controls.maxDistance = max
       controls.dollyToCursor = true
+      controls.colliderMeshes = []
       controls.maxPolarAngle = polar
       controls.setBoundary(new Box3(new Vector3(site.min.x, 0, site.min.z), new Vector3(site.max.x, 14, site.max.z)))
       useStageStore.getState().setHome(home)
@@ -182,7 +236,7 @@ export function RoomSection({
       cancelled = true
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [controls, volume])
+  }, [controls, volume, collider])
 
   return null
 }

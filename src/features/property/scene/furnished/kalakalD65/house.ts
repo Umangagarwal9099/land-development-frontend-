@@ -64,6 +64,8 @@ export const STEPS: R = [-1.45, 0.2]
 export const KITCHEN = { x0: X1 - T - 3.4, z0: BACK + T, w: 3.4, d: 3.7, h: 2.5 }
 /** Bedroom 1 (see bedroom.ts): 6.60 m along the left wall from the back wall forwards, its bed wall the reference's 5.20 m. */
 export const BEDROOM = { x0: X0 + T, z0: BACK + T + 6.6, w: KITCHEN.x0 - 0.115 - (X0 + T), l: 6.6 }
+/** The ground-floor bathroom (see bathroom.ts): its back wall is the divider in front of the kitchen. */
+export const BATHROOM = { x0: KITCHEN.x0, z0: -8.5, w: 2.5, d: 1.9 }
 /** The bedroom window in the back wall, over the desk beside the wardrobe (house x); its sill clears the desk. */
 const BED_WINDOW: [number, number, number, number] = [BEDROOM.x0 + 2.65, BEDROOM.x0 + 3.45, GFL + 0.95, GFL + 2.3]
 /** The kitchen window in the right wall, centred over the right-hand run: house z, and heights above site ground. */

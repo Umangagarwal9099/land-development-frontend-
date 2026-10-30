@@ -12,29 +12,51 @@ import type { Kit } from '../kit'
 export interface Circuit {
   /** Whether it is lit; switches on a circuit act two-way, each flipping it. */
   on: boolean
+  /** How lit it is now, 0 … 1: eases towards `on`, so lights fade rather than snap. */
+  level: number
   lights: PointLight[]
-  /** Glowing finishes on the circuit: their emissive colour is cut to black when off. */
+  /** Glowing finishes on the circuit: their emissive colour fades with the circuit. */
   glows: MeshStandardMaterial[]
 }
 
 export function circuit(): Circuit {
-  return { on: true, lights: [], glows: [] }
+  return { on: true, level: 1, lights: [], glows: [] }
 }
 
-/** Switches a circuit on or off, keeping each glow's own colour for when it comes back on. */
+/** Circuits part-way through a fade, stepped by `stepCircuits` from the viewer's frame loop. */
+const fading = new Set<Circuit>()
+
+/** Switches a circuit on or off; the change fades in over the next few frames. */
 export function setCircuit(c: Circuit, on: boolean) {
   c.on = on
-  // Lights are dimmed to zero, never hidden: hiding one changes the scene's light count, which
-  // makes three.js recompile every material's shader, a visible hitch on the tap.
-  for (const l of c.lights) {
-    if (!on && !l.userData.off) l.userData.restore = l.intensity
-    l.userData.off = !on
-    l.intensity = on ? ((l.userData.restore as number | undefined) ?? l.intensity) : 0
+  for (const l of c.lights) if (l.userData.full === undefined) l.userData.full = l.intensity
+  for (const m of c.glows) m.userData.full ??= m.emissive.clone()
+  fading.add(c)
+}
+
+const FADE_PER_SECOND = 3.2
+
+/**
+ * Advances every fading circuit. Lights are dimmed, never hidden: hiding one changes the scene's
+ * light count, which makes three.js recompile every material, a visible hitch on the tap.
+ * Returns whether anything is still fading, so the caller keeps frames coming.
+ */
+export function stepCircuits(delta: number) {
+  for (const c of fading) {
+    const target = c.on ? 1 : 0
+    const step = Math.min(delta, 0.05) * FADE_PER_SECOND
+    c.level = c.level < target ? Math.min(target, c.level + step) : Math.max(target, c.level - step)
+    // An ease-in-out curve on the level reads as a lamp warming up or dying away.
+    const k = c.level * c.level * (3 - 2 * c.level)
+    for (const l of c.lights) {
+      l.userData.off = k === 0
+      l.userData.level = k
+      l.intensity = (l.userData.full as number) * k
+    }
+    for (const m of c.glows) m.emissive.copy(m.userData.full).multiplyScalar(k)
+    if (c.level === target) fading.delete(c)
   }
-  for (const m of c.glows) {
-    m.userData.on ??= m.emissive.clone()
-    m.emissive.copy(on ? m.userData.on : m.emissive.clone().setScalar(0))
-  }
+  return fading.size > 0
 }
 
 export type Module = 'switch' | 'socket' | 'blank'

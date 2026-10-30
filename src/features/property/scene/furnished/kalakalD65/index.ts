@@ -2,7 +2,8 @@ import { BoxGeometry, Group, Mesh, MeshBasicMaterial, type Object3D } from 'thre
 import { GOLD } from '../../../../../lib/palette'
 import { Kit } from '../kit'
 import { LightPool, Lighting, type FurnishedModel } from '../shared'
-import { BEDROOM, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, KITCHEN, STEPS, type Ctx } from './house'
+import { BATHROOM, BEDROOM, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, KITCHEN, STEPS, type Ctx } from './house'
+import { buildBathroom } from './bathroom'
 import { buildBedroom } from './bedroom'
 import { buildKitchen } from './kitchen'
 import { d65Materials } from './materials'
@@ -26,6 +27,7 @@ const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[] }> = {
   amenity_balcony: { y: FFL, height: 2.9, zones: [[-1.12, CARPORT[1], HOUSE_Z + FACE, HOUSE_Z]] },
   room_kitchen: { y: GFL, height: KITCHEN.h, zones: [[KITCHEN.x0, KITCHEN.x0 + KITCHEN.w, HOUSE_Z + KITCHEN.z0, HOUSE_Z + KITCHEN.z0 + KITCHEN.d]] },
   room_bedroom_g: { y: GFL, height: 2.65, zones: [[BEDROOM.x0, BEDROOM.x0 + BEDROOM.w, HOUSE_Z + BEDROOM.z0 - BEDROOM.l, HOUSE_Z + BEDROOM.z0]] },
+  room_bath_g: { y: GFL, height: 2.2, zones: [[BATHROOM.x0, BATHROOM.x0 + BATHROOM.w, HOUSE_Z + BATHROOM.z0, HOUSE_Z + BATHROOM.z0 + BATHROOM.d]] },
   amenity_garden: { y: 0.04, height: 2.6, zones: [[PLOT.x0 + 0.23, STEPS[0] - 0.05, HOUSE_Z + FACE, PLOT.z1]] },
 }
 
@@ -56,6 +58,7 @@ export function buildKalakalD65(context = true): FurnishedModel {
   buildBalcony(ctx)
   buildKitchen(ctx)
   buildBedroom(ctx)
+  buildBathroom(ctx)
   buildPlot(ctx)
   if (context) buildContext(ctx)
 
@@ -80,6 +83,7 @@ export function buildKalakalD65(context = true): FurnishedModel {
     for (let o: Object3D | null = light; o; o = o.parent) {
       if (o.name === 'kitchen') return 'room_kitchen'
       if (o.name === 'bedroom_g') return 'room_bedroom_g'
+      if (o.name === 'bathroom_g') return 'room_bath_g'
     }
     return 'exterior'
   }

@@ -158,7 +158,12 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
         openable.userData.on = !(openable.userData.on ?? true)
         ;(openable.userData.toggle as ((on: boolean) => void) | undefined)?.(openable.userData.on)
       } else if (isSpinner(openable.name)) openable.userData.on = !openable.userData.on
-      else openable.userData.open = !openable.userData.open
+      else {
+        const open = !openable.userData.open
+        openable.userData.open = open
+        // Linked parts (a toilet seat lifts its lid; a closing lid brings the seat down too).
+        for (const o of ((open ? openable.userData.alsoOpen : openable.userData.alsoClose) as Object3D[] | undefined) ?? []) o.userData.open = open
+      }
       setHoveredOpenable(null)
       const box = frontBox(openable)
       setTapped({ box, key: now })
@@ -316,7 +321,7 @@ function OpenableOutline({ box, strong }: { box: Box3; strong?: boolean }) {
 
 /**
  * Eases every door_* toward its open or closed angle (about its hinge: `userData.openAngle`, a
- * quarter turn by default) and every drawer_* along its runners (`userData.slide`, in its
+ * quarter turn by default, about y unless `userData.axis` says 'x') and every drawer_* along its runners (`userData.slide`, in its
  * parent's frame). Only requests frames while something is moving.
  */
 function OpenableAnimator({ root, version }: { root: Object3D; version: number }) {
@@ -324,7 +329,7 @@ function OpenableAnimator({ root, version }: { root: Object3D; version: number }
     const found: Object3D[] = []
     root.traverse((o) => {
       if (isDoor(o.name)) {
-        o.userData.closedY ??= o.rotation.y
+        o.userData.closedY ??= o.rotation[(o.userData.axis as 'x' | 'y' | undefined) ?? 'y']
         found.push(o)
       } else if (isDrawer(o.name)) {
         o.userData.closedPos ??= o.position.clone()
@@ -360,10 +365,11 @@ function OpenableAnimator({ root, version }: { root: Object3D; version: number }
         if (Math.abs(rocker.rotation.x - tip) < 0.001) continue
         rocker.rotation.x = MathUtils.damp(rocker.rotation.x, tip, 18, delta)
       } else if (isDoor(part.name)) {
+        const axis = (part.userData.axis as 'x' | 'y' | undefined) ?? 'y'
         const angle = part.userData.closedY + (open ? ((part.userData.openAngle as number | undefined) ?? DOOR_OPEN_ANGLE) : 0)
-        if (Math.abs(part.rotation.y - angle) < 0.001) continue
+        if (Math.abs(part.rotation[axis] - angle) < 0.001) continue
         // oxlint-disable-next-line react/immutability -- three.js objects are mutated per frame by design
-        part.rotation.y = MathUtils.damp(part.rotation.y, angle, 7, delta)
+        part.rotation[axis] = MathUtils.damp(part.rotation[axis], angle, 7, delta)
       } else {
         target.copy(part.userData.closedPos as Vector3)
         if (open) target.add(step.fromArray(part.userData.slide as number[]))

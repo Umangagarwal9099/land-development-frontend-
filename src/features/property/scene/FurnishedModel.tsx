@@ -5,6 +5,7 @@ import type { FurnishedDesign } from '../../../api/types'
 import { disposeObject } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
 import { furnishedModel, isCached } from './furnished'
+import { stepCircuits } from './furnished/kalakalD65/fixtures'
 
 /**
  * A furnished interior design model generated in code: architecture with walls cut away at
@@ -76,7 +77,11 @@ export function FurnishedModel({
     model.setZone?.(zone)
     invalidate()
   }, [model, zone, invalidate])
-  useFrame(() => model.syncLights?.())
+  useFrame((state, delta) => {
+    // Light switches fade their circuits over a few frames; keep frames coming until they settle.
+    if (stepCircuits(delta)) state.invalidate()
+    model.syncLights?.()
+  })
 
   const daylight = useStageStore((s) => s.daylight)
   useEffect(() => {
@@ -112,7 +117,7 @@ function resetOpenables(root: Object3D) {
     o.userData.open = false
     o.userData.on = false
     o.userData.speed = 0
-    if (typeof o.userData.closedY === 'number') o.rotation.y = o.userData.closedY
+    if (typeof o.userData.closedY === 'number') o.rotation[(o.userData.axis as 'x' | 'y' | undefined) ?? 'y'] = o.userData.closedY
     if (o.userData.closedPos) o.position.copy(o.userData.closedPos)
   })
 }
