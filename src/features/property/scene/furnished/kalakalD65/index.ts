@@ -1,7 +1,7 @@
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, type Object3D } from 'three'
 import { GOLD } from '../../../../../lib/palette'
 import { Kit } from '../kit'
-import { LightPool, Lighting, type FurnishedModel } from '../shared'
+import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shared'
 import { BATHROOM, BEDROOM, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, HALL, KITCHEN, LANDING, STAIR_HALL, STEPS, type Ctx } from './house'
 import { buildBathroom } from './bathroom'
 import { buildBedroom } from './bedroom'
@@ -21,6 +21,9 @@ export { SITE }
  */
 
 type Zone = [x0: number, x1: number, z0: number, z1: number]
+
+/** The façade's wall, whose inner face the walker starts from. */
+const T_WALL = 0.23
 
 /** Tappable areas (the kitchen and the outdoor spaces), in site coordinates. */
 /** A hall point (x across from the left wall, h above the floor, z from the back wall) in site coordinates. */
@@ -132,5 +135,23 @@ export function buildKalakalD65(context = true): FurnishedModel {
     return 'exterior'
   }
   const pool = new LightPool(root, zoneOf)
-  return { root, highlights, setDaylight: (day) => lighting.set(day), setZone: (z) => pool.setZone(z === 'room_dining_g' || z === 'room_living_g' ? 'hall' : z), syncLights: () => pool.sync() }
+  // Inside the house the walker takes the room's lamps; upstairs and outdoors, the façade's and first floor's.
+  const inside = (x: number, z: number, zone: Zone) => x >= zone[0] && x <= zone[1] && z >= zone[2] && z <= zone[3]
+  const walk: WalkArea = {
+    start: [-0.7, GFL, HOUSE_Z + FACE - T_WALL - 0.75],
+    yaw: 0,
+    bounds: { x0: PLOT.x0, x1: PLOT.x1, z0: PLOT.z0, z1: PLOT.z1 },
+    zoneAt: (x, y, z) => {
+      const stair = HOTSPOTS.room_stairs_g.zones[0]
+      if (inside(x, z, stair)) return 'room_stairs_g'
+      if (y > FFL - 0.3) return 'exterior'
+      for (const name of ['room_kitchen', 'room_bedroom_g', 'room_bath_g', 'room_dining_g', 'room_living_g'])
+        if (inside(x, z, HOTSPOTS[name].zones[0])) return name
+      // The kitchen's lobby and the way to the bedroom door borrow their neighbours' light.
+      if (inside(x, z, [HALL.x0, BEDROOM.x0, HOUSE_Z + KITCHEN.z0 + KITCHEN.d, HOUSE_Z + HALL.z0])) return 'room_kitchen'
+      if (inside(x, z, [HALL.x0, STAIR_HALL.x1, HOUSE_Z + HALL.z0, HOUSE_Z + FACE])) return 'room_dining_g'
+      return 'exterior'
+    },
+  }
+  return { root, highlights, walk, setDaylight: (day) => lighting.set(day), setZone: (z) => pool.setZone(z === 'room_dining_g' || z === 'room_living_g' ? 'hall' : z), syncLights: () => pool.sync() }
 }

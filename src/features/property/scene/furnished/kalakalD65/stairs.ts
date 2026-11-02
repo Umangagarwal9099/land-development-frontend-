@@ -24,6 +24,8 @@ const RAIL = 0.9
 const WAIST = 0.15
 const TREAD_T = 0.04
 const NOSING = 0.025
+/** Along the lower flight, how far up the rail starts. */
+const OPEN_FOOT = 0.75
 /** The line of the nosings, at a point on the flight; the strings and handrail follow it. */
 const nosingLine = (s: number) => RISE + s * SLOPE
 
@@ -74,7 +76,7 @@ export function buildCirculation(ctx: Ctx) {
   bx(bd, [GFL + 2.1, GFL + 2.17], face, casing)
   const skirt = (x: R, z: R) => bx(x, [GFL, GFL + 0.08], z, casing, false)
   skirt([bd[1] + 0.065, BATHROOM.x0 - 0.115], face)
-  skirt([STAIR_HALL.x0, STAIR_HALL.x0 + 0.012], [STAIR_HALL.z0 + 1, LANDING.z0])
+  skirt([STAIR_HALL.x0, STAIR_HALL.x0 + 0.012], [HALL.z0 + 3.3, STAIR_HALL.z1])
 
   const g = new Group()
   g.name = 'stairs_g'
@@ -115,35 +117,36 @@ export function buildCirculation(ctx: Ctx) {
       bx([s - NOSING, s + GOING], [i * RISE - TREAD_T, i * RISE], [0.05, WIDTH], treadMat, true, p)
     }
 
-    // Closed oak string on the open side, and a painted one against the wall.
+    // Closed oak string on the open side, and a painted one against the wall. The lower flight's
+    // rail starts a few treads up: its first steps are open to the hall, the way onto the stair.
+    const from = upper ? 0 : OPEN_FOOT
     const up = 0.07
     const board = 0.2
     const outer = [
-      upper ? [0, nosingLine(0) - board] : [(board - RISE) / SLOPE, 0],
-      ...(upper ? [] : [[0, 0]]),
-      [0, nosingLine(0) + up],
+      [from, nosingLine(from) - board],
+      [from, nosingLine(from) + up],
       [RUN, nosingLine(RUN) + up],
       [RUN, nosingLine(RUN) - board],
     ]
     profile(p, outer, [0, 0.03], stringMat)
-    profile(p, outer, [WIDTH - 0.014, WIDTH], painted)
+    profile(p, [...(upper ? [] : [[(board - RISE) / SLOPE, 0], [0, 0], [0, nosingLine(0) + up]]), ...(upper ? outer : outer.slice(1, 4))], [WIDTH - 0.014, WIDTH], painted)
 
     // Balusters at three to the tread, rising from the string to the rail.
     const bar = 0.014
     for (let i = 0; i < TREADS * 3; i++) {
       const s = (i + 0.5) * (GOING / 3)
+      if (s < from) continue
       const h0 = nosingLine(s) + up
       bx([s - bar / 2, s + bar / 2], [h0, nosingLine(s) + RAIL], [0.008, 0.022], steel, true, p)
     }
     // Oak handrail along the slope.
-    const len = Math.hypot(RUN, TREADS * RISE)
     const angle = Math.atan(SLOPE)
-    const along = (mat: Material, h: number, d: number, y: number, z: number) => {
-      k.box(p, len, h, d, mat, RUN / 2, nosingLine(RUN / 2) + y, z).rotation.z = angle
+    const along = (mat: Material, h: number, d: number, y: number, z: number, s0: number) => {
+      k.box(p, Math.hypot(RUN - s0, (RUN - s0) * SLOPE), h, d, mat, (s0 + RUN) / 2, nosingLine((s0 + RUN) / 2) + y, z).rotation.z = angle
     }
-    along(rail, 0.045, 0.06, RAIL + 0.022, 0.015)
+    along(rail, 0.045, 0.06, RAIL + 0.022, 0.015, from)
     // The wall rail on round steel brackets.
-    along(steel, 0.032, 0.032, RAIL - 0.02, WIDTH - 0.07)
+    along(steel, 0.032, 0.032, RAIL - 0.02, WIDTH - 0.07, 0)
     for (const s of [0.25, RUN / 2, RUN - 0.25]) bx([s - 0.008, s + 0.008], [nosingLine(s) + RAIL - 0.09, nosingLine(s) + RAIL - 0.02], [WIDTH - 0.08, WIDTH - 0.06], steel, true, p)
     // Low step lights in the wall string's line, every third tread.
     for (let i = 2; i <= TREADS; i += 3) {
@@ -161,7 +164,8 @@ export function buildCirculation(ctx: Ctx) {
     bx([x - 0.055, x + 0.055], [y1, y1 + 0.02], [z - 0.04, z + 0.07], stained)
   }
   const turnY = GFL + (LOWER_N + 1) * RISE
-  newel(LANDING.x0 - LOWER_N * GOING - 0.02, GFL, GFL + RISE + RAIL + 0.07, LANDING.z0)
+  const footX = LANDING.x0 - LOWER_N * GOING + OPEN_FOOT
+  newel(footX, GFL, GFL + nosingLine(OPEN_FOOT) + RAIL + 0.07, LANDING.z0)
   newel(LANDING.x0, turnY - 0.18, turnY + 3 * RISE + RAIL + 0.07, LANDING.z0)
 
   // The winders: three treads fanning 30° each about that newel, on a block carried by the two walls.

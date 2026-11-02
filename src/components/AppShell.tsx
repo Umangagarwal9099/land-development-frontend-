@@ -5,6 +5,7 @@ import { config } from '../config'
 import { MediaViewer } from '../features/media/MediaViewer'
 import { useMediaStore } from '../store/media'
 import { useStaffStore } from '../store/staff'
+import { useWalkStore } from '../store/walk'
 import { useStageStore } from '../store/stage'
 import { resetGestureHint } from './GestureHint'
 import { Curtain } from './ui/Feedback'
@@ -70,7 +71,7 @@ function useIdleBehaviour() {
       }
       if (pathname !== '/') {
         ambientTimer = window.setTimeout(() => {
-          if (useMediaStore.getState().index !== null) return
+          if (useMediaStore.getState().index !== null || useWalkStore.getState().active) return
           stage().setAmbient(true)
           stage().setAutoRotate(true)
         }, AMBIENT_AFTER_SECONDS * 1000)

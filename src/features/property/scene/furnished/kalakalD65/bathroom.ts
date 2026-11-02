@@ -1,6 +1,6 @@
 import { CatmullRomCurve3, DoubleSide, ExtrudeGeometry, FrontSide, Group, LatheGeometry, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, PlaneGeometry, PointLight, Shape, TubeGeometry, Vector2, Vector3, type Material, type MeshStandardMaterialParameters } from 'three'
 import { PI } from '../kit'
-import { BATHROOM, GFL, type Ctx } from './house'
+import { BATHROOM, GFL, STAIR, type Ctx } from './house'
 import { cabinet, type Bay } from './cabinets'
 import { circuit, switchPlate, type Circuit } from './fixtures'
 import { herbPot } from './pieces'
@@ -116,7 +116,10 @@ function shell(B: BC) {
   bx([W + 0.006, W + 0.03], [N.h1 - 0.008, N.h1 - 0.002], [N.z0 + 0.02, N.z1 - 0.02], m.led, false)
   bx([0, DOOR[0]], [0, 3.11], [D, D + 0.115], m.wall(0.2, 3))
   bx(DOOR, [2.1, 3.11], [D, D + 0.115], m.wall(0.8, 1))
-  bx([DOOR[1], W + 0.115], [0, 3.11], [D, D + 0.115], m.wall(1.7, 3))
+  // Above the ceiling the wall's right-hand end stops under the stair's upper flight.
+  const UNDER_STAIR = W - STAIR.width
+  bx([DOOR[1], UNDER_STAIR], [0, 3.11], [D, D + 0.115], m.wall(0.7, 3))
+  bx([UNDER_STAIR, W + 0.115], [0, 2.98], [D, D + 0.115], m.wall(1, 3))
   bx([DOOR[1], W - T], [0, H], [D - T, D], m.wall(W - DOOR[1], H), false)
   bx([T, DOOR[0]], [0, H], [D - T, D], m.wall(0.2, H), false)
 

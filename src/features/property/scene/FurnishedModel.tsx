@@ -1,11 +1,13 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import type { Mesh, Object3D, Texture } from 'three'
-import type { FurnishedDesign } from '../../../api/types'
+import type { FurnishedDesign, Room } from '../../../api/types'
 import { disposeObject } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
+import { useWalkStore } from '../../../store/walk'
 import { furnishedModel, isCached } from './furnished'
 import { stepCircuits } from './furnished/kalakalD65/fixtures'
+import { WalkController } from './walk/WalkController'
 
 /**
  * A furnished interior design model generated in code: architecture with walls cut away at
@@ -17,6 +19,7 @@ export function FurnishedModel({
   selectedMesh,
   hoveredMesh = null,
   roomView = false,
+  rooms = [],
   onReady,
 }: {
   design: FurnishedDesign
@@ -24,6 +27,7 @@ export function FurnishedModel({
   hoveredMesh?: string | null
   /** A room is open in the room viewer: its floor glows only faintly so the finishes read. */
   roomView?: boolean
+  rooms?: Room[]
   onReady: () => void
 }) {
   const invalidate = useThree((s) => s.invalidate)
@@ -72,11 +76,14 @@ export function FurnishedModel({
   }, [model, invalidate])
 
   // Light the room being viewed (or the exterior), from the model's light pool.
+  const walkingNow = useWalkStore((s) => s.active)
   const zone = roomView && selectedMesh ? selectedMesh : 'exterior'
   useEffect(() => {
+    // A walk lights whichever room the walker is in (see WalkController).
+    if (walkingNow) return
     model.setZone?.(zone)
     invalidate()
-  }, [model, zone, invalidate])
+  }, [model, zone, invalidate, walkingNow])
   useFrame((state, delta) => {
     // Light switches fade their circuits over a few frames; keep frames coming until they settle.
     if (stepCircuits(delta)) state.invalidate()
@@ -107,7 +114,24 @@ export function FurnishedModel({
     invalidate()
   }, [model, selectedMesh, hoveredMesh, roomView, invalidate])
 
-  return <primitive object={model.root} />
+  const stopWalking = useWalkStore((s) => s.stop)
+  // Leaving the property ends a walk.
+  useEffect(() => stopWalking, [stopWalking])
+  const roomNames = useMemo(() => new Map(rooms.map((r) => [r.meshName, r.name])), [rooms])
+  const setWalkZone = useCallback(
+    (z: string) => {
+      model.setZone?.(z)
+      invalidate()
+    },
+    [model, invalidate],
+  )
+
+  return (
+    <>
+      <primitive object={model.root} />
+      {walkingNow && model.walk && <WalkController root={model.root} area={model.walk} setZone={setWalkZone} rooms={roomNames} />}
+    </>
+  )
 }
 
 /** Closes every door and drawer and stops every spinner, instantly. */

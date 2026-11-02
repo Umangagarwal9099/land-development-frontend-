@@ -19,12 +19,14 @@ interface FurnishedDesignEntry {
    * then kept: re-entering the property is instant. For designs with thousands of small parts.
    */
   optimized?: boolean
+  /** Can be explored on foot: its raycast trees are the walker's collision (so it must be `optimized`). */
+  walkable?: boolean
 }
 
 /** Every furnished design: how to build it, and the extent of its landscaped grounds. */
 export const FURNISHED_DESIGNS: Record<FurnishedDesign, FurnishedDesignEntry> = {
   'nyshas-haven': { build: buildNyshasHaven, site: NYSHAS_HAVEN_SITE, landscaped: true },
-  'kalakal-d65': { build: () => buildKalakalD65(), buildOnPlot: () => buildKalakalD65(false), site: KALAKAL_D65_SITE, landscaped: true, optimized: true },
+  'kalakal-d65': { build: () => buildKalakalD65(), buildOnPlot: () => buildKalakalD65(false), site: KALAKAL_D65_SITE, landscaped: true, optimized: true, walkable: true },
 }
 
 const built = new Map<string, FurnishedModel>()

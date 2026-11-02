@@ -168,7 +168,7 @@ function kalakalD65(): Property {
       dimensions: { length: 8.5, width: 10.6, unit: 'ft' }, areaSqft: 90,
       description:
         'The stair hall behind the carport, off the hall and in front of the bathroom: an L-shaped stair turning on winders in the corner, solid oak treads on white risers, a closed oak string, slim black balusters under an oak handrail, and a matching guard round the well on the first floor.',
-      specs: ['18 risers of 181 mm on 250 mm goings', 'Two 1.0 m wide flights, three winders at the turn', '2.1 m clear headroom under the first-floor slab', 'Oak treads and handrail, black steel balusters at 83 mm'],
+      specs: ['18 risers of 181 mm on 250 mm goings', 'Two 900 mm wide flights, three winders at the turn', '2.1 m clear headroom under the first-floor slab', 'Oak treads and handrail, black steel balusters at 83 mm'],
       amenities: ['Winders at the turn', 'Wall handrail on both flights', 'Low-level step lights'],
       media: [],
     },

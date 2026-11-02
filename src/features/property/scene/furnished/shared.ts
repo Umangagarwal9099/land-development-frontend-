@@ -2,6 +2,14 @@ import { Group, MeshStandardMaterial, PointLight, Vector3, type MeshBasicMateria
 import { Kit } from './kit'
 import type { Paint } from './textures'
 
+/** Where walking mode may go in a design, and how it maps a position to a lighting zone. */
+export interface WalkArea {
+  start: [number, number, number]
+  yaw: number
+  bounds: { x0: number; x1: number; z0: number; z1: number }
+  zoneAt: (x: number, y: number, z: number) => string
+}
+
 /** A furnished design model, as built in code: its scene graph, hotspot highlights and lighting. */
 export interface FurnishedModel {
   root: Group
@@ -15,6 +23,8 @@ export interface FurnishedModel {
   setZone?: (zone: string) => void
   /** ...and keeps the pool in step with switches and day/night, each frame. */
   syncLights?: () => void
+  /** Present on designs that can be walked through. */
+  walk?: WalkArea
 }
 
 /**

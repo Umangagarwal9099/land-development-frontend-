@@ -10,23 +10,18 @@ import { GOLD } from '../../../lib/palette'
 import { findNamedAncestor } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
 import { useViewerStore } from '../../../store/viewer'
+import { useWalkStore } from '../../../store/walk'
 import { FurnishedModel } from './FurnishedModel'
 import { GltfModel } from './GltfModel'
 import { PlaceholderBuilding } from './PlaceholderBuilding'
 import { RoomPins } from './RoomPins'
 import { RoomSection } from './RoomSection'
+import { isDoor, isDrawer, isOpenable, isSpinner, isSwitch, operate } from './openables'
 
 // A pointer that moved more than this many pixels between down and up was a drag, not a tap.
 const TAP_TOLERANCE_PX = 8
 const DOOR_OPEN_ANGLE = -Math.PI / 2
 
-const isDoor = (name: string) => name.startsWith('door_')
-const isDrawer = (name: string) => name.startsWith('drawer_')
-/** Light switches toggle their circuit; spinners (a ceiling fan) start and stop. */
-const isSwitch = (name: string) => name.startsWith('switch_')
-const isSpinner = (name: string) => name.startsWith('spin_')
-/** Everything a tap operates: doors swing, drawers and sliders run, switches and fans toggle. */
-const isOpenable = (name: string) => isDoor(name) || isDrawer(name) || isSwitch(name) || isSpinner(name)
 /** A tap within this long of the last on the same object is ignored, so a double tap can't flicker it. */
 const RETRIGGER_MS = 450
 
@@ -63,7 +58,8 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
   const roomViewId = useViewerStore((s) => s.roomViewId)
   const openRoomView = useViewerStore((s) => s.openRoomView)
   // Inside the room viewer the house is cut away; taps and hovers on it are ignored.
-  const picking = interactive && !roomViewId
+  const walking = useWalkStore((s) => s.active)
+  const picking = interactive && !roomViewId && !walking
 
   const roomsByMesh = useMemo(() => new Map(property.rooms.map((r) => [r.meshName, r])), [property.rooms])
   const levelByFloorId = useMemo(() => new Map(property.floors.map((f) => [f.id, f.level])), [property.floors])
@@ -165,23 +161,15 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
     e.object === firstSurface(e) ? findNamedAncestor(e.object, isOpenable) : null
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    if (!interactive || e.delta > TAP_TOLERANCE_PX) return
+    // Walking has its own reach: nothing operates from across the house at a click.
+    if (!interactive || walking || e.delta > TAP_TOLERANCE_PX) return
     const openable = openableAt(e)
     if (openable) {
       e.stopPropagation()
       const now = performance.now()
       if (now - ((openable.userData.lastTap as number | undefined) ?? -Infinity) < RETRIGGER_MS) return
       openable.userData.lastTap = now
-      if (isSwitch(openable.name)) {
-        openable.userData.on = !(openable.userData.on ?? true)
-        ;(openable.userData.toggle as ((on: boolean) => void) | undefined)?.(openable.userData.on)
-      } else if (isSpinner(openable.name)) openable.userData.on = !openable.userData.on
-      else {
-        const open = !openable.userData.open
-        openable.userData.open = open
-        // Linked parts (a toilet seat lifts its lid; a closing lid brings the seat down too).
-        for (const o of ((open ? openable.userData.alsoOpen : openable.userData.alsoClose) as Object3D[] | undefined) ?? []) o.userData.open = open
-      }
+      operate(openable)
       setHoveredOpenable(null)
       const box = frontBox(openable)
       setTapped({ box, key: now })
@@ -204,7 +192,7 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
   }
 
   const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (!interactive || e.pointerType !== 'mouse') return
+    if (!interactive || walking || e.pointerType !== 'mouse') return
     if (e.object === firstSurface(e)) {
       const openable = findNamedAncestor(e.object, isOpenable)
       if (openable !== hoveredOpenable?.node) setHoveredOpenable(openable ? { node: openable, box: frontBox(openable) } : null)
@@ -237,6 +225,7 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
           selectedMesh={selectedRoom?.meshName ?? null}
           hoveredMesh={hovered?.room.meshName ?? null}
           roomView={roomViewId !== null}
+          rooms={property.rooms}
           onReady={handleReady}
         />
       ) : (

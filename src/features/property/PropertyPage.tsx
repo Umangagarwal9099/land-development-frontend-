@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Camera, Clapperboard, DoorOpen, Images, Info } from 'lucide-react'
+import { Camera, Clapperboard, DoorOpen, Footprints, Images, Info } from 'lucide-react'
 import { useCallback, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { propertyQuery } from '../../api/queries'
@@ -17,8 +17,11 @@ import { listingTypeLabel } from '../../lib/format'
 import { useMediaStore } from '../../store/media'
 import { useStageStore } from '../../store/stage'
 import { useViewerStore } from '../../store/viewer'
+import { useWalkStore } from '../../store/walk'
 import { PropertyOverview, RoomDetails } from './PropertyPanels'
 import { RoomViewer } from './RoomViewer'
+import { FURNISHED_DESIGNS } from './scene/furnished'
+import { WalkOverlay } from './WalkOverlay'
 
 /**
  * A single residence in 3D. Opened from a plot on a master plan (?from=<plan>&plot=<number>)
@@ -57,6 +60,15 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
   const film = property.media.find((m) => m.kind === 'video')
   const stills = property.media.filter((m) => m.kind !== 'video')
   const roomInView = property.rooms.find((r) => r.id === roomViewId) ?? null
+  const walking = useWalkStore((s) => s.active)
+  const startWalking = useWalkStore((s) => s.start)
+  const walkable = property.model.kind === 'furnished' && FURNISHED_DESIGNS[property.model.design].walkable
+  const walk = useCallback(() => {
+    closeRoomView()
+    selectRoom(null)
+    setAboutOpen(false)
+    startWalking()
+  }, [closeRoomView, selectRoom, setAboutOpen, startWalking])
   const panelOpen = !roomInView && Boolean(selectedRoom || aboutOpen)
   const facts = (property.stats ?? Object.entries(property.highlights).map(([label, value]) => ({ label, value })))
     .slice(0, 3)
@@ -80,11 +92,12 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
       <AnimatePresence>
         {roomInView && <RoomViewer key="room-viewer" property={property} room={roomInView} onSelectRoom={openRoom} onClose={closeRoomView} />}
       </AnimatePresence>
+      {walking && <WalkOverlay />}
 
       {/* The house view's chrome steps aside while a room is open. */}
       <motion.div
         className="pointer-events-none"
-        animate={roomInView ? { opacity: 0, transitionEnd: { visibility: 'hidden' } } : { opacity: 1, visibility: 'visible' }}
+        animate={roomInView || walking ? { opacity: 0, transitionEnd: { visibility: 'hidden' } } : { opacity: 1, visibility: 'visible' }}
         transition={{ duration: 0.45 }}
       >
         <SceneHeader
@@ -96,7 +109,7 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
         />
 
         <FloorRail property={property} />
-        {!roomInView && <ViewControls />}
+        {!roomInView && !walking && <ViewControls />}
         <GestureHint />
 
         <Dock
@@ -127,6 +140,7 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
                 </Chip>
               )),
             },
+            { id: 'walk', icon: Footprints, label: 'Walk', hidden: !walkable, onSelect: walk },
             { id: 'about', icon: Info, label: 'About', active: aboutOpen, onSelect: () => setAboutOpen(!aboutOpen) },
             { id: 'gallery', icon: Images, label: 'Gallery', hidden: stills.length === 0, onSelect: () => openMedia(stills) },
             { id: 'film', icon: Clapperboard, label: 'Film', hidden: !film, onSelect: () => film && openMedia([film]) },

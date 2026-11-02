@@ -85,10 +85,11 @@ export const CORRIDOR: R = [KITCHEN.x0 + KITCHEN.w - 0.785, KITCHEN.x0 + KITCHEN
 /** The stair hall behind the carport, in front of the bathroom: x and z of its floor, stair included. */
 export const STAIR_HALL = { x0: CARPORT[0] - T + 0.115, x1: X1 - T, z0: BATHROOM.z0 + BATHROOM.d + 0.115, z1: CAR_BACK - T }
 /**
- * Eighteen 181 mm risers between the floors, on 250 mm goings, in two flights 1 m wide: eight
- * treads, three winders turning the corner as on the plan, and six more.
+ * Eighteen 181 mm risers between the floors, on 250 mm goings, in two flights 900 mm wide: seven
+ * treads, three winders turning the corner as on the plan, and seven more. The top of the upper
+ * flight passes over the bathroom's front wall, cut down under it.
  */
-export const STAIR = { risers: 18, rise: (FFL - GFL) / 18, going: 0.25, width: 1, lower: 8, winders: 3, upper: 6 }
+export const STAIR = { risers: 18, rise: (FFL - GFL) / 18, going: 0.25, width: 0.9, lower: 7, winders: 3, upper: 7 }
 /** The winders' square, in the corner of the carport's back wall and the right wall. */
 export const LANDING = { x0: STAIR_HALL.x1 - STAIR.width, z0: STAIR_HALL.z1 - STAIR.width }
 /**
@@ -304,13 +305,20 @@ export function buildFacade(ctx: Ctx) {
 
   // Main door: flush teak with horizontal grooves, a dark jamb and a full-height black pull.
   const dz = FACE - 0.12
-  bx(k, r, [DOOR[0] + 0.04, DOOR[1] - 0.04], [GFL, 2.7], [dz, dz + 0.05], c.surface('teak', 0.8, 2.1))
-  for (let y = GFL + 0.16; y < 2.66; y += 0.16) bx(k, r, [DOOR[0] + 0.06, DOOR[1] - 0.06], [y - 0.004, y + 0.004], [dz + 0.05, dz + 0.054], c.darkWood, false)
+  // It swings inwards about its left edge, into the hall, as on the plan.
+  const leaf = new Group()
+  leaf.name = 'door_main'
+  leaf.position.set(DOOR[0] + 0.04, 0, dz)
+  leaf.userData.openAngle = 1.5
+  r.add(leaf)
+  const lx = (x: number) => x - (DOOR[0] + 0.04)
+  bx(k, leaf, [0, lx(DOOR[1] - 0.04)], [GFL, 2.7], [0, 0.05], c.surface('teak', 0.8, 2.1)).userData.front = true
+  for (let y = GFL + 0.16; y < 2.66; y += 0.16) bx(k, leaf, [lx(DOOR[0] + 0.06), lx(DOOR[1] - 0.06)], [y - 0.004, y + 0.004], [0.05, 0.054], c.darkWood, false)
   bx(k, r, [DOOR[0], DOOR[0] + 0.04], [GFL, 2.74], [FACE - T, FACE - 0.02], c.darkWood)
   bx(k, r, [DOOR[1] - 0.04, DOOR[1]], [GFL, 2.74], [FACE - T, FACE - 0.02], c.darkWood)
   bx(k, r, [DOOR[0], DOOR[1]], [2.7, 2.74], [FACE - T, FACE - 0.02], c.darkWood)
-  bx(k, r, [-0.31, -0.28], [1.0, 2.25], [dz + 0.1, dz + 0.125], c.aluminium)
-  for (const y of [1.05, 2.2]) bx(k, r, [-0.305, -0.285], [y - 0.01, y + 0.01], [dz + 0.05, dz + 0.1], c.aluminium)
+  bx(k, leaf, [lx(-0.31), lx(-0.28)], [1.0, 2.25], [0.1, 0.125], c.aluminium)
+  for (const y of [1.05, 2.2]) bx(k, leaf, [lx(-0.305), lx(-0.285)], [y - 0.01, y + 0.01], [0.05, 0.1], c.aluminium)
 
   // Entrance landing and three risers in white stone.
   bx(k, r, STEPS, [0, GFL], [FACE, -0.3], c.stepStone)

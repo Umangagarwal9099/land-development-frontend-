@@ -1,0 +1,292 @@
+import { useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
+import { MathUtils, PerspectiveCamera, Ray, Vector3, type Object3D } from 'three'
+import { useStageStore } from '../../../../store/stage'
+import { useWalkStore, walkInput, type WalkPrompt } from '../../../../store/walk'
+import type { WalkArea } from '../furnished/shared'
+import { isDoor, isDrawer, isOpenable, isSpinner, isSwitch, operate } from '../openables'
+import { Character } from './character'
+import { Collider } from './collider'
+import { FollowCamera } from './followCamera'
+import { Walker } from './walker'
+
+const EYE = 1.44
+const FOV = 68
+const REACH = 1.55
+const LOOK_SPEED = 0.0024
+const PITCH = 1.35
+
+/** What the prompt calls a door, drawer, switch or fan. */
+function describe(o: Object3D): WalkPrompt {
+  const n = o.name
+  const open = !!o.userData.open
+  const verb = open ? 'Close' : 'Open'
+  if (isSwitch(n)) return { verb: (o.userData.on ?? true) ? 'Turn off' : 'Turn on', label: 'Light' }
+  if (isSpinner(n)) return { verb: o.userData.on ? 'Stop' : 'Start', label: 'Ceiling Fan' }
+  if (n === 'door_main') return { verb, label: 'Main Door' }
+  if (n === 'door_bedroom_entry') return { verb, label: 'Bedroom Door' }
+  if (n === 'door_bath_entry') return { verb, label: 'Bathroom Door' }
+  if (n === 'door_hall_corridor') return { verb, label: 'Kitchen Door' }
+  if (n.startsWith('door_toilet_seat')) return { verb: open ? 'Lower' : 'Lift', label: 'Toilet Seat' }
+  if (n.startsWith('door_toilet_lid')) return { verb: open ? 'Lower' : 'Lift', label: 'Toilet Lid' }
+  if (n.startsWith('door_wardrobe')) return { verb, label: 'Wardrobe Loft' }
+  if (n.startsWith('drawer_wardrobe_slider')) return { verb, label: 'Wardrobe' }
+  if (isDrawer(n)) return { verb, label: n.includes('desk') ? 'Desk Drawer' : 'Drawer' }
+  if (isDoor(n)) return { verb, label: 'Cupboard' }
+  return { verb, label: 'Item' }
+}
+
+/** A door or drawer's own position to reach for: the middle of its front panel. */
+function grip(o: Object3D) {
+  let front: Object3D = o
+  o.traverse((c) => {
+    if (c.userData.front) front = c
+  })
+  return front
+}
+
+const v = new Vector3()
+const ray = new Ray()
+
+/**
+ * Walking mode's brain, inside the 3D stage: takes over the camera, reads the keyboard and pointer,
+ * moves the walker and poses the character. Doors and drawers go through the same `operate` and
+ * animator as a tap in the camera view, so the two modes share their state.
+ */
+export function WalkController({ root, area, setZone, rooms }: { root: Object3D; area: WalkArea; setZone: (zone: string) => void; rooms: Map<string, string> }) {
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
+  const camera = useThree((s) => s.camera) as PerspectiveCamera
+  const invalidate = useThree((s) => s.invalidate)
+  const controls = useStageStore((s) => s.controls)
+
+  const session = useMemo(() => {
+    const collider = new Collider(root)
+    const walker = new Walker(collider, new Vector3(...area.start), area.yaw, area.bounds)
+    const targets: { node: Object3D; front: Object3D }[] = []
+    root.traverse((o) => {
+      if (isOpenable(o.name)) targets.push({ node: o, front: grip(o) })
+    })
+    return { collider, walker, targets, rig: new FollowCamera(collider, walker) }
+  }, [root, area])
+
+  const character = useRef<Character | null>(null)
+  const keys = useRef(new Set<string>())
+  const lastYaw = useRef(area.yaw)
+  const facing = useRef(area.yaw)
+  const nearest = useRef<Object3D | null>(null)
+  const sense = useRef(0)
+
+  // Take the camera; give it back as it was found, then return to the property view.
+  useEffect(() => {
+    const fov = camera.fov
+    const near = camera.near
+    const figure = new Character()
+    character.current = figure
+    // Should the figure fail to download, walking carries on through the walker's own eyes.
+    figure.onFail = () => {
+      if (useWalkStore.getState().view === 'third') useWalkStore.getState().toggleView()
+    }
+    scene.add(figure.root)
+    // oxlint-disable-next-line react/immutability -- the camera is configured imperatively
+    camera.fov = FOV
+    camera.near = 0.06
+    camera.updateProjectionMatrix()
+    if (controls) {
+      // oxlint-disable-next-line react/immutability -- the controls are configured imperatively
+      controls.enabled = false
+      void controls.setFocalOffset(0, 0, 0, false)
+      controls.colliderMeshes = []
+    }
+    useStageStore.getState().setAutoRotate(false)
+    invalidate()
+    if (import.meta.env.DEV) (window as unknown as { __walk?: unknown }).__walk = session
+    return () => {
+      figure.dispose()
+      character.current = null
+      camera.fov = fov
+      camera.near = near
+      camera.updateProjectionMatrix()
+      if (document.pointerLockElement) document.exitPointerLock()
+      const stage = useStageStore.getState()
+      if (controls) controls.enabled = stage.mode === 'explore'
+      stage.home?.()
+      invalidate()
+    }
+  }, [camera, scene, controls, invalidate, session])
+
+  useEffect(() => {
+    const el = gl.domElement
+    const { walker, rig } = session
+    const turn = (dx: number, dy: number) => {
+      rig.looked()
+      walker.yaw -= dx * LOOK_SPEED
+      walker.pitch = MathUtils.clamp(walker.pitch - dy * LOOK_SPEED, -PITCH, PITCH)
+    }
+    let dragging: number | null = null
+    let lastX = 0
+    let lastY = 0
+    const down = (e: PointerEvent) => {
+      // A mouse takes the pointer on its first click, like a game; a finger drags to look.
+      if (e.pointerType === 'mouse') {
+        if (!document.pointerLockElement) void Promise.resolve(el.requestPointerLock?.()).catch(() => undefined)
+      }
+      dragging = e.pointerId
+      lastX = e.clientX
+      lastY = e.clientY
+    }
+    const move = (e: PointerEvent) => {
+      if (document.pointerLockElement === el) turn(e.movementX, e.movementY)
+      else if (dragging === e.pointerId) {
+        turn((e.clientX - lastX) * 1.6, (e.clientY - lastY) * 1.6)
+        lastX = e.clientX
+        lastY = e.clientY
+      }
+    }
+    const up = (e: PointerEvent) => {
+      if (dragging === e.pointerId) dragging = null
+    }
+    const keyDown = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).tagName === 'INPUT') return
+      const k = e.code
+      if (/^(Key[WASD]|Arrow|Space)/.test(k)) e.preventDefault()
+      if (e.repeat) return
+      if (k === 'KeyE') walkInput.interact = true
+      else if (k === 'Space') walkInput.jump = true
+      else if (k === 'KeyV') useWalkStore.getState().toggleView()
+      else if (k === 'Escape' && !document.pointerLockElement) useWalkStore.getState().stop()
+      keys.current.add(k)
+    }
+    const keyUp = (e: KeyboardEvent) => keys.current.delete(e.code)
+    const blur = () => keys.current.clear()
+    el.addEventListener('pointerdown', down)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+    window.addEventListener('keydown', keyDown)
+    window.addEventListener('keyup', keyUp)
+    window.addEventListener('blur', blur)
+    return () => {
+      el.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      window.removeEventListener('keydown', keyDown)
+      window.removeEventListener('keyup', keyUp)
+      window.removeEventListener('blur', blur)
+    }
+  }, [gl, session])
+
+  // Rooms are named as they're entered, and their lamps taken from the model's light pool.
+  const currentZone = useRef<string | null>(null)
+
+  useFrame((state, rawDelta) => {
+    const delta = Math.min(rawDelta, 0.1)
+    const { walker, collider, targets, rig } = session
+    const k = keys.current
+    const held = (...codes: string[]) => (codes.some((c) => k.has(c)) ? 1 : 0)
+    const right = MathUtils.clamp(held('KeyD', 'ArrowRight') - held('KeyA', 'ArrowLeft') + walkInput.moveX, -1, 1)
+    const forward = MathUtils.clamp(held('KeyW', 'ArrowUp') - held('KeyS', 'ArrowDown') + walkInput.moveY, -1, 1)
+    const third = useWalkStore.getState().view === 'third'
+    rig.steer(delta, walker, right, forward, third)
+    walker.step(delta, right, forward, walkInput.jump)
+    walkInput.jump = false
+
+    const p = walker.position
+    const speed = Math.hypot(walker.velocity.x, walker.velocity.z)
+
+    // The body faces the way it walks; backing up, it keeps facing away from its direction of travel.
+    const heading = speed > 0.15 ? Math.atan2(-walker.velocity.x, -walker.velocity.z) : walker.yaw
+    const back = forward < -0.1 && Math.abs(right) < 0.5
+    const aim = back ? walker.yaw : heading
+    const turnBy = MathUtils.euclideanModulo(aim - facing.current + Math.PI, Math.PI * 2) - Math.PI
+    facing.current += turnBy * (1 - Math.exp(-10 * delta))
+    const turnRate = Math.abs(MathUtils.euclideanModulo(walker.yaw - lastYaw.current + Math.PI, Math.PI * 2) - Math.PI) / Math.max(delta, 1e-3)
+    lastYaw.current = walker.yaw
+
+    const figure = character.current
+    if (figure) {
+      figure.root.position.copy(p)
+      figure.root.rotation.y = facing.current
+      figure.update({
+        speed: back ? -speed : speed,
+        turning: speed < 0.1 ? MathUtils.clamp(turnRate / 2 + Math.abs(turnBy) * 2, 0, 1) : 0,
+        delta,
+        ground: (x, z) => walker.groundAt(x, z, p.y),
+      })
+    }
+
+    // The camera, with only a trace of head movement.
+    const gait = figure?.gait ?? { phase: 0, amount: 0 }
+    const bob = Math.cos(gait.phase * 2) * 0.012 * gait.amount
+    const sway = Math.sin(gait.phase) * 0.006 * gait.amount
+    rig.update(delta, walker, third, bob, sway, camera)
+    // Too close to see him properly, the lens would be inside his head: the view passes to his eyes.
+    if (figure) figure.root.visible = third && rig.standoff > 0.55
+
+    // What's in reach, a few times a second.
+    sense.current -= delta
+    if (sense.current <= 0) {
+      sense.current = 0.12
+      const eye = v.set(p.x, p.y + EYE, p.z)
+      const look = rig.look
+      let best: Object3D | null = null
+      const candidates: { node: Object3D; d: number; score: number; x: number; y: number; z: number }[] = []
+      for (const { node, front } of targets) {
+        const m = front.matrixWorld.elements
+        const g = (front as { geometry?: { boundingSphere?: { center: Vector3 } | null; computeBoundingSphere: () => void } }).geometry
+        if (g && !g.boundingSphere) g.computeBoundingSphere()
+        const c = g?.boundingSphere?.center
+        const lx = c?.x ?? 0
+        const ly = c?.y ?? 0
+        const lz = c?.z ?? 0
+        const x = m[0] * lx + m[4] * ly + m[8] * lz + m[12]
+        const y = m[1] * lx + m[5] * ly + m[9] * lz + m[13]
+        const z = m[2] * lx + m[6] * ly + m[10] * lz + m[14]
+        const dx = x - eye.x
+        const dy = y - eye.y
+        const dz = z - eye.z
+        const d = Math.hypot(dx, dy, dz)
+        if (d > REACH) continue
+        const flat = Math.hypot(dx, dz)
+        const dot3 = (dx * look.x + dy * look.y + dz * look.z) / Math.max(d, 1e-3)
+        const lookFlat = Math.hypot(look.x, look.z)
+        const dotFlat = (dx * look.x + dz * look.z) / Math.max(flat * lookFlat, 1e-3)
+        // In front of the walker, or looked straight at: an overhead fan needs looking up to.
+        if (!(dot3 > 0.55 || (dotFlat > 0.6 && !isSpinner(node.name)))) continue
+        candidates.push({ node, d, score: d - dot3 * 0.9, x, y, z })
+      }
+      candidates.sort((a, b) => a.score - b.score)
+      for (const c of candidates.slice(0, 4)) {
+        ray.origin.copy(eye)
+        ray.direction.set(c.x - eye.x, c.y - eye.y, c.z - eye.z).normalize()
+        // Only what can be reached: nothing solid between the walker and it but itself.
+        if (collider.raycast(ray, c.d - 0.08, c.node) < c.d - 0.12) continue
+        best = c.node
+        break
+      }
+      nearest.current = best
+      const prompt = best ? describe(best) : null
+      const store = useWalkStore.getState()
+      if (prompt?.verb !== store.prompt?.verb || prompt?.label !== store.prompt?.label) store.setPrompt(prompt)
+
+      const zone = area.zoneAt(p.x, p.y, p.z)
+      if (zone !== currentZone.current) {
+        currentZone.current = zone
+        setZone(zone)
+        useWalkStore.getState().setRoom(rooms.get(zone) ?? null)
+      }
+    }
+
+    if (walkInput.interact) {
+      walkInput.interact = false
+      if (nearest.current) {
+        operate(nearest.current)
+        sense.current = 0
+      }
+    }
+    state.invalidate()
+  })
+
+  return null
+}

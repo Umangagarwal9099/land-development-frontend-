@@ -1,6 +1,6 @@
 import { CylinderGeometry, DoubleSide, ExtrudeGeometry, Group, LatheGeometry, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Path, PlaneGeometry, PointLight, Shape, ShapeGeometry, Vector2, type Material, type MeshStandardMaterialParameters, type Object3D } from 'three'
 import { PI, type Kit } from '../kit'
-import { BEDROOM, CAR_BACK, CORRIDOR, GFL, HALL, HALL_WINDOW, STAIR_HALL, type Ctx } from './house'
+import { BATHROOM, BEDROOM, CAR_BACK, CORRIDOR, GFL, HALL, HALL_WINDOW, type Ctx } from './house'
 import { cabinet, type Bay, type Unit } from './cabinets'
 import { circuit, switchPlate, type Circuit } from './fixtures'
 import { abstractArt } from './paints'
@@ -35,10 +35,10 @@ export const HALL_SPLIT = D - 4.05
 /** False ceiling, and the raised, lit coffer over the living room. */
 const H = 2.95
 const COFFER = { x0: 0.6, x1: 2.3, z0: HALL_SPLIT + 0.25, z1: D - 0.45, h: 3.07 }
-/** The opening at the back of the right wall, to the bedroom door. */
-const PASS = 0.8
-/** The opening further along the right wall, to the stair hall. */
-const STAIR_OPEN: R = [STAIR_HALL.z0 - HALL.z0, STAIR_HALL.z0 - HALL.z0 + 1]
+/** The hall is open on its right from the back wall to the sofa, onto the bedroom door and the stair hall. */
+const OPEN = 3.3
+/** The wall facing the dining table across that opening: the bathroom's side wall. */
+const ART_X = BATHROOM.x0 - 0.115 - HALL.x0 - 0.005
 
 /** Built-in cabinetry on the back wall, short of the kitchen door's architrave. */
 const BI = { x1: 2.43, d: 0.42, base: 0.86, top: 2.62, shelfD: 0.32 }
@@ -50,9 +50,9 @@ const TABLE = { x0: 0.6, x1: 2.1, z0: 1.57, z1: 2.47, h: 0.76 }
  * Living: the sofa set back against the right-hand (carport) wall, facing the TV wall; it stops
  * short of the main door's swing, and the way through runs between it and the coffee table.
  */
-const SOFA = { back: W - 0.02, deep: 0.92, z0: 3.15, z1: 5.35 }
+const SOFA = { back: W - 0.02, deep: 0.92, z0: 3.4, z1: 5.6 }
 /** TV wall (elevation E1): slatted centre panel and lit niches either side. */
-const TV = { z: 4.25, panel: 1.4, niche: 0.42, d: 0.35 }
+const TV = { z: 4.5, panel: 1.4, niche: 0.42, d: 0.35 }
 
 type R = [number, number]
 const std = (p: MeshStandardMaterialParameters) => new MeshStandardMaterial({ roughness: 0.8, ...p })
@@ -176,8 +176,7 @@ function shell(B: BC) {
   const { bx, m, k, hall } = B
   bx([0, 0.012], [0, 0.08], [BI.d, D], m.skirting, false)
   bx([3.51, 3.64], [0, 0.08], [0, 0.012], m.skirting, false)
-  bx([W - 0.012, W], [0, 0.08], [PASS, STAIR_OPEN[0]], m.skirting, false)
-  bx([W - 0.012, W], [0, 0.08], [STAIR_OPEN[1], D], m.skirting, false)
+  bx([W - 0.012, W], [0, 0.08], [OPEN, D], m.skirting, false)
   bx([0, 0.85], [0, 0.08], [D - 0.012, D], m.skirting, false)
   bx([1.9, 2.56], [0, 0.08], [D - 0.012, D], m.skirting, false)
   bx([3.44, W], [0, 0.08], [D - 0.012, D], m.skirting, false)
@@ -191,12 +190,10 @@ function shell(B: BC) {
   bx([DOOR[0] - 0.065, DOOR[0]], [0, 2.17], [0, 0.014], m.skirting)
   bx([DOOR[1], DOOR[1] + 0.065], [0, 2.17], [0, 0.014], m.skirting)
   bx([DOOR[0] - 0.065, DOOR[1] + 0.065], [2.1, 2.17], [0, 0.014], m.skirting)
-  // The hall's right wall, from the carport's back wall, cut for its two openings, with a
-  // bulkhead over each carrying the false ceiling across.
-  bx([W, W + 0.115], [0, 3.11], [PASS, STAIR_OPEN[0]], m.paint)
-  bx([W, W + 0.115], [0, 3.11], [STAIR_OPEN[1], CAR_BACK - HALL.z0], m.paint)
-  bx([W - 0.05, W + 0.23], [2.1, H], [0, PASS], m.paint, false)
-  bx([W - 0.05, W + 0.23], [2.1, H], STAIR_OPEN, m.paint, false)
+  // The hall's right wall, from the carport's back wall to the opening, and a shallow bulkhead
+  // over the opening carrying the false ceiling across, in the ceiling's own finish.
+  bx([W, W + 0.115], [0, 3.11], [OPEN, CAR_BACK - HALL.z0], m.paint)
+  bx([W - 0.05, W + 0.23], [2.6, H], [0, OPEN], m.ceiling, false)
 
   // False ceiling, with the coffer cut out of it.
   const s = new Shape()
@@ -401,10 +398,10 @@ function diningTable(B: BC) {
 /** Elevation E2: the abstract canvas between two bronze wall sconces, and the dome pendants. */
 function diningWall(B: BC) {
   const { m, k, dining: g } = B
-  // The dining wall is the hall's right wall beside the table, facing it.
-  const cz = (PASS + STAIR_OPEN[0]) / 2
+  // The dining wall faces the table across the opening.
+  const cz = 1.4
   const art = new Group()
-  art.position.set(W - 0.005, 1.55, cz)
+  art.position.set(ART_X, 1.55, cz)
   art.rotation.y = -PI / 2
   g.add(art)
   // Stretched canvas in a slim oak floater frame.
@@ -413,7 +410,7 @@ function diningWall(B: BC) {
   // Sconces: a bronze backplate and arm carrying an opal half-shade, uplighting the wall.
   for (const s of [-1, 1]) {
     const sc = new Group()
-    sc.position.set(W - 0.005, 1.7, cz + s * 0.55)
+    sc.position.set(ART_X, 1.7, cz + s * 0.55)
     sc.rotation.y = -PI / 2
     g.add(sc)
     k.cyl(sc, 0.05, 0.05, 0.012, m.bronze, 0, 0, 0.006, 24).rotation.x = PI / 2
