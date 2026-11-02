@@ -2,10 +2,12 @@ import { BoxGeometry, Group, Mesh, MeshBasicMaterial, type Object3D } from 'thre
 import { GOLD } from '../../../../../lib/palette'
 import { Kit } from '../kit'
 import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shared'
-import { BATHROOM, BEDROOM, BEDROOM2, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, HALL, KITCHEN, LANDING, STAIR_HALL, STEPS, type Ctx } from './house'
+import { BATH3, BATHROOM, BEDROOM, BEDROOM2, BEDROOM3, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, HALL, KITCHEN, LANDING, STAIR_HALL, STEPS, type Ctx } from './house'
 import { buildBathroom } from './bathroom'
+import { buildBathroom3 } from './bathroom3'
 import { buildBedroom } from './bedroom'
 import { buildBedroom2 } from './bedroom2'
+import { buildBedroom3 } from './bedroom3'
 import { buildCirculation } from './stairs'
 import { buildKitchen } from './kitchen'
 import { buildLiving, HALL_SPLIT } from './living'
@@ -62,6 +64,8 @@ const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[]; space
     eye: { from: [STAIR_HALL.x0 + 0.25, GFL + 1.5, HOUSE_Z + STAIR_HALL.z0 + 0.2], to: [LANDING.x0 + 0.1, GFL + 1.35, HOUSE_Z + LANDING.z0 + 0.3] },
   },
   room_bedroom_2: { y: FFL, height: 2.6, zones: [[BEDROOM2.x1 - BEDROOM2.w, BEDROOM2.x1, HOUSE_Z + BEDROOM2.z0, HOUSE_Z + BEDROOM2.z0 + BEDROOM2.d]] },
+  room_bedroom_3: { y: FFL, height: 2.6, zones: [[BEDROOM3.x0, BEDROOM3.x0 + BEDROOM3.w, HOUSE_Z + BEDROOM3.z1 - BEDROOM3.l, HOUSE_Z + BEDROOM3.z1]] },
+  room_bath_3: { y: FFL, height: 2.5, zones: [[BATH3.x1 - BATH3.w, BATH3.x1, HOUSE_Z + BATH3.z0, HOUSE_Z + BATH3.z0 + BATH3.d]] },
   room_bath_g: { y: GFL, height: 2.2, zones: [[BATHROOM.x0, BATHROOM.x0 + BATHROOM.w, HOUSE_Z + BATHROOM.z0, HOUSE_Z + BATHROOM.z0 + BATHROOM.d]] },
   amenity_garden: { y: 0.04, height: 2.6, zones: [[PLOT.x0 + 0.23, STEPS[0] - 0.05, HOUSE_Z + FACE, PLOT.z1]] },
 }
@@ -97,6 +101,8 @@ export function buildKalakalD65(context = true): FurnishedModel {
   buildLiving(ctx)
   buildCirculation(ctx)
   buildBedroom2(ctx)
+  buildBedroom3(ctx)
+  buildBathroom3(ctx)
   buildPlot(ctx)
   if (context) buildContext(ctx)
 
@@ -132,6 +138,8 @@ export function buildKalakalD65(context = true): FurnishedModel {
       if (o.name === 'bedroom_g') return 'room_bedroom_g'
       if (o.name === 'bathroom_g') return 'room_bath_g'
       if (o.name === 'bedroom_2') return 'room_bedroom_2'
+      if (o.name === 'bedroom_3') return 'room_bedroom_3'
+      if (o.name === 'bathroom_3') return 'room_bath_3'
       if (o.name === 'stairs_g') return 'room_stairs_g'
       // The open hall is lit as one space from either of its rooms.
       if (o.name === 'hall_g') return 'hall'
@@ -148,7 +156,11 @@ export function buildKalakalD65(context = true): FurnishedModel {
     zoneAt: (x, y, z) => {
       const stair = HOTSPOTS.room_stairs_g.zones[0]
       if (inside(x, z, stair)) return 'room_stairs_g'
-      if (y > FFL - 0.3) return inside(x, z, HOTSPOTS.room_bedroom_2.zones[0]) ? 'room_bedroom_2' : 'exterior'
+      if (y > FFL - 0.3) {
+        if (inside(x, z, HOTSPOTS.room_bedroom_3.zones[0])) return 'room_bedroom_3'
+        if (inside(x, z, HOTSPOTS.room_bath_3.zones[0])) return 'room_bath_3'
+        return inside(x, z, HOTSPOTS.room_bedroom_2.zones[0]) ? 'room_bedroom_2' : 'exterior'
+      }
       for (const name of ['room_kitchen', 'room_bedroom_g', 'room_bath_g', 'room_dining_g', 'room_living_g'])
         if (inside(x, z, HOTSPOTS[name].zones[0])) return name
       // The kitchen's lobby and the way to the bedroom door borrow their neighbours' light.

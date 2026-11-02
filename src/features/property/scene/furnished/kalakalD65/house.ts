@@ -114,6 +114,26 @@ export const BEDROOM2 = {
   door: [3.5 - 0.85, 3.5 - 0.1] as R,
   window: { z: [0.55, 2.05] as R, h: [0.75, 2.35] as R },
 }
+/**
+ * Bedroom 3 (see bedroom3.ts), the front first-floor room with its own bathroom: from the façade back
+ * to the plan's 4.57 m, and from the left wall to the bathroom's 4.68 m. A notch at its back corner
+ * stops the room short of the plan's dressing closet. Its frame runs along the left wall from the façade.
+ */
+export const BEDROOM3 = {
+  x0: X0 + T, z1: FACE - T, l: 4.57, w: 4.68,
+  /** Along the back wall, from the left wall. */
+  door: [3.2, 4.1] as R,
+  /** Along the bathroom's wall, from the façade. */
+  bathDoor: [0.35, 1.1] as R,
+  notch: { x: 2.47, z: 4.16 },
+  /** The curtain's two gathered ends, along the façade from the left wall: the tall window shows between them, the balcony door stays clear. */
+  curtain: [[0.18, 0.82], [1.94, 2.58]] as R[],
+}
+/** Bedroom 3's wide double door onto the balcony (house x), and the height of its head. */
+const BALCONY_DOOR: R = [-0.97, 1.0]
+const BALCONY_DOOR_TOP = FFL + 2.3
+/** The attached bathroom (see bathroom3.ts): from the right wall to Bedroom 3's wall, its back wall to the façade. */
+export const BATH3 = { x1: X1 - T, z0: BEDROOM3.z1 - BEDROOM3.notch.x, w: X1 - T - (BEDROOM3.x0 + BEDROOM3.w + 0.12), d: BEDROOM3.notch.x }
 /** The bedroom window in the back wall, over the desk beside the wardrobe (house x); its sill clears the desk. */
 const BED_WINDOW: [number, number, number, number] = [BEDROOM.x0 + 2.65, BEDROOM.x0 + 3.45, GFL + 0.95, GFL + 2.3]
 /** The bathroom's high ventilator and its shower niche, on the right wall (house z, heights above site ground). */
@@ -270,9 +290,9 @@ export function buildShell(ctx: Ctx) {
   bx(k, r, [BOX[0], BOX[0] + 0.2], [ROOF, PARAPET], [FACE, -0.2], white)
   bx(k, r, [X1 - 0.2, X1], [ROOF, PARAPET], [BACK, -0.2], white)
 
-  // Balcony back wall with its two glazed doors.
+  // Balcony back wall with Bedroom 3's wide door and the bathroom's glazing.
   holed(k, 'x', [BOX[0] + LEG, X1 - T], [FFL, FF_CEIL], WALL, [
-    [-0.97, -0.26, FFL, 5.72], [0.28, 2.16, FFL, 5.71],
+    [BALCONY_DOOR[0], BALCONY_DOOR[1], FFL, BALCONY_DOOR_TOP], [1.22, 2.16, FFL, 5.71],
   ], c.greige)
 
   // Roof slab and terrace parapets (the front parapet is the box's top band).
@@ -285,6 +305,15 @@ export function buildShell(ctx: Ctx) {
   // Interior partitions close the visible rooms off from the rest of the plan.
   // Upstairs, this wall is Bedroom 2's door wall on the stair side, cut for its door.
   holed(k, 'x', [X0 + T, X1 - T], [FFL, FF_CEIL], [-7.12 - EXTRA, -7.0 - EXTRA], [[B2.x1 - B2.door[1], B2.x1 - B2.door[0], FFL, FFL + 2.1]], c.interior)
+  // Bedroom 3: its back wall with the entrance, the return round the notch, and the bathroom's wall
+  // with its doorway. The bathroom beyond is a plain shell for now.
+  const B3 = BEDROOM3
+  const back3 = B3.z1 - B3.l
+  holed(k, 'x', [B3.x0, B3.x0 + B3.notch.z + 0.115], [FFL, FF_CEIL], [back3 - 0.12, back3], [[B3.x0 + B3.door[0], B3.x0 + B3.door[1], FFL, FFL + 2.1]], c.interior)
+  bx(k, r, [B3.x0 + B3.notch.z, B3.x0 + B3.notch.z + 0.115], [FFL, FF_CEIL], [back3, B3.z1 - B3.notch.x], c.interior)
+  bx(k, r, [B3.x0 + B3.notch.z, B3.x0 + B3.w + 0.12], [FFL, FF_CEIL], [B3.z1 - B3.notch.x - 0.12, B3.z1 - B3.notch.x], c.interior)
+  holed(k, 'z', [B3.z1 - B3.notch.x, B3.z1], [FFL, FF_CEIL], [B3.x0 + B3.w, B3.x0 + B3.w + 0.12], [[B3.z1 - B3.bathDoor[1], B3.z1 - B3.bathDoor[0], FFL, FFL + 2.1]], c.interior)
+  bx(k, r, [B3.x0 + B3.w + 0.12, X1 - T], [FFL, FF_CEIL], [B3.z1 - B3.notch.x - 0.12, B3.z1 - B3.notch.x], c.interior)
   // Bedroom 2's bed wall and its wall on the middle of the house.
   bx(k, r, [B2.x1 - B2.w - 0.115, X1 - T], [FFL, FF_CEIL], [B2.z0 - 0.12, B2.z0], c.interior)
   bx(k, r, [B2.x1 - B2.w - 0.115, B2.x1 - B2.w], [FFL, FF_CEIL], [B2.z0, B2.z0 + B2.d], c.interior)
@@ -348,8 +377,8 @@ export function buildFacade(ctx: Ctx) {
 
   // Glazing.
   glazing(ctx, 'x', TALL, [1.27, 6.33], FACE - 0.1, { transoms: [3.825, 4.6], face: 0.065 })
-  glazing(ctx, 'x', [-0.97, -0.26], [FFL, 5.72], FACE - 0.1)
-  glazing(ctx, 'x', [0.28, 2.16], [FFL, 5.71], FACE - 0.1, { mullions: [1.22] })
+  // Beside the balcony door, the part of the old glazing that is the bathroom's.
+  glazing(ctx, 'x', [1.22, 2.16], [FFL, 5.71], FACE - 0.1)
   glazing(ctx, 'x', [0.72, 2.48], [1.34, 2.44], CAR_BACK - 0.1, { mullions: [1.31, 1.73] })
   for (const [a0, a1, y0, y1] of [BED_WINDOW, [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97]])
     glazing(ctx, 'x', [a0, a1], [y0, y1], BACK + 0.1, { mullions: [(a0 + a1) / 2] })
@@ -362,10 +391,6 @@ export function buildFacade(ctx: Ctx) {
 
   // Sheers drawn to the sides, as in the reference.
   const inside = FACE - T - 0.1
-  curtain(ctx, 'x', [TALL[0] + 0.03, TALL[0] + 0.3], [FFL + 0.02, FF_CEIL - 0.02], inside)
-  curtain(ctx, 'x', [TALL[1] - 0.3, TALL[1] - 0.03], [FFL + 0.02, FF_CEIL - 0.02], inside)
-  curtain(ctx, 'x', [-0.95, -0.72], [FFL + 0.02, FF_CEIL - 0.02], inside)
-  curtain(ctx, 'x', [0.3, 0.62], [FFL + 0.02, FF_CEIL - 0.02], inside)
   curtain(ctx, 'x', [1.84, 2.14], [FFL + 0.02, FF_CEIL - 0.02], inside)
   // The stair runs behind the carport's window: obscured glass, on a panel at the stair side of the wall.
   bx(k, r, [0.72, 2.48], [1.34, 2.44], [CAR_BACK - T, CAR_BACK - T + 0.012], c.interior, false)
@@ -379,7 +404,6 @@ export function buildFacade(ctx: Ctx) {
   lamp(ctx, 1.4, 3.1, -6.6, 4, 5, 0.6)
   lamp(ctx, -2.0, 6.0, -4.0, 5, 6, 0.6)
   lamp(ctx, 1.0, 6.0, -4.2, 6, 7, 0.6)
-  arecaPot({ k, c }, -2.35, FACE - T - 0.6, 1.1, FFL)
   arecaPot({ k, c }, 0.12, FACE + 0.35, 0.9, GFL, c.potDark)
 
   // Façade lights: the downlights' wash, the frame's LED line, and two up-down wall lamps.
@@ -408,6 +432,26 @@ function wallLamp(ctx: Ctx, x: number, y: number, z: number) {
 export function buildBalcony(ctx: Ctx) {
   const { k, c } = ctx
   const r = k.root
+  // Bedroom 3's door: a pair of black-framed glazed leaves swinging out over the balcony. One action
+  // works both, so the whole width opens together.
+  const leafW = (BALCONY_DOOR[1] - BALCONY_DOOR[0]) / 2 - 0.006
+  const leaves = ([[BALCONY_DOOR[0] + 0.002, 1], [BALCONY_DOOR[1] - 0.002, -1]] as const).map(([x, s], i) => {
+    const leaf = new Group()
+    leaf.name = `door_balcony_${i + 1}`
+    leaf.position.set(x, FFL, FACE - 0.1)
+    leaf.userData.openAngle = -s * 1.5
+    r.add(leaf)
+    const along = (a: number, b: number): R => (s > 0 ? [a, b] : [-b, -a])
+    const h = BALCONY_DOOR_TOP - FFL - 0.006
+    bx(k, leaf, along(0, leafW), [0.012, h], [-0.006, 0.006], c.glass, false).userData.front = true
+    for (const [a, b] of [[0, 0.055], [leafW - 0.055, leafW]]) bx(k, leaf, along(a, b), [0.006, h], [-0.03, 0.03], c.aluminium)
+    for (const [y0, y1] of [[0.006, 0.09], [h - 0.055, h]]) bx(k, leaf, along(0, leafW), [y0, y1], [-0.03, 0.03], c.aluminium)
+    // Levers on both faces, on the meeting edge.
+    for (const z of [-0.05, 0.05]) bx(k, leaf, along(leafW - 0.17, leafW - 0.03), [1.0, 1.018], [z - 0.008, z + 0.008], c.aluminium)
+    return leaf
+  })
+  leaves[0].userData.alsoOpen = leaves[0].userData.alsoClose = [leaves[1]]
+  leaves[1].userData.alsoOpen = leaves[1].userData.alsoClose = [leaves[0]]
   const rail: R = [BOX[0] + LEG, 2.52]
   bx(k, r, [BOX[0] + LEG, CARPORT[1]], [FFL, FFL + 0.012], [FACE, 0], c.stepStone, false)
   bx(k, r, rail, [FFL, FFL + 0.08], [-0.21, -0.11], c.aluminium)
