@@ -19,6 +19,29 @@ function signature(g: BufferGeometry) {
   return `${g.index ? 'i' : 'n'}|${KEEP.filter((a) => g.attributes[a]).join(',')}`
 }
 
+function reverseWinding(g: BufferGeometry) {
+  if (g.index) {
+    const index = g.index
+    for (let i = 0; i + 2 < index.count; i += 3) {
+      const a = index.getX(i)
+      index.setX(i, index.getX(i + 2))
+      index.setX(i + 2, a)
+    }
+    return
+  }
+  for (const attr of Object.values(g.attributes)) {
+    const { itemSize, array } = attr
+    for (let i = 0; i + 2 < attr.count; i += 3)
+      for (let c = 0; c < itemSize; c++) {
+        const p = i * itemSize + c
+        const q = (i + 2) * itemSize + c
+        const t = array[p]
+        ;(array as Float32Array)[p] = array[q]
+        ;(array as Float32Array)[q] = t
+      }
+  }
+}
+
 /**
  * Merges the static meshes under `root` by material (and shadow flags), in `root`'s frame.
  * Transparent meshes and anything with a custom render order stay separate, so sorting and
@@ -41,7 +64,10 @@ export function mergeStatic(root: Group) {
     const g = o.geometry.clone()
     for (const name of Object.keys(g.attributes)) if (!(KEEP as readonly string[]).includes(name)) g.deleteAttribute(name)
     if (!g.attributes.normal) g.computeVertexNormals()
-    g.applyMatrix4(toRoot.clone().multiply(o.matrixWorld))
+    const matrix = toRoot.clone().multiply(o.matrixWorld)
+    g.applyMatrix4(matrix)
+    // A mirrored parent turns the triangles inside out once baked; the renderer can't tell any more.
+    if (matrix.determinant() < 0) reverseWinding(g)
     g.clearGroups()
     const key = `${material.uuid}|${o.castShadow ? 1 : 0}${o.receiveShadow ? 1 : 0}|${signature(g)}`
     let b = buckets.get(key)

@@ -24,9 +24,13 @@ export interface Ctx {
  * Depth comes from the plans (13.14 m to the rear wall; now 1.8 m deeper, see DEPTH). The plans and the render are mirror
  * images; the render governs, so the carport is on the right (+x) looking from the road.
  * House frame: x across the front (−3.81 … 3.81), +z towards the road, y up from site ground.
+ *
+ * The ground floor follows the client's plan, mirrored with it. Down the carport side from the back
+ * wall: bedroom, bathroom, stair hall, carport. Down the other: kitchen, its entry lobby, dining, living.
  */
 
 type R = [number, number]
+type Hole = [a0: number, a1: number, y0: number, y1: number]
 
 export const W = 7.62
 const X0 = -W / 2
@@ -54,7 +58,7 @@ export const FACE = -2.1
 const T = 0.23
 const WALL: R = [FACE - T, FACE]
 /** Inner face of the carport's back wall. */
-export const CAR_BACK = -5.3
+export const CAR_BACK = -4.6
 export const CARPORT: R = [0.45, 3.51]
 /** The first-floor box projects 2.1 m from the house; its legs and bands are 280 mm. */
 const BOX: R = [-1.4, X1]
@@ -66,17 +70,41 @@ const STONE: R = [-2.94, -1.11]
 const TALL: R = [-2.73, -1.68]
 const DOOR: R = [-1.02, -0.14]
 export const STEPS: R = [-1.45, 0.2]
-/** The kitchen (see kitchen.ts): inner extents in the back-right corner, with its 2.50 m false ceiling. */
-export const KITCHEN = { x0: X1 - T - 3.4, z0: BACK + T, w: 3.4, d: 3.7, h: 2.5 }
-/** Bedroom 1 (see bedroom.ts): 6.60 m along the left wall from the back wall forwards, its bed wall the reference's 5.20 m. */
-export const BEDROOM = { x0: X0 + T, z0: BACK + T + 6.6, w: KITCHEN.x0 - 0.115 - (X0 + T), l: 6.6 }
-/** The ground-floor bathroom (see bathroom.ts): its back wall is the divider in front of the kitchen. */
-export const BATHROOM = { x0: KITCHEN.x0, z0: -8.5 - EXTRA, w: 2.5, d: 1.9 }
+/** The kitchen (see kitchen.ts): inner extents in the back-left corner, with its 2.50 m false ceiling. */
+export const KITCHEN = { x0: X0 + T, z0: BACK + T, w: 3.4, d: 3.7, h: 2.5 }
+/** Bedroom 1 (see bedroom.ts): from the back wall forwards on the carport side, as long as the reference's 5.20 m bed wall. */
+export const BEDROOM = { x0: KITCHEN.x0 + KITCHEN.w + 0.115, z0: BACK + T + 5.2, w: X1 - T - (KITCHEN.x0 + KITCHEN.w + 0.115), l: 5.2 }
 /** The open living and dining hall: from the left wall to the carport wall, the bedroom's front wall to the façade. */
 export const HALL = { x0: X0 + T, z0: BEDROOM.z0 + 0.115, w: CARPORT[0] - T - (X0 + T), d: FACE - T - (BEDROOM.z0 + 0.115) }
+/** The side window, beside the dining table: house z. */
+export const HALL_WINDOW: R = [HALL.z0 + 0.945, HALL.z0 + 2.145]
+/** The ground-floor bathroom (see bathroom.ts): on the right wall, in front of the bedroom. */
+export const BATHROOM = { x0: X1 - T - 2.5, z0: HALL.z0, w: 2.5, d: 1.9 }
+/** The clear width of the door from the hall to the kitchen's lobby, beside the bedroom's wall (house x). */
+export const CORRIDOR: R = [KITCHEN.x0 + KITCHEN.w - 0.785, KITCHEN.x0 + KITCHEN.w]
+/** The stair hall behind the carport, in front of the bathroom: x and z of its floor, stair included. */
+export const STAIR_HALL = { x0: CARPORT[0] - T + 0.115, x1: X1 - T, z0: BATHROOM.z0 + BATHROOM.d + 0.115, z1: CAR_BACK - T }
+/**
+ * Eighteen 181 mm risers between the floors, on 250 mm goings, in two flights 1 m wide: eight
+ * treads, three winders turning the corner as on the plan, and six more.
+ */
+export const STAIR = { risers: 18, rise: (FFL - GFL) / 18, going: 0.25, width: 1, lower: 8, winders: 3, upper: 6 }
+/** The winders' square, in the corner of the carport's back wall and the right wall. */
+export const LANDING = { x0: STAIR_HALL.x1 - STAIR.width, z0: STAIR_HALL.z1 - STAIR.width }
+/**
+ * Well through the first-floor slab: over the upper flight and winders, and back along the lower
+ * flight as far as its fifth tread, which leaves 2.1 m of headroom under the slab's edge.
+ */
+export const STAIR_WELL: { x: R; z: R }[] = [
+  { x: [LANDING.x0, STAIR_HALL.x1], z: [LANDING.z0 - STAIR.upper * STAIR.going, LANDING.z0] },
+  { x: [LANDING.x0 - 0.83, STAIR_HALL.x1], z: [LANDING.z0, STAIR_HALL.z1] },
+]
 /** The bedroom window in the back wall, over the desk beside the wardrobe (house x); its sill clears the desk. */
 const BED_WINDOW: [number, number, number, number] = [BEDROOM.x0 + 2.65, BEDROOM.x0 + 3.45, GFL + 0.95, GFL + 2.3]
 /** The kitchen window in the right wall, centred over the right-hand run: house z, and heights above site ground. */
+/** The bathroom's high ventilator and its shower niche, on the right wall (house z, heights above site ground). */
+const BATH_VENT: Hole = [BATHROOM.z0 + 1.0, BATHROOM.z0 + 1.6, 2.3, 2.85]
+const BATH_NICHE: Hole = [BATHROOM.z0 + 0.45, BATHROOM.z0 + 0.75, GFL + 1.05, GFL + 1.35]
 const KW_MID = KITCHEN.z0 + (0.6 + (KITCHEN.d - 2.7) + 1.63) / 2
 export const KITCHEN_WINDOW = { z0: KW_MID - 0.3, z1: KW_MID + 0.3, y0: GFL + 1.05, y1: GFL + 2.25 }
 
@@ -85,7 +113,20 @@ function bx(k: Kit, p: Object3D, [x0, x1]: R, [y0, y1]: R, [z0, z1]: R, mat: Mat
   return k.box(p, x1 - x0, y1 - y0, z1 - z0, mat, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, cast)
 }
 
-type Hole = [a0: number, a1: number, y0: number, y1: number]
+/** A horizontal plate with the stair well left out of it. */
+function plate(k: Kit, [x0, x1]: R, ys: R, [z0, z1]: R, mat: Material, cast = true) {
+  const piece = (x: R, z: R) => {
+    if (x[1] - x[0] > 0.002 && z[1] - z[0] > 0.002) bx(k, k.root, x, ys, z, mat, cast)
+  }
+  let cursor = z0
+  for (const well of STAIR_WELL) {
+    piece([x0, x1], [cursor, well.z[0]])
+    piece([x0, well.x[0]], well.z)
+    piece([well.x[1], x1], well.z)
+    cursor = well.z[1]
+  }
+  piece([x0, x1], [cursor, z1])
+}
 
 /**
  * A wall with rectangular openings. `axis` is the direction the wall runs: 'x' for the front and
@@ -169,7 +210,7 @@ export function buildShell(ctx: Ctx) {
   // Interior floors, so every window looks into a room rather than a void.
   bx(k, r, [X0 + T, CARPORT[0] - T], [GFL, GFL + 0.01], [BACK + T, FACE - T], c.interiorFloor, false)
   bx(k, r, [CARPORT[0] - T, X1 - T], [GFL, GFL + 0.01], [BACK + T, CAR_BACK - T], c.interiorFloor, false)
-  bx(k, r, [X0 + T, X1 - T], [FFL, FFL + 0.01], [BACK + T, FACE - T], c.interiorFloor, false)
+  plate(k, [X0 + T, X1 - T], [FFL, FFL + 0.01], [BACK + T, FACE - T], c.interiorFloor, false)
 
   // Front: the stone pier and slatted bay run up past the roof to the frame; the door wall beside them.
   holed(k, 'x', [X0, STONE[1]], [0, FRAME_Y], WALL, [[TALL[0], TALL[1], 1.27, 6.33]], white)
@@ -188,16 +229,20 @@ export function buildShell(ctx: Ctx) {
     } else bx(k, r, CARPORT, [y - 0.006, y + 0.006], [CAR_BACK, CAR_BACK + 0.008], c.groove, false)
   }
 
-  // Sides and back. Openings follow the floor plans (toilet ventilators, dining and bedroom windows).
-  holed(k, 'z', [BACK, FACE - T], [0, ROOF], [X0, X0 + T], [[-5.55 - EXTRA, -4.35 - EXTRA, 1.31, 2.71], [-8.57 - EXTRA, -7.9 - EXTRA, 5.2, 5.8]], white)
-  holed(k, 'z', [BACK + T, CAR_BACK - T], [0, FFL], [X1 - T, X1], [[-8.76 - EXTRA, -8.1 - EXTRA, 2.3, 2.9], [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1, KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1]], white)
+  // Sides and back. Openings follow the floor plans (toilet ventilators, dining, kitchen and bedroom windows).
+  holed(k, 'z', [BACK, FACE - T], [0, ROOF], [X0, X0 + T], [
+    [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1, KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], [-8.57 - EXTRA, -7.9 - EXTRA, 5.2, 5.8], [HALL_WINDOW[0], HALL_WINDOW[1], 1.31, 2.71],
+  ], white)
+  holed(k, 'z', [BACK + T, CAR_BACK - T], [0, FFL], [X1 - T, X1], [BATH_NICHE, BATH_VENT], white)
+  // The shower's niche is let into the right wall's inner leaf; the outer leaf stays whole.
+  bx(k, r, [X1 - 0.115, X1], [BATH_NICHE[2], BATH_NICHE[3]], [BATH_NICHE[0], BATH_NICHE[1]], white)
   holed(k, 'z', [BACK + T, FACE], [FFL, ROOF], [X1 - T, X1], [[-3.81, -2.95, 5.0, 5.6]], white)
   holed(k, 'x', [X0, X1], [0, ROOF], [BACK, BACK + T], [
     BED_WINDOW, [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97],
   ], white)
 
   // First floor slab, then the projecting box: slab and beam, legs, roof and fascia.
-  bx(k, r, [X0, X1], [GF_CEIL, FFL], [BACK, FACE - T], white)
+  plate(k, [X0, X1], [GF_CEIL, FFL], [BACK, FACE - T], white)
   bx(k, r, [STONE[1], X1], [GF_CEIL, FFL], [FACE - T, FACE], white)
   bx(k, r, BOX, [BEAM, FFL], [FACE, 0], white)
   bx(k, r, [BOX[0], BOX[0] + LEG], [FFL, FF_CEIL], [FACE, 0], white)
@@ -220,8 +265,6 @@ export function buildShell(ctx: Ctx) {
   bx(k, r, [X0, X1], [ROOF, PARAPET], [BACK, BACK + 0.2], white)
 
   // Interior partitions close the visible rooms off from the rest of the plan.
-  // The bedroom closes off the left of the back zone; this divider closes the kitchen side.
-  bx(k, r, [KITCHEN.x0, X1 - T], [GFL, GF_CEIL], [BATHROOM.z0 - 0.12, BATHROOM.z0], c.interior)
   bx(k, r, [X0 + T, X1 - T], [FFL, FF_CEIL], [-7.12 - EXTRA, -7.0 - EXTRA], c.interior)
 }
 
@@ -281,10 +324,10 @@ export function buildFacade(ctx: Ctx) {
   glazing(ctx, 'x', [0.72, 2.48], [1.34, 2.44], CAR_BACK - 0.1, { mullions: [1.31, 1.73] })
   for (const [a0, a1, y0, y1] of [BED_WINDOW, [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97]])
     glazing(ctx, 'x', [a0, a1], [y0, y1], BACK + 0.1, { mullions: [(a0 + a1) / 2] })
-  glazing(ctx, 'z', [-5.55 - EXTRA, -4.35 - EXTRA], [1.31, 2.71], X0 + 0.1, { mullions: [-4.95 - EXTRA] })
+  glazing(ctx, 'z', HALL_WINDOW, [1.31, 2.71], X0 + 0.1, { mullions: [(HALL_WINDOW[0] + HALL_WINDOW[1]) / 2] })
   glazing(ctx, 'z', [-8.57 - EXTRA, -7.9 - EXTRA], [5.2, 5.8], X0 + 0.1)
-  glazing(ctx, 'z', [-8.76 - EXTRA, -8.1 - EXTRA], [2.3, 2.9], X1 - 0.1)
-  glazing(ctx, 'z', [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1], [KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], X1 - 0.1, { mullions: [(KITCHEN_WINDOW.z0 + KITCHEN_WINDOW.z1) / 2] })
+  glazing(ctx, 'z', [BATH_VENT[0], BATH_VENT[1]], [BATH_VENT[2], BATH_VENT[3]], X1 - 0.1)
+  glazing(ctx, 'z', [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1], [KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], X0 + 0.1, { mullions: [(KITCHEN_WINDOW.z0 + KITCHEN_WINDOW.z1) / 2] })
   glazing(ctx, 'z', [-3.81, -2.95], [5.0, 5.6], X1 - 0.1)
 
   // Sheers drawn to the sides, as in the reference.
@@ -294,16 +337,16 @@ export function buildFacade(ctx: Ctx) {
   curtain(ctx, 'x', [-0.95, -0.72], [FFL + 0.02, FF_CEIL - 0.02], inside)
   curtain(ctx, 'x', [0.3, 0.62], [FFL + 0.02, FF_CEIL - 0.02], inside)
   curtain(ctx, 'x', [1.84, 2.14], [FFL + 0.02, FF_CEIL - 0.02], inside)
-  curtain(ctx, 'x', [0.74, 0.98], [1.2, 2.62], CAR_BACK - T - 0.1)
-  curtain(ctx, 'x', [2.22, 2.46], [1.2, 2.62], CAR_BACK - T - 0.1)
+  // The stair runs behind the carport's window: obscured glass, on a panel at the stair side of the wall.
+  bx(k, r, [0.72, 2.48], [1.34, 2.44], [CAR_BACK - T, CAR_BACK - T + 0.012], c.interior, false)
 
   // Warm rooms behind the glass: ceiling downlights and a low fill per room.
-  for (const [x, z] of [[1.6, -6.6 - EXTRA], [2.6, -7.6 - EXTRA]]) downlight(ctx, x, GF_CEIL, z)
+  for (const [x, z] of [[1.4, -6.6], [(CORRIDOR[0] + CORRIDOR[1]) / 2, -10.2]]) downlight(ctx, x, GF_CEIL - 0.01, z)
   for (const [x, z] of [[-2.2, -3.2], [-0.6, -3.4], [1.2, -3.4], [1.2, -5.4]]) downlight(ctx, x, FF_CEIL, z)
-  bx(k, r, [X0 + T, X1 - T], [GF_CEIL - 0.01, GF_CEIL], [BATHROOM.z0, FACE - T], c.room, false)
+  plate(k, [X0 + T, X1 - T], [GF_CEIL - 0.01, GF_CEIL], [BACK + T, FACE - T], c.room, false)
   bx(k, r, [X0 + T, X1 - T], [FF_CEIL - 0.01, FF_CEIL], [-7.0 - EXTRA, FACE - T], c.room, false)
   lamp(ctx, -2.0, 3.1, -4.2, 6, 7, 0.6)
-  lamp(ctx, 1.6, 3.1, -7.0 - EXTRA, 4, 5, 0.6)
+  lamp(ctx, 1.4, 3.1, -6.6, 4, 5, 0.6)
   lamp(ctx, -2.0, 6.0, -4.0, 5, 6, 0.6)
   lamp(ctx, 1.0, 6.0, -4.2, 6, 7, 0.6)
   arecaPot({ k, c }, -2.35, FACE - T - 0.6, 1.1, FFL)

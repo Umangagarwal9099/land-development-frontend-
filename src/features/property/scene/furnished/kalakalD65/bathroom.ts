@@ -17,7 +17,8 @@ import { bottle, foldedTowels, hungTowel, rolledTowel, soapDish, toiletRoll, too
  * herringbone back wall, rain head, mixer and handheld, and a lit niche (at 2.20 m to the head).
  *
  * Bathroom frame: X along the back wall from the left (0 … 2.50), Z out from it to the door wall
- * (0 … 1.90), h above the floor. It sits between the bedroom and the hall, behind the kitchen.
+ * (0 … 1.90), h above the floor. It stands between the bedroom and the stair hall, as on the plan,
+ * with the door off the stair hall and the shower on the house's right wall.
  */
 
 const { w: W, d: D } = BATHROOM

@@ -2,9 +2,10 @@ import { BoxGeometry, Group, Mesh, MeshBasicMaterial, type Object3D } from 'thre
 import { GOLD } from '../../../../../lib/palette'
 import { Kit } from '../kit'
 import { LightPool, Lighting, type FurnishedModel } from '../shared'
-import { BATHROOM, BEDROOM, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, HALL, KITCHEN, STEPS, type Ctx } from './house'
+import { BATHROOM, BEDROOM, buildBalcony, buildFacade, buildShell, CARPORT, CAR_BACK, FACE, FFL, GFL, HALL, KITCHEN, LANDING, STAIR_HALL, STEPS, type Ctx } from './house'
 import { buildBathroom } from './bathroom'
 import { buildBedroom } from './bedroom'
+import { buildCirculation } from './stairs'
 import { buildKitchen } from './kitchen'
 import { buildLiving, HALL_SPLIT } from './living'
 import { d65Materials } from './materials'
@@ -26,8 +27,8 @@ type Zone = [x0: number, x1: number, z0: number, z1: number]
 const hallAt = (x: number, h: number, z: number) => [HALL.x0 + x, GFL + h, HOUSE_Z + HALL.z0 + z]
 /** The whole open hall, which both its rooms keep in view and the camera may roam. */
 const HALL_SPACE: Zone = [HALL.x0, HALL.x0 + HALL.w, HOUSE_Z + HALL.z0, HOUSE_Z + HALL.z0 + HALL.d]
-/** The passage from the hall to the bathroom door, seen through the hall's side opening. */
-const PASSAGE: Zone = [HALL.x0 + HALL.w - 0.2, KITCHEN.x0 + KITCHEN.w, HOUSE_Z + BATHROOM.z0 + BATHROOM.d - 0.15, HOUSE_Z + CAR_BACK - 0.1]
+/** What the hall's openings look into: the bedroom door and stair hall on one side, the kitchen's lobby behind. */
+const PASSAGE: Zone = [HALL.x0, STAIR_HALL.x1, HOUSE_Z + KITCHEN.z0, HOUSE_Z + CAR_BACK - 0.1]
 
 /**
  * Room hotspots: the floor zones that highlight and are picked. An open-plan room also names the
@@ -48,7 +49,13 @@ const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[]; space
   room_living_g: {
     y: GFL, height: 2.95, zones: [[HALL.x0, HALL.x0 + HALL.w, HOUSE_Z + HALL.z0 + HALL_SPLIT, HOUSE_Z + HALL.z0 + HALL.d]], space: HALL_SPACE, reveal: PASSAGE,
     // From the window end, between the sofa on the right and the TV wall on the left.
-    eye: { from: hallAt(1.85, 1.65, HALL.d - 0.25), to: hallAt(1.7, 0.85, 2.6) },
+    eye: { from: hallAt(1.85, 1.65, HALL.d - 0.25), to: hallAt(1.7, 0.85, 3.6) },
+  },
+  // Tall enough to keep the first-floor landing and its guard in the cut.
+  room_stairs_g: {
+    y: GFL, height: 4.6, zones: [[STAIR_HALL.x0, STAIR_HALL.x1, HOUSE_Z + STAIR_HALL.z0, HOUSE_Z + STAIR_HALL.z1]],
+    // From the hall's opening, up the lower flight to the winders.
+    eye: { from: [STAIR_HALL.x0 + 0.25, GFL + 1.5, HOUSE_Z + STAIR_HALL.z0 + 0.2], to: [LANDING.x0 + 0.1, GFL + 1.35, HOUSE_Z + LANDING.z0 + 0.3] },
   },
   room_bath_g: { y: GFL, height: 2.2, zones: [[BATHROOM.x0, BATHROOM.x0 + BATHROOM.w, HOUSE_Z + BATHROOM.z0, HOUSE_Z + BATHROOM.z0 + BATHROOM.d]] },
   amenity_garden: { y: 0.04, height: 2.6, zones: [[PLOT.x0 + 0.23, STEPS[0] - 0.05, HOUSE_Z + FACE, PLOT.z1]] },
@@ -83,6 +90,7 @@ export function buildKalakalD65(context = true): FurnishedModel {
   buildBedroom(ctx)
   buildBathroom(ctx)
   buildLiving(ctx)
+  buildCirculation(ctx)
   buildPlot(ctx)
   if (context) buildContext(ctx)
 
@@ -117,6 +125,7 @@ export function buildKalakalD65(context = true): FurnishedModel {
       if (o.name === 'kitchen') return 'room_kitchen'
       if (o.name === 'bedroom_g') return 'room_bedroom_g'
       if (o.name === 'bathroom_g') return 'room_bath_g'
+      if (o.name === 'stairs_g') return 'room_stairs_g'
       // The open hall is lit as one space from either of its rooms.
       if (o.name === 'hall_g') return 'hall'
     }

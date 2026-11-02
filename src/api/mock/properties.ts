@@ -129,10 +129,10 @@ function kalakalD65(): Property {
     },
     {
       id: id('room'), name: 'Bedroom 1', kind: 'room', meshName: 'room_bedroom_g', floorId: G.id,
-      dimensions: { length: 22, width: 12, unit: 'ft' }, areaSqft: 259,
+      dimensions: { length: 17, width: 12, unit: 'ft' }, areaSqft: 204,
       description:
         'The ground-floor bedroom: a 5.2 m feature wall of fluted walnut and textured white marble washed by a cove light, a built-out walnut unit with a lit decor niche, a 1.8 m upholstered wingback bed between light-grey bedside tables under amber glass pendants, and a wardrobe of walnut sliders and lit glass shutters with grey lofts above.',
-      specs: ['6.60 × 3.65 m, 2.80 m ceiling', 'Walnut fluted panelling and walnut laminate', 'Textured white marble feature panel with cove light', 'Engineered oak flooring, trellis rug', 'Wardrobe with glass sliding shutters and loft storage'],
+      specs: ['5.20 × 3.65 m, 2.80 m ceiling', 'Walnut fluted panelling and walnut laminate', 'Textured white marble feature panel with cove light', 'Engineered oak flooring, trellis rug', 'Wardrobe with glass sliding shutters and loft storage'],
       amenities: ['1.8 m wingback bed', 'Two bedside tables', 'Lit decor niche', 'Wardrobe with sliding doors and lofts', 'Desk with drawers and office chair', 'Ceiling fan', 'Two-way bedside switches'],
       media: [],
     },
@@ -147,26 +147,35 @@ function kalakalD65(): Property {
     },
     {
       id: id('room'), name: 'Dining Room', kind: 'room', meshName: 'room_dining_g', floorId: G.id,
-      dimensions: { length: 12.5, width: 8.9, unit: 'ft' }, areaSqft: 111,
+      dimensions: { length: 12.5, width: 9.9, unit: 'ft' }, areaSqft: 124,
       description:
         'The dining end of the open hall, by the side window: a natural-stone table for six with upholstered chairs on oak legs, built-in oak cabinetry with LED-lit shelves over drawers and cupboards, an abstract canvas between two bronze wall sconces, and bronze dome pendants over the table.',
-      specs: ['3.80 × 2.72 m, open to the living room, 2.95 m false ceiling', 'Travertine racetrack top on oak slab legs, 1.50 × 0.90 m', 'Built-in light-oak cabinetry with LED shelf lighting', 'Large-format porcelain floor, warm white walls', 'Three lighting circuits: pendants, sconces and cabinetry, ceiling spots'],
+      specs: ['3.80 × 3.02 m, open to the living room, 2.95 m false ceiling', 'Travertine racetrack top on oak slab legs, 1.50 × 0.90 m', 'Built-in light-oak cabinetry with LED shelf lighting', 'Large-format porcelain floor, warm white walls', 'Three lighting circuits: pendants, sconces and cabinetry, ceiling spots'],
       amenities: ['Dining table for six', 'Built-in storage with drawers and cupboards', 'Two dome pendants', 'Wall sconces and artwork'],
       media: [],
     },
     {
       id: id('room'), name: 'Living Room', kind: 'room', meshName: 'room_living_g', floorId: G.id,
-      dimensions: { length: 12.5, width: 9.7, unit: 'ft' }, areaSqft: 121,
+      dimensions: { length: 12.5, width: 13.3, unit: 'ft' }, areaSqft: 166,
       description:
         'The living end of the open hall, by the double-height window: an oak-slatted TV wall with lit display niches either side over a floating console, a three-seat oatmeal sofa against the wall, a taupe lounge chair, a round travertine coffee table on a wool rug, sheer curtains and indoor plants, under a lit coffer.',
-      specs: ['3.80 × 2.95 m, open to the dining room, 2.95 m false ceiling with a 3.07 m coffer', 'Oak slatted TV wall with LED-lit niches', 'Large-format porcelain floor, hand-tufted wool rug', 'Three lighting circuits: spots and wall washers, cove, TV wall'],
+      specs: ['3.80 × 4.05 m, open to the dining room, 2.95 m false ceiling with a 3.07 m coffer', 'Oak slatted TV wall with LED-lit niches', 'Large-format porcelain floor, hand-tufted wool rug', 'Three lighting circuits: spots and wall washers, cove, TV wall'],
       amenities: ['Three-seat sofa', 'Lounge chair', 'Floating TV console with drawers', 'Display niches with storage', 'Sheer curtains'],
+      media: [],
+    },
+    {
+      id: id('room'), name: 'Staircase', kind: 'room', meshName: 'room_stairs_g', floorId: G.id,
+      dimensions: { length: 8.5, width: 10.6, unit: 'ft' }, areaSqft: 90,
+      description:
+        'The stair hall behind the carport, off the hall and in front of the bathroom: an L-shaped stair turning on winders in the corner, solid oak treads on white risers, a closed oak string, slim black balusters under an oak handrail, and a matching guard round the well on the first floor.',
+      specs: ['18 risers of 181 mm on 250 mm goings', 'Two 1.0 m wide flights, three winders at the turn', '2.1 m clear headroom under the first-floor slab', 'Oak treads and handrail, black steel balusters at 83 mm'],
+      amenities: ['Winders at the turn', 'Wall handrail on both flights', 'Low-level step lights'],
       media: [],
     },
     room('Entrance', 'amenity_entrance', [2.4, 1.65],
       'Three white stone risers up to a covered landing under the first-floor box, and a flush teak main door with a full-height black pull, lit by an up-down wall lamp.',
       ['Teak main door, horizontal grooves', 'White stone steps and landing', 'Recessed downlight in the porch ceiling']),
-    room('Carport', 'amenity_carport', [5.3, 3.06],
+    room('Carport', 'amenity_carport', [4.6, 3.06],
       'A covered carport beneath the balcony with a teak-boarded ceiling and recessed downlights, opening straight onto the drive.',
       ['Teak soffit with four downlights', 'Granite-look paving', 'Grooved back wall with a three-pane window']),
     room('Balcony', 'amenity_balcony', [4.63, 2.1],

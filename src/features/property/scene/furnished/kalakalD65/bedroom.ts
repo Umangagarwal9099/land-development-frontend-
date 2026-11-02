@@ -17,7 +17,7 @@ import { ceilingFan, circuit, switchPlate, type Circuit } from './fixtures'
  * wardrobe on the adjoining wall: walnut sliding doors, lit glass shutters and grey lofts.
  *
  * Room frame: X along the bed wall from the front (0) to the back wall (5.20), Z out from the bed
- * wall (0) to the opposite wall (2.845), h above the floor. The bed wall is the house's left wall;
+ * wall (0) to the opposite wall (2.845), h above the floor. The bed wall is the kitchen's partition;
  * the wardrobe and window are on the back wall, as the render has them on the bed's right.
  */
 
@@ -25,10 +25,12 @@ const { l: L, w: W } = BEDROOM
 const H = 2.8
 const BED: [number, number] = [1.305, 3.105]
 const WR = { x0: L - 0.6, z1: 2.4 }
-/** The room is longer than the reference's wall; the bed wall's design keeps its own 5.20 m, set back from the door. */
+/** Should the room be longer than the reference's wall, the bed wall's design keeps its own 5.20 m, set back from the door. */
 const OFF = L - 5.2
 /** Where the desk starts along the back wall, past the wardrobe's end panel. */
 const DESK_Z = 2.5
+/** The door in the front wall, from the bed wall. */
+export const DOOR_Z: [number, number] = [0.2, 1.0]
 
 type R = [number, number]
 const std = (p: MeshStandardMaterialParameters) => new MeshStandardMaterial({ roughness: 0.8, ...p })
@@ -186,28 +188,28 @@ function shell(B: BC) {
   const { bx, m, g, ctx } = B
   const { k } = ctx
   bx([0, L], [0, 0.012], [0, W], m.floor, false)
-  // Front wall to the living room, with the door near the kitchen side; the side wall to the kitchen hall.
-  const DOOR: R = [W - 1.1, W - 0.2]
+  // Front wall to the hall, with the door at the hall end as on the plan; a lining on the right wall.
+  const DOOR: R = DOOR_Z
   bx([-0.115, 0], [0, 3.11], [0, DOOR[0]], m.paint)
   bx([-0.115, 0], [2.1, 3.11], DOOR, m.paint)
   bx([-0.115, 0], [0, 3.11], [DOOR[1], W + 0.115], m.paint)
-  bx([0, L - 3.815], [0, 3.11], [W, W + 0.115], m.paint)
-  // Flush walnut door on three brass butt hinges, closed: a tap swings it open into the room.
+  bx([0, L], [0, 3.11], [W - 0.002, W], m.paint)
+  // Flush walnut door on three brass butt hinges, closed: a tap swings it out, clear of the bedside table, against the bathroom's wall.
   const dw = DOOR[1] - DOOR[0] - 0.008
   const door = new Group()
   door.name = 'door_bedroom_entry'
-  door.position.set(0, 0, DOOR[1] - 0.004)
-  door.userData.openAngle = -1.6
+  door.position.set(-0.115, 0, DOOR[1] - 0.004)
+  door.userData.openAngle = 1.55
   g.add(door)
-  bx([-0.084, -0.044], [0.006, 2.094], [-dw, 0], m.walnut(0.9, 2.1), true, door).userData.front = true
+  bx([0.031, 0.071], [0.006, 2.094], [-dw, 0], m.walnut(0.9, 2.1), true, door).userData.front = true
   // Lever handles on both faces, on round roses.
-  for (const [rx, lx] of [[-0.09, -0.1], [-0.038, -0.028]] as const) {
+  for (const [rx, lx] of [[0.025, 0.015], [0.077, 0.087]] as const) {
     k.cyl(door, 0.026, 0.026, 0.012, m.brass, rx, 1.0, -dw + 0.065, 20).rotation.z = PI / 2
     bx([lx - 0.008, lx + 0.008], [0.992, 1.008], [-dw + 0.06, -dw + 0.19], m.brass, true, door)
   }
   for (const h of [0.22, 1.05, 1.88]) {
-    k.cyl(g, 0.007, 0.007, 0.1, m.brass, -0.044, h, DOOR[1] - 0.006, 12)
-    bx([-0.046, -0.042], [h - 0.05, h + 0.05], [DOOR[1] - 0.04, DOOR[1] - 0.006], m.brass, true, door)
+    k.cyl(g, 0.007, 0.007, 0.1, m.brass, -0.115, h, DOOR[1] - 0.006, 12)
+    bx([0.069, 0.073], [h - 0.05, h + 0.05], [-0.036, -0.002], m.brass, true, door)
   }
   // Painted architrave round the opening, on the room side.
   bx([0, 0.014], [0, 2.17], [DOOR[0] - 0.065, DOOR[0]], m.casing)
@@ -510,9 +512,9 @@ function fittings(B: BC, BW: BC) {
   left.position.set(0.86, 0.8, 0.0405)
   const right = switchPlate(k, BW.g, 'bed_right', ['switch', 'switch', 'socket'], mats, [c.bed, c.room])
   right.position.set(3.6, 0.8, 0.2205)
-  // At the door, on the latch side, at 1.2 m: room, bedside and desk circuits.
+  // At the door, past its hinges, at 1.2 m: room, bedside and desk circuits.
   const door = switchPlate(k, g, 'entry', ['switch', 'switch', 'switch'], mats, [c.room, c.bed, c.desk])
-  door.position.set(0.0005, 1.2, BEDROOM.w - 1.38)
+  door.position.set(0.0005, 1.2, DOOR_Z[1] + 0.25)
   door.rotation.y = PI / 2
   // Over the desk on the side wall: the desk lamp and two sockets for chargers.
   const deskPlate = switchPlate(k, g, 'desk', ['switch', 'socket', 'socket'], mats, [c.desk])

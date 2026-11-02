@@ -14,9 +14,9 @@ import { bakingTray, bottle, bowls, carafe, cutleryCrock, cutleryTray, foodConta
  * black-framed open shelves and a glass cabinet, the hob on the right-hand run under the window,
  * and a 1.80 m breakfast bar (lengthened from the reference's 1.50 m) with a fluted oak front and two stools.
  *
- * Kitchen frame: X from the left (inner) wall towards the right exterior wall, Y from the back
- * wall towards the room, h above the kitchen floor. It sits in the house's back-right corner,
- * where the reference's exterior walls (back and right, with the window) fall on the house's own.
+ * Kitchen frame: X from the tall-unit (inner) wall towards the window's exterior wall, Y from the
+ * back wall towards the room, h above the kitchen floor. It sits in the house's back-left corner,
+ * mirrored as the floor plan is, so the reference's exterior walls (back and window) fall on the house's own.
  * The hob stands under the window, as on the plan (moved there at the client's request).
  */
 
@@ -117,7 +117,9 @@ export function buildKitchen(ctx: Ctx) {
   const { k } = ctx
   const g = new Group()
   g.name = 'kitchen'
-  g.position.set(KITCHEN.x0, GFL, KITCHEN.z0)
+  // Mirrored: kitchen X runs from the bedroom's wall towards the house's left wall.
+  g.position.set(KITCHEN.x0 + KITCHEN.w, GFL, KITCHEN.z0)
+  g.scale.x = -1
   k.root.add(g)
   const m = kitchenMaterials(ctx)
   /** A box by kitchen-frame extents: X, h, Y. */
