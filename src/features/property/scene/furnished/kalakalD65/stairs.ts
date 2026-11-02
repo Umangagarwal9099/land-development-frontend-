@@ -1,15 +1,15 @@
 import { ExtrudeGeometry, Group, Mesh, MeshStandardMaterial, PointLight, Shape, type Material, type Object3D } from 'three'
 import { PI } from '../kit'
-import { BATHROOM, BEDROOM, CORRIDOR, FFL, GFL, HALL, KITCHEN, LANDING, STAIR, STAIR_HALL, STAIR_WELL, type Ctx } from './house'
+import { BATHROOM, BEDROOM, CORRIDOR, FFL, GFL, HALL, KITCHEN, LANDING, STAIR, STAIR_HALL, STAIR_TOP, STAIR_WELL, type Ctx } from './house'
 import { DOOR_Z } from './bedroom'
 
 /*
  * What joins the rooms: the partitions and door off the hall, the bedroom door's casing on the stair
  * hall side, and the staircase to the first floor.
  *
- * The stair is the plan's: it starts beside the hall, climbs along the carport's back wall, turns on
- * winders in the corner and climbs along the right wall to the first floor. Reinforced concrete
- * waists and a winder block bearing on the two walls, finished with oak treads, painted risers
+ * The stair is the plans': it starts beside the hall, climbs along the carport's back wall, turns on
+ * winders in the corner, climbs the right wall, turns on winders again and comes back over the
+ * bathroom into the first-floor hall. Reinforced concrete waists and winder blocks bearing on the walls, finished with oak treads, painted risers
  * and soffits, a closed oak string on the open side, and black steel balusters under an oak rail.
  *
  * Flight frame: s along the run from the first riser, h above the flight's foot, w across the flight
@@ -18,14 +18,14 @@ import { DOOR_Z } from './bedroom'
 
 type R = [number, number]
 
-const { rise: RISE, going: GOING, width: WIDTH, lower: LOWER_N, upper: UPPER_N } = STAIR
+const { rise: RISE, going: GOING, width: WIDTH, lower: LOWER_N, upper: UPPER_N, top: TOP_N } = STAIR
 const SLOPE = RISE / GOING
 const RAIL = 0.9
 const WAIST = 0.15
 const TREAD_T = 0.04
 const NOSING = 0.025
-/** Along the lower flight, how far up the rail starts. */
-const OPEN_FOOT = 0.75
+/** The second winders rest just over the bathroom's ceiling. */
+const OVER_BATH = GFL + 2.31
 /** The line of the nosings, at a point on the flight; the strings and handrail follow it. */
 const nosingLine = (s: number) => RISE + s * SLOPE
 
@@ -81,13 +81,21 @@ export function buildCirculation(ctx: Ctx) {
   const g = new Group()
   g.name = 'stairs_g'
   r.add(g)
-  const LOWER = new Group()
-  LOWER.position.set(LANDING.x0 - LOWER_N * GOING, GFL, LANDING.z0)
+  /** A flight's frame: its foot at (x, z), `risers` above the ground floor, running along local +x. */
+  const frame = (x: number, z: number, risers: number, ry: number) => {
+    const f = new Group()
+    f.position.set(x, GFL + risers * RISE, z)
+    f.rotation.y = ry
+    g.add(f)
+    return f
+  }
+  const AT_TURN = LOWER_N + 2
+  const AT_TOP = AT_TURN + UPPER_N + 2
+  const LOWER = frame(LANDING.x0 - LOWER_N * GOING, LANDING.z0, 0, 0)
   // The upper flight turns to run towards the back wall, its wall side the house's right wall.
-  const UPPER = new Group()
-  UPPER.position.set(LANDING.x0, GFL + (LOWER_N + 3) * RISE, LANDING.z0)
-  UPPER.rotation.y = PI / 2
-  g.add(LOWER, UPPER)
+  const UPPER = frame(LANDING.x0, LANDING.z0, AT_TURN, PI / 2)
+  // The top flight turns again, back towards the middle of the house.
+  const TOP = frame(LANDING.x0, STAIR_TOP.z, AT_TOP, PI)
 
   // Plaster with a little self-light, like the rooms' ceilings: the soffits face away from every lamp.
   const painted = new MeshStandardMaterial({ color: '#efe5d6', roughness: 0.92, emissive: '#c9c0b2', emissiveIntensity: 0.4 })
@@ -98,7 +106,7 @@ export function buildCirculation(ctx: Ctx) {
   const rail = stained
   const steel = c.aluminium
 
-  const flight = (p: Group, upper: boolean, TREADS: number) => {
+  const flight = (p: Group, upper: boolean, TREADS: number, walled = true) => {
     const RUN = TREADS * GOING
     // The stepped concrete waist.
     const foot = upper ? [[0, -WAIST]] : [[0, 0]]
@@ -117,19 +125,18 @@ export function buildCirculation(ctx: Ctx) {
       bx([s - NOSING, s + GOING], [i * RISE - TREAD_T, i * RISE], [0.05, WIDTH], treadMat, true, p)
     }
 
-    // Closed oak string on the open side, and a painted one against the wall. The lower flight's
-    // rail starts a few treads up: its first steps are open to the hall, the way onto the stair.
-    const from = upper ? 0 : OPEN_FOOT
+    // Closed oak string on the open side, and a painted one on the other.
+    const from = 0
     const up = 0.07
     const board = 0.2
     const outer = [
-      [from, nosingLine(from) - board],
+      [from, Math.max(upper ? -Infinity : 0, nosingLine(from) - board)],
       [from, nosingLine(from) + up],
       [RUN, nosingLine(RUN) + up],
       [RUN, nosingLine(RUN) - board],
     ]
     profile(p, outer, [0, 0.03], stringMat)
-    profile(p, [...(upper ? [] : [[(board - RISE) / SLOPE, 0], [0, 0], [0, nosingLine(0) + up]]), ...(upper ? outer : outer.slice(1, 4))], [WIDTH - 0.014, WIDTH], painted)
+    profile(p, outer, [WIDTH - 0.014, WIDTH], painted)
 
     // Balusters at three to the tread, rising from the string to the rail.
     const bar = 0.014
@@ -145,6 +152,7 @@ export function buildCirculation(ctx: Ctx) {
       k.box(p, Math.hypot(RUN - s0, (RUN - s0) * SLOPE), h, d, mat, (s0 + RUN) / 2, nosingLine((s0 + RUN) / 2) + y, z).rotation.z = angle
     }
     along(rail, 0.045, 0.06, RAIL + 0.022, 0.015, from)
+    if (!walled) return
     // The wall rail on round steel brackets.
     along(steel, 0.032, 0.032, RAIL - 0.02, WIDTH - 0.07, 0)
     for (const s of [0.25, RUN / 2, RUN - 0.25]) bx([s - 0.008, s + 0.008], [nosingLine(s) + RAIL - 0.09, nosingLine(s) + RAIL - 0.02], [WIDTH - 0.08, WIDTH - 0.06], steel, true, p)
@@ -157,25 +165,31 @@ export function buildCirculation(ctx: Ctx) {
   }
   flight(LOWER, false, LOWER_N)
   flight(UPPER, true, UPPER_N)
+  flight(TOP, true, TOP_N, false)
 
-  // Starting newel at the foot of the lower flight, a full-height newel at the winders' pivot.
+  // A starting newel at the foot of the stair, and a full-height one at each turn's pivot.
   const newel = (x: number, y0: number, y1: number, z: number) => {
     bx([x - 0.045, x + 0.045], [y0, y1], [z - 0.045 + 0.015, z + 0.045 + 0.015], stained)
     bx([x - 0.055, x + 0.055], [y1, y1 + 0.02], [z - 0.04, z + 0.07], stained)
   }
-  const turnY = GFL + (LOWER_N + 1) * RISE
-  const footX = LANDING.x0 - LOWER_N * GOING + OPEN_FOOT
-  newel(footX, GFL, GFL + nosingLine(OPEN_FOOT) + RAIL + 0.07, LANDING.z0)
-  newel(LANDING.x0, turnY - 0.18, turnY + 3 * RISE + RAIL + 0.07, LANDING.z0)
+  const level = (risers: number) => GFL + risers * RISE
+  const turnY = level(LOWER_N + 1)
+  newel(LANDING.x0 - LOWER_N * GOING - 0.02, GFL, GFL + nosingLine(0) + RAIL + 0.07, LANDING.z0)
+  newel(LANDING.x0, turnY - 0.18, level(AT_TURN + 1) + RAIL + 0.07, LANDING.z0)
+  newel(LANDING.x0, OVER_BATH, level(AT_TOP + 1) + RAIL + 0.07, STAIR_TOP.z)
 
-  // The winders: three treads fanning 30° each about that newel, on a block carried by the two walls.
+  // The winders: each turn's square split on its diagonal, as both plans draw it, into two treads
+  // fanning about the newel, on a block carried by the walls.
   const X = LANDING.x0
   const Z = LANDING.z0
-  const t = Math.tan(PI / 6) * WIDTH
-  const fans = [
-    [[X, Z], [X, Z + WIDTH], [X + t, Z + WIDTH]],
-    [[X, Z], [X + t, Z + WIDTH], [X + WIDTH, Z + WIDTH], [X + WIDTH, Z + t]],
-    [[X, Z], [X + WIDTH, Z + t], [X + WIDTH, Z]],
+  const firstTurn = [
+    [[X, Z], [X, Z + WIDTH], [X + WIDTH, Z + WIDTH]],
+    [[X, Z], [X + WIDTH, Z + WIDTH], [X + WIDTH, Z]],
+  ]
+  const T = STAIR_TOP.z
+  const secondTurn = [
+    [[X, T], [X + WIDTH, T], [X + WIDTH, T - WIDTH]],
+    [[X, T], [X + WIDTH, T - WIDTH], [X, T - WIDTH]],
   ]
   /** A horizontal slab of plan outline, h0 … h1 high. */
   const slab = (outline: number[][], h0: number, h1: number, mat: Material) => {
@@ -189,11 +203,14 @@ export function buildCirculation(ctx: Ctx) {
     mesh.castShadow = mesh.receiveShadow = true
     g.add(mesh)
   }
-  fans.forEach((outline, i) => {
-    const level = turnY + i * RISE
-    slab(outline, turnY - 0.18, level - TREAD_T, painted)
-    slab(outline, level - TREAD_T, level, treadMat)
-  })
+  const winders = (fans: number[][][], first: number, base: number) =>
+    fans.forEach((outline, i) => {
+      const y = level(first + i)
+      if (y - TREAD_T - base > 0.002) slab(outline, base, y - TREAD_T, painted)
+      slab(outline, y - TREAD_T, y, treadMat)
+    })
+  winders(firstTurn, LOWER_N + 1, turnY - 0.18)
+  winders(secondTurn, AT_TURN + UPPER_N + 1, OVER_BATH)
 
   // The first-floor guard round the well, with its foot on the slab's edge, and an oak trim to the edge.
   const guard = ([x0, x1]: R, [z0, z1]: R) => {
@@ -209,13 +226,17 @@ export function buildCirculation(ctx: Ctx) {
       bx([x - 0.007, x + 0.007], [FFL + 0.05, FFL + 0.98], [z - 0.007, z + 0.007], steel)
     }
   }
-  const [up, low] = STAIR_WELL
+  // Round the well, leaving open the top flight's end, where the stair arrives.
+  const [arrival, up, low] = STAIR_WELL
   const gx = up.x[0] - 0.03
-  guard([gx, gx], [up.z[0] + 0.05, up.z[1]])
+  guard([arrival.x[0], arrival.x[1]], [arrival.z[0] - 0.03, arrival.z[0] - 0.03])
+  guard([arrival.x[0], gx], [arrival.z[1] + 0.03, arrival.z[1] + 0.03])
+  guard([gx, gx], [up.z[0] + 0.03, up.z[1]])
   guard([low.x[0] - 0.03, gx], [up.z[1] - 0.03, up.z[1] - 0.03])
   guard([low.x[0] - 0.03, low.x[0] - 0.03], low.z)
   guard([low.x[0] - 0.03, low.x[1]], [low.z[1] + 0.03, low.z[1] + 0.03])
-  newel(gx, FFL, FFL + 1.02, up.z[0] + 0.03)
+  newel(arrival.x[0], FFL, FFL + 1.02, arrival.z[1] + 0.015)
+  newel(arrival.x[0], FFL, FFL + 1.02, arrival.z[0] - 0.045)
 
   // The stair's lamps, lit with the room: a wash from the ceiling and the landing.
   const add = (x: number, y: number, z: number, intensity: number, distance: number) => {
@@ -226,5 +247,5 @@ export function buildCirculation(ctx: Ctx) {
   }
   add(STAIR_HALL.x0 + 1, GFL + 2.6, STAIR_HALL.z0 + 0.7, 6, 6)
   add(LANDING.x0 + 0.45, turnY + 1.2, LANDING.z0 + 0.45, 5, 5)
-  add(LANDING.x0 + 0.5, FFL + 1.7, up.z[0] + 0.5, 4, 5)
+  add(LANDING.x0 + 0.5, FFL + 1.7, up.z[0] - 0.4, 4, 5)
 }

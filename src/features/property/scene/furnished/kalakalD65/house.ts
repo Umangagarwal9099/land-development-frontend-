@@ -85,27 +85,31 @@ export const CORRIDOR: R = [KITCHEN.x0 + KITCHEN.w - 0.785, KITCHEN.x0 + KITCHEN
 /** The stair hall behind the carport, in front of the bathroom: x and z of its floor, stair included. */
 export const STAIR_HALL = { x0: CARPORT[0] - T + 0.115, x1: X1 - T, z0: BATHROOM.z0 + BATHROOM.d + 0.115, z1: CAR_BACK - T }
 /**
- * Eighteen 181 mm risers between the floors, on 250 mm goings, in two flights 900 mm wide: seven
- * treads, three winders turning the corner as on the plan, and seven more. The top of the upper
- * flight passes over the bathroom's front wall, cut down under it.
+ * Eighteen 181 mm risers on 250 mm goings, 1 m wide, read from the ground and first-floor plans
+ * together: four treads along the carport's back wall, two winders in its corner, six up the right
+ * wall, two more winders, and three back towards the middle of the house, over the bathroom, arriving
+ * in the first-floor hall.
  */
-export const STAIR = { risers: 18, rise: (FFL - GFL) / 18, going: 0.25, width: 0.9, lower: 7, winders: 3, upper: 7 }
-/** The winders' square, in the corner of the carport's back wall and the right wall. */
+export const STAIR = { risers: 18, rise: (FFL - GFL) / 18, going: 0.25, width: 1, lower: 4, winders: 2, upper: 6, top: 3 }
+/** The first winders' square, in the corner of the carport's back wall and the right wall. */
 export const LANDING = { x0: STAIR_HALL.x1 - STAIR.width, z0: STAIR_HALL.z1 - STAIR.width }
+/** The second turn: where the upper flight ends, and where the top flight ends (house z and x). */
+export const STAIR_TOP = { z: LANDING.z0 - STAIR.upper * STAIR.going, x: LANDING.x0 - STAIR.top * STAIR.going }
 /**
- * Well through the first-floor slab: over the upper flight and winders, and back along the lower
- * flight as far as its fifth tread, which leaves 2.1 m of headroom under the slab's edge.
+ * Well through the first-floor slab, from the back: over the top flight, the upper flight, and the
+ * first winders with a little of the lower flight, far enough for 2.1 m of headroom under its edge.
  */
 export const STAIR_WELL: { x: R; z: R }[] = [
-  { x: [LANDING.x0, STAIR_HALL.x1], z: [LANDING.z0 - STAIR.upper * STAIR.going, LANDING.z0] },
-  { x: [LANDING.x0 - 0.83, STAIR_HALL.x1], z: [LANDING.z0, STAIR_HALL.z1] },
+  { x: [STAIR_TOP.x, STAIR_HALL.x1], z: [STAIR_TOP.z - STAIR.width, STAIR_TOP.z] },
+  { x: [LANDING.x0, STAIR_HALL.x1], z: [STAIR_TOP.z, LANDING.z0] },
+  { x: [LANDING.x0 - 0.28, STAIR_HALL.x1], z: [LANDING.z0, STAIR_HALL.z1] },
 ]
 /** The bedroom window in the back wall, over the desk beside the wardrobe (house x); its sill clears the desk. */
 const BED_WINDOW: [number, number, number, number] = [BEDROOM.x0 + 2.65, BEDROOM.x0 + 3.45, GFL + 0.95, GFL + 2.3]
-/** The kitchen window in the right wall, centred over the right-hand run: house z, and heights above site ground. */
 /** The bathroom's high ventilator and its shower niche, on the right wall (house z, heights above site ground). */
 const BATH_VENT: Hole = [BATHROOM.z0 + 1.0, BATHROOM.z0 + 1.6, 2.3, 2.85]
 const BATH_NICHE: Hole = [BATHROOM.z0 + 0.45, BATHROOM.z0 + 0.75, GFL + 1.05, GFL + 1.35]
+/** The kitchen window in the left wall, centred over the window-side run: house z, and heights above site ground. */
 const KW_MID = KITCHEN.z0 + (0.6 + (KITCHEN.d - 2.7) + 1.63) / 2
 export const KITCHEN_WINDOW = { z0: KW_MID - 0.3, z1: KW_MID + 0.3, y0: GFL + 1.05, y1: GFL + 2.25 }
 

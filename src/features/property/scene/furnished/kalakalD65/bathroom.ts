@@ -1,6 +1,6 @@
 import { CatmullRomCurve3, DoubleSide, ExtrudeGeometry, FrontSide, Group, LatheGeometry, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, PlaneGeometry, PointLight, Shape, TubeGeometry, Vector2, Vector3, type Material, type MeshStandardMaterialParameters } from 'three'
 import { PI } from '../kit'
-import { BATHROOM, GFL, STAIR, type Ctx } from './house'
+import { BATHROOM, GFL, LANDING, STAIR_TOP, type Ctx } from './house'
 import { cabinet, type Bay } from './cabinets'
 import { circuit, switchPlate, type Circuit } from './fixtures'
 import { herbPot } from './pieces'
@@ -18,7 +18,8 @@ import { bottle, foldedTowels, hungTowel, rolledTowel, soapDish, toiletRoll, too
  *
  * Bathroom frame: X along the back wall from the left (0 … 2.50), Z out from it to the door wall
  * (0 … 1.90), h above the floor. It stands between the bedroom and the stair hall, as on the plan,
- * with the door off the stair hall and the shower on the house's right wall.
+ * with the door off the stair hall and the shower on the house's right wall. The stair's top flight
+ * and second winders pass over its ceiling.
  */
 
 const { w: W, d: D } = BATHROOM
@@ -115,11 +116,13 @@ function shell(B: BC) {
   bx([W, W + 0.1], [N.h0 - 0.012, N.h0], [N.z0, N.z1], m.stone)
   bx([W + 0.006, W + 0.03], [N.h1 - 0.008, N.h1 - 0.002], [N.z0 + 0.02, N.z1 - 0.02], m.led, false)
   bx([0, DOOR[0]], [0, 3.11], [D, D + 0.115], m.wall(0.2, 3))
-  bx(DOOR, [2.1, 3.11], [D, D + 0.115], m.wall(0.8, 1))
-  // Above the ceiling the wall's right-hand end stops under the stair's upper flight.
-  const UNDER_STAIR = W - STAIR.width
-  bx([DOOR[1], UNDER_STAIR], [0, 3.11], [D, D + 0.115], m.wall(0.7, 3))
-  bx([UNDER_STAIR, W + 0.115], [0, 2.98], [D, D + 0.115], m.wall(1, 3))
+  // Over the ceiling, the wall steps down under the stair's top flight and second winders.
+  const UNDER_TOP = STAIR_TOP.x - BATHROOM.x0
+  const UNDER_TURN = LANDING.x0 - BATHROOM.x0
+  bx([DOOR[0], UNDER_TOP], [2.1, 3.11], [D, D + 0.115], m.wall(0.6, 1))
+  bx([UNDER_TOP, DOOR[1]], [2.1, 2.45], [D, D + 0.115], m.wall(0.2, 0.4))
+  bx([DOOR[1], UNDER_TURN], [0, 2.45], [D, D + 0.115], m.wall(0.7, 2.4))
+  bx([UNDER_TURN, W + 0.115], [0, H], [D, D + 0.115], m.wall(1, 2.3))
   bx([DOOR[1], W - T], [0, H], [D - T, D], m.wall(W - DOOR[1], H), false)
   bx([T, DOOR[0]], [0, H], [D - T, D], m.wall(0.2, H), false)
 
