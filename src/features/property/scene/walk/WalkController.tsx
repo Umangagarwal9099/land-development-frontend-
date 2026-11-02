@@ -24,13 +24,14 @@ function describe(o: Object3D): WalkPrompt {
   if (isSwitch(n)) return { verb: (o.userData.on ?? true) ? 'Turn off' : 'Turn on', label: 'Light' }
   if (isSpinner(n)) return { verb: o.userData.on ? 'Stop' : 'Start', label: 'Ceiling Fan' }
   if (n === 'door_main') return { verb, label: 'Main Door' }
-  if (n === 'door_bedroom_entry') return { verb, label: 'Bedroom Door' }
+  if (n === 'door_bedroom_entry' || n === 'door_bed2_entry') return { verb, label: 'Bedroom Door' }
   if (n === 'door_bath_entry') return { verb, label: 'Bathroom Door' }
   if (n === 'door_hall_corridor') return { verb, label: 'Kitchen Door' }
   if (n.startsWith('door_toilet_seat')) return { verb: open ? 'Lower' : 'Lift', label: 'Toilet Seat' }
   if (n.startsWith('door_toilet_lid')) return { verb: open ? 'Lower' : 'Lift', label: 'Toilet Lid' }
-  if (n.startsWith('door_wardrobe')) return { verb, label: 'Wardrobe Loft' }
-  if (n.startsWith('drawer_wardrobe_slider')) return { verb, label: 'Wardrobe' }
+  if (n.startsWith('door_wardrobe') || n.startsWith('door_bed2_loft')) return { verb, label: 'Wardrobe Loft' }
+  if (n.startsWith('drawer_wardrobe_slider') || n.startsWith('drawer_bed2_wardrobe_')) return { verb, label: 'Wardrobe' }
+  if (n.startsWith('drawer_bed2_side') || n.startsWith('drawer_bed2_foot')) return { verb, label: 'Bed Drawer' }
   if (isDrawer(n)) return { verb, label: n.includes('desk') ? 'Desk Drawer' : 'Drawer' }
   if (isDoor(n)) return { verb, label: 'Cupboard' }
   return { verb, label: 'Item' }

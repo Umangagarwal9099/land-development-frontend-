@@ -53,7 +53,7 @@ function box(k: Kit, p: Group, [x0, x1]: [number, number], [y0, y1]: [number, nu
 }
 
 /** Stationery for the drawers: notebooks, a document tray, pens and pencils, sticky notes. */
-function stationery(k: Kit, kind: number) {
+export function stationery(k: Kit, kind: number) {
   const paper = std('#f3f1ec', 0.9)
   const covers = [std('#2f3a44', 0.7), std('#8a6a4f', 0.7), std('#b9b0a2', 0.7), std('#5c4033', 0.7)]
   const pens = [std('#1b1b1d', 0.4, 0.3), std('#b08d57', 0.3, 0.9), std('#2a4a7a', 0.5)]

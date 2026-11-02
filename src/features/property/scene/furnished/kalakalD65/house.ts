@@ -104,6 +104,16 @@ export const STAIR_WELL: { x: R; z: R }[] = [
   { x: [LANDING.x0, STAIR_HALL.x1], z: [STAIR_TOP.z, LANDING.z0] },
   { x: [LANDING.x0 - 0.28, STAIR_HALL.x1], z: [LANDING.z0, STAIR_HALL.z1] },
 ]
+/**
+ * Bedroom 2 (see bedroom2.ts): the first-floor rear room on the stair side, its door wall facing the
+ * head of the stair, at the plan's 3.50 × 3.60 m. Its frame runs from the house's right wall inwards.
+ */
+export const BEDROOM2 = {
+  x1: X1 - T, z0: -7.12 - EXTRA - 3.6, w: 3.5, d: 3.6,
+  /** Across the room's frame. */
+  door: [3.5 - 0.85, 3.5 - 0.1] as R,
+  window: { z: [0.55, 2.05] as R, h: [0.75, 2.35] as R },
+}
 /** The bedroom window in the back wall, over the desk beside the wardrobe (house x); its sill clears the desk. */
 const BED_WINDOW: [number, number, number, number] = [BEDROOM.x0 + 2.65, BEDROOM.x0 + 3.45, GFL + 0.95, GFL + 2.3]
 /** The bathroom's high ventilator and its shower niche, on the right wall (house z, heights above site ground). */
@@ -241,7 +251,10 @@ export function buildShell(ctx: Ctx) {
   holed(k, 'z', [BACK + T, CAR_BACK - T], [0, FFL], [X1 - T, X1], [BATH_NICHE, BATH_VENT], white)
   // The shower's niche is let into the right wall's inner leaf; the outer leaf stays whole.
   bx(k, r, [X1 - 0.115, X1], [BATH_NICHE[2], BATH_NICHE[3]], [BATH_NICHE[0], BATH_NICHE[1]], white)
-  holed(k, 'z', [BACK + T, FACE], [FFL, ROOF], [X1 - T, X1], [[-3.81, -2.95, 5.0, 5.6]], white)
+  const B2 = BEDROOM2
+  holed(k, 'z', [BACK + T, FACE], [FFL, ROOF], [X1 - T, X1], [
+    [B2.z0 + B2.window.z[0], B2.z0 + B2.window.z[1], FFL + B2.window.h[0], FFL + B2.window.h[1]], [-3.81, -2.95, 5.0, 5.6],
+  ], white)
   holed(k, 'x', [X0, X1], [0, ROOF], [BACK, BACK + T], [
     BED_WINDOW, [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97],
   ], white)
@@ -270,7 +283,11 @@ export function buildShell(ctx: Ctx) {
   bx(k, r, [X0, X1], [ROOF, PARAPET], [BACK, BACK + 0.2], white)
 
   // Interior partitions close the visible rooms off from the rest of the plan.
-  bx(k, r, [X0 + T, X1 - T], [FFL, FF_CEIL], [-7.12 - EXTRA, -7.0 - EXTRA], c.interior)
+  // Upstairs, this wall is Bedroom 2's door wall on the stair side, cut for its door.
+  holed(k, 'x', [X0 + T, X1 - T], [FFL, FF_CEIL], [-7.12 - EXTRA, -7.0 - EXTRA], [[B2.x1 - B2.door[1], B2.x1 - B2.door[0], FFL, FFL + 2.1]], c.interior)
+  // Bedroom 2's bed wall and its wall on the middle of the house.
+  bx(k, r, [B2.x1 - B2.w - 0.115, X1 - T], [FFL, FF_CEIL], [B2.z0 - 0.12, B2.z0], c.interior)
+  bx(k, r, [B2.x1 - B2.w - 0.115, B2.x1 - B2.w], [FFL, FF_CEIL], [B2.z0, B2.z0 + B2.d], c.interior)
 }
 
 /** Charcoal frame, ledgestone pier, teak battens, lattice, soffits, door, glazing and lighting. */
@@ -340,6 +357,7 @@ export function buildFacade(ctx: Ctx) {
   glazing(ctx, 'z', [-8.57 - EXTRA, -7.9 - EXTRA], [5.2, 5.8], X0 + 0.1)
   glazing(ctx, 'z', [BATH_VENT[0], BATH_VENT[1]], [BATH_VENT[2], BATH_VENT[3]], X1 - 0.1)
   glazing(ctx, 'z', [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1], [KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], X0 + 0.1, { mullions: [(KITCHEN_WINDOW.z0 + KITCHEN_WINDOW.z1) / 2] })
+  glazing(ctx, 'z', [BEDROOM2.z0 + BEDROOM2.window.z[0], BEDROOM2.z0 + BEDROOM2.window.z[1]], [FFL + BEDROOM2.window.h[0], FFL + BEDROOM2.window.h[1]], X1 - 0.1, { mullions: [BEDROOM2.z0 + (BEDROOM2.window.z[0] + BEDROOM2.window.z[1]) / 2] })
   glazing(ctx, 'z', [-3.81, -2.95], [5.0, 5.6], X1 - 0.1)
 
   // Sheers drawn to the sides, as in the reference.
