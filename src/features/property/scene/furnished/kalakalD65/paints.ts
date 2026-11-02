@@ -447,3 +447,132 @@ export const mirrorReflection: Paint = (g, w, h) => {
     g.fillRect(r() * w, r() * h, 2, 2)
   }
 }
+
+/* ---------- Living and dining finishes ---------- */
+
+/**
+ * Vein-cut travertine (the dining table's top and the coffee table): warm ivory in long bands of
+ * cream, sand and pale honey, with the stone's filled pores and a few darker seams; 1.2 m canvas.
+ */
+export const travertine: Paint = (g, w, h) => {
+  const r = rng(181)
+  g.fillStyle = rgb([226, 214, 194])
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 46; i++) {
+    const y0 = r() * h
+    const th = 2 + r() * 18
+    const tone = [[236, 226, 208], [214, 198, 172], [222, 206, 182], [200, 182, 154], [240, 232, 218]][Math.floor(r() * 5)]
+    const amp = 2 + r() * 6
+    const ph = r() * 6
+    g.fillStyle = `rgba(${tone.join(',')},${0.25 + r() * 0.4})`
+    g.beginPath()
+    for (let x = 0; x <= w; x += 8) {
+      const y = y0 + amp * Math.sin((x / w) * Math.PI * 4 + ph) + 3 * Math.sin((x / w) * Math.PI * 10 + ph * 2)
+      if (x === 0) g.moveTo(x, y)
+      else g.lineTo(x, y)
+    }
+    for (let x = w; x >= 0; x -= 8) g.lineTo(x, y0 + th + amp * Math.sin((x / w) * Math.PI * 4 + ph + 0.4) + 3 * Math.sin((x / w) * Math.PI * 10 + ph * 2))
+    g.fill()
+  }
+  for (let i = 0; i < 9; i++) {
+    const y0 = r() * h
+    g.strokeStyle = `rgba(150,124,92,${0.2 + r() * 0.3})`
+    g.lineWidth = 0.6 + r() * 1.2
+    g.beginPath()
+    const ph = r() * 6
+    for (let x = 0; x <= w; x += 6) {
+      const y = y0 + 4 * Math.sin((x / w) * Math.PI * 4 + ph) + (r() - 0.5) * 1.5
+      if (x === 0) g.moveTo(x, y)
+      else g.lineTo(x, y)
+    }
+    g.stroke()
+  }
+  for (let i = 0; i < 900; i++) {
+    g.fillStyle = `rgba(${r() < 0.6 ? '176,156,126' : '246,240,228'},${0.25 + r() * 0.35})`
+    g.beginPath()
+    g.ellipse(r() * w, r() * h, 0.6 + r() * 3, 0.4 + r() * 0.9, (r() - 0.5) * 0.3, 0, 7)
+    g.fill()
+  }
+}
+
+/** Hand-tufted wool rug in oatmeal: a soft heathered pile with faint tonal mottling; canvas 0.8 m. */
+export const woolRug: Paint = (g, w, h) => {
+  const r = rng(191)
+  g.fillStyle = rgb([214, 202, 184])
+  g.fillRect(0, 0, w, h)
+  for (let i = 0; i < 40; i++) {
+    const gr = g.createRadialGradient(r() * w, r() * h, 0, r() * w, r() * h, 20 + r() * 60)
+    gr.addColorStop(0, `rgba(${r() < 0.5 ? '232,222,206' : '196,182,160'},.35)`)
+    gr.addColorStop(1, 'rgba(0,0,0,0)')
+    g.fillStyle = gr
+    g.fillRect(0, 0, w, h)
+  }
+  for (let i = 0; i < 14000; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '245,238,226' : '170,154,130'},${r() * 0.35})`
+    g.fillRect(r() * w, r() * h, 1, 1 + r() * 1.5)
+  }
+}
+
+/** Vertical light-oak slats on a dark shadow gap, 45 mm boards at 60 mm; the canvas is 0.6 m. */
+export const oakSlats: Paint = (g, w, h) => {
+  const r = rng(193)
+  g.fillStyle = '#2a2018'
+  g.fillRect(0, 0, w, h)
+  const n = 10
+  const pitch = w / n
+  for (let i = 0; i < n; i++) {
+    const x = i * pitch
+    g.fillStyle = rgb([190 + (r() - 0.5) * 18, 146 + (r() - 0.5) * 14, 104 + (r() - 0.5) * 12])
+    g.fillRect(x + pitch * 0.12, 0, pitch * 0.76, h)
+    for (let j = 0; j < 22; j++) {
+      g.strokeStyle = `rgba(${r() < 0.5 ? '120,80,48' : '214,172,124'},${0.15 + r() * 0.25})`
+      g.lineWidth = 0.5 + r()
+      const gx = x + pitch * 0.14 + r() * pitch * 0.72
+      g.beginPath()
+      g.moveTo(gx, 0)
+      for (let y = 0; y <= h; y += 16) g.lineTo(gx + Math.sin(y / 40 + j) * 1.2, y)
+      g.stroke()
+    }
+    const sh = g.createLinearGradient(x + pitch * 0.12, 0, x + pitch * 0.88, 0)
+    sh.addColorStop(0, 'rgba(40,24,12,.35)')
+    sh.addColorStop(0.15, 'rgba(0,0,0,0)')
+    sh.addColorStop(0.85, 'rgba(0,0,0,0)')
+    sh.addColorStop(1, 'rgba(40,24,12,.35)')
+    g.fillStyle = sh
+    g.fillRect(x + pitch * 0.12, 0, pitch * 0.76, h)
+  }
+}
+
+/**
+ * Abstract canvas for the dining wall, after the board's E2 elevation: soft overlapping fields
+ * of sand, taupe and ivory with a few dry-brushed dark strokes; painted on the whole canvas.
+ */
+export const abstractArt: Paint = (g, w, h) => {
+  const r = rng(211)
+  g.fillStyle = rgb([232, 224, 211])
+  g.fillRect(0, 0, w, h)
+  const field = (c: number[], x: number, y: number, rw: number, rh: number, a: number) => {
+    g.fillStyle = `rgba(${c.join(',')},${a})`
+    g.beginPath()
+    g.ellipse(x * w, y * h, rw * w, rh * h, (r() - 0.5) * 0.6, 0, 7)
+    g.fill()
+  }
+  field([196, 176, 150], 0.32, 0.55, 0.3, 0.38, 0.75)
+  field([150, 128, 108], 0.62, 0.42, 0.22, 0.3, 0.6)
+  field([238, 232, 222], 0.5, 0.6, 0.16, 0.22, 0.7)
+  field([120, 100, 84], 0.75, 0.68, 0.12, 0.14, 0.45)
+  for (let i = 0; i < 2600; i++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '255,250,240' : '90,74,60'},${r() * 0.08})`
+    g.fillRect(r() * w, r() * h, 2, 2)
+  }
+  g.strokeStyle = 'rgba(52,44,38,.7)'
+  for (let i = 0; i < 3; i++) {
+    g.lineWidth = 2 + r() * 3
+    g.beginPath()
+    const x0 = (0.2 + r() * 0.5) * w
+    const y0 = (0.2 + r() * 0.5) * h
+    g.moveTo(x0, y0)
+    g.bezierCurveTo(x0 + r() * w * 0.3, y0 - r() * h * 0.2, x0 + r() * w * 0.2, y0 + r() * h * 0.3, x0 + (r() - 0.3) * w * 0.4, y0 + r() * h * 0.2)
+    g.stroke()
+  }
+}

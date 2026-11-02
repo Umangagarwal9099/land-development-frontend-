@@ -1,4 +1,4 @@
-import { DoubleSide, Group, LatheGeometry, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, SphereGeometry, TorusGeometry, Vector2, type BufferGeometry, type Material, type Object3D } from 'three'
+import { DoubleSide, ExtrudeGeometry, Group, LatheGeometry, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Shape, SphereGeometry, TorusGeometry, Vector2, type BufferGeometry, type Material, type Object3D } from 'three'
 import type { Kit } from '../kit'
 
 /*
@@ -26,7 +26,7 @@ type Piece = keyof typeof PROFILES
 const store = new WeakMap<Kit, { geo: Map<string, BufferGeometry>; mats: ReturnType<typeof makeMaterials> }>()
 
 function makeMaterials() {
-  return {
+  const m = {
     // Glazed porcelain: warm white with a glassy clearcoat.
     porcelain: new MeshPhysicalMaterial({ color: '#f4f1eb', roughness: 0.32, clearcoat: 0.8, clearcoatRoughness: 0.12 }),
     // Reactive-glaze stoneware in charcoal and in oatmeal, for the mugs and bowls.
@@ -36,6 +36,9 @@ function makeMaterials() {
     // Brushed stainless: a touch rough, so it reads as steel rather than mirror in a dim room.
     steel: new MeshStandardMaterial({ color: '#d7dadd', roughness: 0.32, metalness: 0.85 }),
   }
+  // Glassware stands apart on shelves and tables, so it can be merged without sorting artefacts.
+  m.glass.userData.mergeable = true
+  return m
 }
 
 function lib(k: Kit) {
@@ -318,4 +321,118 @@ export function utensilLying(k: Kit, parent: Object3D, x: number, y: number, z: 
       fan.add(loop)
     }
   return u
+}
+
+/* ---------- Cutlery and place settings ---------- */
+
+/**
+ * Table cutlery as real flatware: each piece's outline in plan (stamped from 2.4 mm stock, with
+ * softened edges), lying along +z from its handle end, and bent as forged pieces are: the handle
+ * lifts off the table, and the spoon's bowl is dished. 205 mm fork, 230 mm knife, 200 mm spoon.
+ */
+function cutleryGeometry(kind: 'fork' | 'knife' | 'spoon'): BufferGeometry {
+  const s = new Shape()
+  const half: [number, number][] =
+    kind === 'knife'
+      ? [[0, 0.0045], [0.01, 0.0072], [0.09, 0.0068], [0.1, 0.0045], [0.108, 0.0052], [0.115, 0.0095], [0.19, 0.0098], [0.218, 0.0075], [0.23, 0.0]]
+      : kind === 'spoon'
+        ? [[0, 0.0055], [0.012, 0.0078], [0.075, 0.0062], [0.118, 0.0028], [0.128, 0.0045], [0.142, 0.0135], [0.165, 0.0185], [0.186, 0.016], [0.197, 0.009], [0.2, 0.0]]
+        : [[0, 0.0055], [0.012, 0.0078], [0.075, 0.0062], [0.118, 0.0028], [0.13, 0.0045], [0.15, 0.0118], [0.16, 0.0122]]
+  const pts: [number, number][] = half.map(([z, w]) => [w, z])
+  if (kind === 'fork') {
+    // Four tines with three slots, 38 mm long, from the head's shoulder.
+    const z0 = 0.165
+    const z1 = 0.205
+    const hw = 0.0122
+    const tine = (2 * hw) / 7
+    pts.push([hw, z0])
+    for (let i = 0; i < 4; i++) {
+      const xr = hw - i * 2 * tine
+      pts.push([xr, z1 - 0.003], [xr - tine * 0.5, z1], [xr - tine, z1 - 0.003])
+      if (i < 3) pts.push([xr - tine, z0 + 0.004], [xr - 2 * tine, z0 + 0.004])
+    }
+    for (const [z, w] of [...half].reverse()) pts.push([-w, z])
+  } else for (const [z, w] of [...half].reverse().slice(1)) pts.push([-w, z])
+  s.moveTo(pts[0][0], pts[0][1])
+  for (const [x, y] of pts.slice(1)) s.lineTo(x, y)
+  s.closePath()
+  const g = new ExtrudeGeometry(s, { depth: 0.0016, bevelEnabled: true, bevelThickness: 0.0004, bevelSize: 0.0004, bevelSegments: 1, curveSegments: 4, steps: 1 })
+  // Shape (x, y) → plan (x, z); the extrusion runs down, so lift it to stand on y = 0.
+  g.rotateX(Math.PI / 2)
+  g.translate(0, 0.0024, 0)
+  const p = g.attributes.position
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i)
+    const z = p.getZ(i)
+    let y = p.getY(i)
+    // The handle end rises a few millimetres; the working end lies on the table.
+    y += 0.006 * Math.pow(Math.max(0, 1 - z / 0.1), 2)
+    if (kind === 'spoon' && z > 0.13) {
+      const u = (z - 0.168) / 0.034
+      const v = x / 0.0185
+      y += 0.0055 * Math.max(0, 1 - u * u - v * v)
+    }
+    if (kind === 'fork' && z > 0.15) y += 0.004 * ((z - 0.15) / 0.055) ** 2
+    p.setY(i, y)
+  }
+  g.computeVertexNormals()
+  return g
+}
+
+function piece(k: Kit, parent: Object3D, kind: 'fork' | 'knife' | 'spoon', x: number, y: number, z: number, ry = 0) {
+  const m = new Mesh(geometry(k, kind, () => cutleryGeometry(kind)), lib(k).mats.steel)
+  m.position.set(x, y, z)
+  m.rotation.y = ry
+  m.castShadow = true
+  parent.add(m)
+  return m
+}
+
+const linen = new WeakMap<Kit, Material>()
+
+/**
+ * One place at a dining table: dinner plate with a linen napkin rolled in a ring on it, a side
+ * plate, fork on the left, knife (blade in) and spoon on the right, a water glass and a wine
+ * glass above the knife (`compact`: no side plate or wine glass, for the ends of a table).
+ * Built facing +z (the diner sits at +z), on the tabletop at y.
+ */
+export function placeSetting(k: Kit, parent: Object3D, x: number, y: number, z: number, ry: number, ring: Material, compact = false) {
+  const g = new Group()
+  g.position.set(x, y, z)
+  g.rotation.y = ry
+  parent.add(g)
+  plates(k, g, 0, 0, 0, 1)
+  if (!compact) plates(k, g, -0.215, 0, -0.17, 1, 'side')
+  // Handles towards the diner (+z): turned half round from their build axis.
+  piece(k, g, 'fork', -0.165, 0, 0.11, Math.PI)
+  piece(k, g, 'knife', 0.158, 0, 0.12, Math.PI)
+  piece(k, g, 'spoon', 0.192, 0, 0.11, Math.PI)
+  turned(k, g, 'tumbler', lib(k).mats.glass, compact ? 0.17 : 0.24, 0, compact ? -0.19 : -0.17)
+  if (!compact) turned(k, g, 'wine', lib(k).mats.glass, 0.15, 0, -0.215)
+  let mat = linen.get(k)
+  if (!mat) linen.set(k, (mat = new MeshStandardMaterial({ color: '#ddd3c3', roughness: 0.95 })))
+  const roll = new Mesh(geometry(k, 'napkin', () => new LatheGeometry(P([[0, -0.095], [0.016, -0.093], [0.0185, -0.07], [0.017, 0.0], [0.0185, 0.07], [0.016, 0.093], [0, 0.095]]), 16)), mat)
+  roll.rotation.set(0, 0.5, Math.PI / 2)
+  roll.position.set(0, 0.0275, 0)
+  roll.castShadow = true
+  g.add(roll)
+  const band = new Mesh(geometry(k, 'napkinRing', () => new TorusGeometry(0.021, 0.0035, 8, 24)), ring)
+  band.rotation.set(0, 0.5 + Math.PI / 2, 0)
+  band.position.set(0, 0.0275, 0)
+  band.castShadow = true
+  g.add(band)
+  return g
+}
+
+/** A wide, low stoneware serving bowl with a turned foot, in oatmeal glaze. */
+export function servingBowl(k: Kit, parent: Object3D, x: number, y: number, z: number, s = 1) {
+  const m = new Mesh(
+    geometry(k, 'servingBowl', () => new LatheGeometry(P([[0, 0.0], [0.05, 0.0], [0.055, 0.008], [0.1, 0.035], [0.13, 0.07], [0.135, 0.078], [0.129, 0.079], [0.124, 0.07], [0.095, 0.038], [0.05, 0.014], [0, 0.013]]), 56)),
+    lib(k).mats.oatmeal,
+  )
+  m.position.set(x, y, z)
+  m.scale.setScalar(s)
+  m.castShadow = m.receiveShadow = true
+  parent.add(m)
+  return m
 }

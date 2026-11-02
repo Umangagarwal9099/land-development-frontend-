@@ -168,3 +168,112 @@ export function pottedPothos(k: Kit, parent: Object3D, x: number, y: number, z: 
   }
   return g
 }
+
+/*
+ * A fiddle-leaf fig (Ficus lyrata) in a tall planter, the board's floor plant: a slender trunk that
+ * forks into two leaders, carrying big glossy leaves in a loose spiral up its upper two-thirds.
+ * Each leaf is violin-shaped (broad and rounded at the tip, waisted, narrowing to the stalk),
+ * cupped along its midrib, with a wavy edge and pale veins.
+ */
+
+/** One fiddle leaf along +z from its stalk, 1 unit long. */
+function fiddleGeometry(seed: number): BufferGeometry {
+  const r = rng(seed)
+  const cup = 0.12 + r() * 0.1
+  const droop = 0.08 + r() * 0.12
+  const nu = 16
+  const nv = 10
+  const pos: number[] = []
+  const uv: number[] = []
+  for (let i = 0; i <= nu; i++) {
+    const u = i / nu
+    const waist = 1 - 0.13 * Math.exp(-(((u - 0.5) / 0.13) ** 2))
+    const hw = 0.42 * (0.28 + 0.72 * Math.pow(u, 0.7)) * Math.pow(Math.sin(Math.PI * Math.min(1, u * 0.96 + 0.04)), 0.32) * waist
+    for (let j = 0; j <= nv; j++) {
+      const v = (j / nv) * 2 - 1
+      const x = v * hw
+      const y = Math.abs(v) * hw * cup - u * u * droop + 0.012 * Math.sin(u * 23 + v * 2) * Math.abs(v)
+      pos.push(x, y, u)
+      uv.push((v + 1) / 2, u)
+    }
+  }
+  const idx: number[] = []
+  for (let i = 0; i < nu; i++)
+    for (let j = 0; j < nv; j++) {
+      const a = i * (nv + 1) + j
+      idx.push(a, a + nv + 1, a + 1, a + 1, a + nv + 1, a + nv + 2)
+    }
+  const g = new BufferGeometry()
+  g.setAttribute('position', new Float32BufferAttribute(pos, 3))
+  g.setAttribute('uv', new Float32BufferAttribute(uv, 2))
+  g.setIndex(idx)
+  g.computeVertexNormals()
+  return g
+}
+
+const figCache = new WeakMap<Kit, { leaves: BufferGeometry[]; mats: Material[]; bark: Material; soil: Material; pot: BufferGeometry }>()
+
+function figAssets(k: Kit) {
+  let a = figCache.get(k)
+  if (a) return a
+  const glossy = (tone: number[], seed: number) =>
+    new MeshPhysicalMaterial({ map: k.tex.painted(128, 256, leafPaint(tone, seed)), roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.25, side: DoubleSide })
+  a = {
+    leaves: [21, 22, 23, 24].map(fiddleGeometry),
+    mats: [glossy([44, 78, 36], 31), glossy([56, 92, 42], 32), glossy([38, 68, 32], 33)],
+    bark: new MeshStandardMaterial({ color: '#6e6352', roughness: 0.9 }),
+    soil: assets(k).soil,
+    // A tall, slightly tapered planter with a thick rim, 1 unit tall.
+    pot: new LatheGeometry([[0, 0], [0.4, 0], [0.42, 0.02], [0.5, 0.96], [0.5, 1], [0.46, 1], [0.455, 0.95], [0.38, 0.08], [0, 0.08]].map(([x, y]) => new Vector2(x, y)), 48),
+  }
+  figCache.set(k, a)
+  return a
+}
+
+/** A fiddle-leaf fig standing at (x, y, z), about 1.75 m tall at `s` = 1, in a 0.42 m planter. */
+export function fiddleLeafFig(k: Kit, parent: Object3D, x: number, y: number, z: number, s: number, pot: Material, seed = 1) {
+  const { leaves, mats, bark, soil, pot: potGeo } = figAssets(k)
+  const r = rng(seed * 53 + 11)
+  const g = new Group()
+  g.position.set(x, y, z)
+  g.rotation.y = r() * Math.PI * 2
+  parent.add(g)
+  const ph = 0.42 * s
+  const pr = 0.17 * s
+  const p = new Mesh(potGeo, pot)
+  p.scale.set(pr * 2, ph, pr * 2)
+  p.castShadow = p.receiveShadow = true
+  g.add(p)
+  const top = ph * 0.93
+  const dirt = new Mesh(new LatheGeometry([new Vector2(0, 0.006), new Vector2(pr * 0.9, 0), new Vector2(pr * 0.9, -0.002)], 28), soil)
+  dirt.position.y = top
+  g.add(dirt)
+  // The trunk rises with a gentle lean and forks at about two-thirds of its height.
+  const fork = new Vector3(0.03 * s, top + 0.75 * s, 0.01 * s)
+  const trunk = new CatmullRomCurve3([new Vector3(0, top, 0), new Vector3(0.02 * s, top + 0.4 * s, -0.01 * s), fork])
+  g.add(new Mesh(new TubeGeometry(trunk, 12, 0.014 * s, 8, false), bark))
+  const leaders = [
+    new CatmullRomCurve3([fork, new Vector3(-0.06 * s, top + 1.0 * s, 0.03 * s), new Vector3(-0.1 * s, top + 1.3 * s, 0.02 * s)]),
+    new CatmullRomCurve3([fork, new Vector3(0.12 * s, top + 0.95 * s, -0.04 * s), new Vector3(0.16 * s, top + 1.2 * s, -0.08 * s)]),
+  ]
+  for (const c of leaders) g.add(new Mesh(new TubeGeometry(c, 10, 0.009 * s, 7, false), bark))
+  // Leaves in a spiral (the 137.5° phyllotaxis angle) up the trunk's upper part and both leaders,
+  // held out and well up, blade facing outwards.
+  let n = 0
+  const place = (curve: CatmullRomCurve3, from: number, count: number, size: number) => {
+    for (let i = 0; i < count; i++) {
+      const t = from + ((1 - from) * (i + 0.5)) / count
+      const leaf = new Mesh(leaves[n % leaves.length], mats[n % mats.length])
+      leaf.position.copy(curve.getPoint(t))
+      leaf.scale.setScalar((size + r() * 0.06) * s * (1 - 0.25 * t))
+      leaf.rotation.set(-0.95 + r() * 0.45, n * 2.4 + r() * 0.4, (r() - 0.5) * 0.5, 'YXZ')
+      leaf.castShadow = true
+      g.add(leaf)
+      n++
+    }
+  }
+  place(trunk, 0.4, 9, 0.3)
+  place(leaders[0], 0.02, 12, 0.28)
+  place(leaders[1], 0.02, 11, 0.28)
+  return g
+}

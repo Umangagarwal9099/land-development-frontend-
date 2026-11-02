@@ -35,7 +35,9 @@ export function mergeStatic(root: Group) {
     for (const child of o.children) visit(child)
     if (!(o instanceof Mesh) || Array.isArray(o.material) || !o.visible) return
     const material = o.material as Material
-    if (material.transparent || o.renderOrder !== 0 || o.geometry.morphAttributes.position) return
+    // Transparent pieces normally stay separate so they sort; small ones that never overlap (glassware
+    // standing on shelves and tables) opt in with `userData.mergeable` and merge like the rest.
+    if ((material.transparent && !material.userData.mergeable) || o.renderOrder !== 0 || o.geometry.morphAttributes.position) return
     const g = o.geometry.clone()
     for (const name of Object.keys(g.attributes)) if (!(KEEP as readonly string[]).includes(name)) g.deleteAttribute(name)
     if (!g.attributes.normal) g.computeVertexNormals()

@@ -37,6 +37,12 @@ function roomVolume(hotspot: Box3): Box3 {
   return b
 }
 
+/** A composed first view of a room: where the camera stands and what it looks at. */
+export interface EntryView {
+  from: Vector3
+  to: Vector3
+}
+
 /** The space an indoor camera may move in: the room's interior, held off its walls, floor and ceiling. */
 function cameraSpace(room: Box3): Box3 {
   const b = room.clone().expandByVector(new Vector3(-CAMERA_RADIUS, 0, -CAMERA_RADIUS))
@@ -49,7 +55,13 @@ function cameraSpace(room: Box3): Box3 {
  * Stands the camera inside the room at eye height, turning around the room's centre: orbiting
  * then looks around the room 360°. Outdoors, zooming out rises to an overview.
  */
-async function enterRoom(controls: CameraControls, volume: Box3, focus: Box3, smoothTime: number, outdoor: boolean, view?: 'overview' | 'eye') {
+async function enterRoom(controls: CameraControls, volume: Box3, focus: Box3, smoothTime: number, outdoor: boolean, view?: 'overview' | 'eye', eye?: EntryView) {
+  if (eye) {
+    controls.smoothTime = smoothTime
+    await settle(Promise.all([controls.setLookAt(eye.from.x, eye.from.y, eye.from.z, eye.to.x, eye.to.y, eye.to.z, true), controls.setFocalOffset(0, 0, 0, true)]), 2500)
+    controls.smoothTime = BASE_SMOOTH_TIME
+    return
+  }
   const c = focus.getCenter(new Vector3())
   const floorY = volume.min.y + 0.14
   const half = Math.min(focus.max.x - focus.min.x, focus.max.z - focus.min.z) / 2
@@ -86,6 +98,8 @@ export function RoomSection({
   site,
   outdoor = false,
   view,
+  eye,
+  reveal,
 }: {
   room: Box3 | null
   focus: Box3 | null
@@ -93,6 +107,10 @@ export function RoomSection({
   outdoor?: boolean
   /** Set by the hotspot: open from a raised overview, or standing at eye level. */
   view?: 'overview' | 'eye'
+  /** Set by the hotspot: a composed entry view, instead of standing in the room's middle. */
+  eye?: EntryView
+  /** Set by the hotspot: space beyond the room kept in the cut (not walkable), such as a passage. */
+  reveal?: Box3
 }) {
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
@@ -154,7 +172,7 @@ export function RoomSection({
     }
   })
 
-  const volume = useMemo(() => (room ? roomVolume(room) : null), [room])
+  const volume = useMemo(() => (room ? roomVolume(reveal ? room.clone().union(reveal) : room) : null), [room, reveal])
   // Indoors, an invisible inside-out box at the camera's limits: camera-controls casts from the
   // pivot through the corners of the near plane and pulls the camera in to the first hit, so
   // orbiting, panning and zooming (wheel or pinch) all stop at the walls, at any distance.
@@ -184,7 +202,7 @@ export function RoomSection({
       if (!saved.current)
         saved.current = { fov: camera.fov, min: controls.minDistance, max: controls.maxDistance, polar: controls.maxPolarAngle, home: stage.home }
       const sphere = volume.getBoundingSphere(new Sphere())
-      const frame = (smoothTime: number) => enterRoom(controls, volume, focus ?? volume, smoothTime, outdoor, view)
+      const frame = (smoothTime: number) => enterRoom(controls, volume, focus ?? volume, smoothTime, outdoor, view, eye)
 
       controls.minDistance = 0.3
       // Inside a room, zoom straight along the view rather than towards the cursor: the target

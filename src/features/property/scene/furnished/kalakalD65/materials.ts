@@ -1,13 +1,13 @@
 import { DoubleSide, MeshPhysicalMaterial, MeshStandardMaterial, Vector2, type MeshStandardMaterialParameters } from 'three'
 import type { Kit } from '../kit'
 import { tiledMat, type Lighting } from '../shared'
-import { asphalt, bathWall, creamMarble, exteriorPaint, foliage, herringbone, ledgestone, lightOak, oakFloor, pavers, porcelain, teak, trellisRug, walnut, whiteMarble } from './paints'
+import { asphalt, bathWall, creamMarble, exteriorPaint, foliage, herringbone, ledgestone, lightOak, oakFloor, oakSlats, pavers, porcelain, teak, travertine, trellisRug, walnut, whiteMarble, woolRug } from './paints'
 
 const std = (p: MeshStandardMaterialParameters) => new MeshStandardMaterial({ roughness: 0.8, ...p })
 const hexRgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
 
 /** Real-world size, in metres, of one tile of each painted surface. */
-const TILE = { stone: 0.6, teak: 0.6, pavers: 2.4, asphalt: 4, white: 2, greige: 2, porcelain: 2.4, splash: 1.2, oak: 0.6, walnut: 0.6, oakFloor: 2.4, marbleWhite: 1.2, rug: 0.8, bathWall: 2.4, herringbone: 0.424 } as const
+const TILE = { stone: 0.6, teak: 0.6, pavers: 2.4, asphalt: 4, white: 2, greige: 2, porcelain: 2.4, splash: 1.2, oak: 0.6, walnut: 0.6, oakFloor: 2.4, marbleWhite: 1.2, rug: 0.8, bathWall: 2.4, herringbone: 0.424, travertine: 1.2, woolRug: 0.8, oakSlats: 0.6 } as const
 type Surface = keyof typeof TILE
 
 const PAINTS = {
@@ -26,6 +26,9 @@ const PAINTS = {
   rug: trellisRug,
   bathWall,
   herringbone,
+  travertine,
+  woolRug,
+  oakSlats,
 }
 
 const PARAMS: Record<Surface, MeshStandardMaterialParameters> = {
@@ -44,6 +47,9 @@ const PARAMS: Record<Surface, MeshStandardMaterialParameters> = {
   rug: { roughness: 1 },
   bathWall: { roughness: 0.62 },
   herringbone: { roughness: 0.45 },
+  travertine: { roughness: 0.42 },
+  woolRug: { roughness: 1 },
+  oakSlats: { roughness: 0.6 },
 }
 
 /** The residence's finishes, matched to the reference elevation. */

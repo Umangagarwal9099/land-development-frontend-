@@ -98,6 +98,23 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
     return box
   }, [selectedObject, root])
 
+  // A hotspot can compose its own entry view (camera and target, in its parent's frame), for a
+  // room whose best first look isn't from its middle, such as either end of an open-plan hall.
+  const entryView = useMemo(() => {
+    const e = selectedObject?.userData.eye as { from: number[]; to: number[] } | undefined
+    if (!e || !selectedObject?.parent) return undefined
+    selectedObject.parent.updateWorldMatrix(true, false)
+    return { from: selectedObject.parent.localToWorld(new Vector3().fromArray(e.from)), to: selectedObject.parent.localToWorld(new Vector3().fromArray(e.to)) }
+  }, [selectedObject])
+
+  // It can also name a space beyond its room to keep uncut (a passage seen through an opening).
+  const revealBox = useMemo(() => {
+    const r = selectedObject?.userData.reveal as { min: number[]; max: number[] } | undefined
+    if (!r || !selectedObject?.parent) return undefined
+    selectedObject.parent.updateWorldMatrix(true, false)
+    return new Box3().setFromPoints([selectedObject.parent.localToWorld(new Vector3().fromArray(r.min)), selectedObject.parent.localToWorld(new Vector3().fromArray(r.max))])
+  }, [selectedObject])
+
   // Where to stand in the room: the largest floor area of the hotspot, so a suite whose hotspot
   // also covers its dressing room is entered from the bedroom, not from the wall between them.
   const focusBox = useMemo(() => {
@@ -105,7 +122,8 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
     let best: Box3 | null = null
     let bestArea = 0
     for (const child of selectedObject.children) {
-      if (!(child instanceof Mesh)) continue
+      // Hidden children only widen the room's space (an open-plan room's whole hall), not where to stand.
+      if (!(child instanceof Mesh) || !child.visible) continue
       const b = new Box3().setFromObject(child)
       const area = (b.max.x - b.min.x) * (b.max.z - b.min.z)
       if (area > bestArea) [best, bestArea] = [b, area]
@@ -245,6 +263,8 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
         site={site}
         outdoor={selectedRoom?.kind === 'outdoor'}
         view={selectedObject?.userData.view as 'overview' | 'eye' | undefined}
+        eye={entryView}
+        reveal={roomViewId ? revealBox : undefined}
       />
 
       {/* In the room viewer its title names the room instead. */}

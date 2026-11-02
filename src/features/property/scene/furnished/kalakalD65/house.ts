@@ -21,7 +21,7 @@ export interface Ctx {
  *   overall façade 7.62 m (25′) wide · top of the charcoal frame +7.90 m · parapet +7.09 m
  *   ground floor +0.61 m (three risers) · first floor +3.87 m · first-floor ceiling +6.52 m
  *
- * Depth comes from the plans (13.14 m to the rear wall). The plans and the render are mirror
+ * Depth comes from the plans (13.14 m to the rear wall; now 1.8 m deeper, see DEPTH). The plans and the render are mirror
  * images; the render governs, so the carport is on the right (+x) looking from the road.
  * House frame: x across the front (−3.81 … 3.81), +z towards the road, y up from site ground.
  */
@@ -31,7 +31,13 @@ type R = [number, number]
 export const W = 7.62
 const X0 = -W / 2
 const X1 = W / 2
-export const DEPTH = 13.14
+/**
+ * Depth to the rear wall: the plans' 13.14 m, plus 1.8 m taken from the rear yard to give the
+ * living and dining hall more room (as far as the rear boundary wall allows, leaving a 120 mm
+ * gap). Everything behind the hall moves back with the rear wall.
+ */
+const EXTRA = 1.8
+export const DEPTH = 13.14 + EXTRA
 const BACK = -DEPTH
 export const GFL = 0.61
 export const FFL = 3.87
@@ -65,7 +71,9 @@ export const KITCHEN = { x0: X1 - T - 3.4, z0: BACK + T, w: 3.4, d: 3.7, h: 2.5 
 /** Bedroom 1 (see bedroom.ts): 6.60 m along the left wall from the back wall forwards, its bed wall the reference's 5.20 m. */
 export const BEDROOM = { x0: X0 + T, z0: BACK + T + 6.6, w: KITCHEN.x0 - 0.115 - (X0 + T), l: 6.6 }
 /** The ground-floor bathroom (see bathroom.ts): its back wall is the divider in front of the kitchen. */
-export const BATHROOM = { x0: KITCHEN.x0, z0: -8.5, w: 2.5, d: 1.9 }
+export const BATHROOM = { x0: KITCHEN.x0, z0: -8.5 - EXTRA, w: 2.5, d: 1.9 }
+/** The open living and dining hall: from the left wall to the carport wall, the bedroom's front wall to the façade. */
+export const HALL = { x0: X0 + T, z0: BEDROOM.z0 + 0.115, w: CARPORT[0] - T - (X0 + T), d: FACE - T - (BEDROOM.z0 + 0.115) }
 /** The bedroom window in the back wall, over the desk beside the wardrobe (house x); its sill clears the desk. */
 const BED_WINDOW: [number, number, number, number] = [BEDROOM.x0 + 2.65, BEDROOM.x0 + 3.45, GFL + 0.95, GFL + 2.3]
 /** The kitchen window in the right wall, centred over the right-hand run: house z, and heights above site ground. */
@@ -181,8 +189,8 @@ export function buildShell(ctx: Ctx) {
   }
 
   // Sides and back. Openings follow the floor plans (toilet ventilators, dining and bedroom windows).
-  holed(k, 'z', [BACK, FACE - T], [0, ROOF], [X0, X0 + T], [[-5.9, -4.7, 1.31, 2.71], [-8.57, -7.9, 5.2, 5.8]], white)
-  holed(k, 'z', [BACK + T, CAR_BACK - T], [0, FFL], [X1 - T, X1], [[-8.76, -8.1, 2.3, 2.9], [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1, KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1]], white)
+  holed(k, 'z', [BACK, FACE - T], [0, ROOF], [X0, X0 + T], [[-5.55 - EXTRA, -4.35 - EXTRA, 1.31, 2.71], [-8.57 - EXTRA, -7.9 - EXTRA, 5.2, 5.8]], white)
+  holed(k, 'z', [BACK + T, CAR_BACK - T], [0, FFL], [X1 - T, X1], [[-8.76 - EXTRA, -8.1 - EXTRA, 2.3, 2.9], [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1, KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1]], white)
   holed(k, 'z', [BACK + T, FACE], [FFL, ROOF], [X1 - T, X1], [[-3.81, -2.95, 5.0, 5.6]], white)
   holed(k, 'x', [X0, X1], [0, ROOF], [BACK, BACK + T], [
     BED_WINDOW, [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97],
@@ -213,8 +221,8 @@ export function buildShell(ctx: Ctx) {
 
   // Interior partitions close the visible rooms off from the rest of the plan.
   // The bedroom closes off the left of the back zone; this divider closes the kitchen side.
-  bx(k, r, [KITCHEN.x0, X1 - T], [GFL, GF_CEIL], [-8.62, -8.5], c.interior)
-  bx(k, r, [X0 + T, X1 - T], [FFL, FF_CEIL], [-7.12, -7.0], c.interior)
+  bx(k, r, [KITCHEN.x0, X1 - T], [GFL, GF_CEIL], [BATHROOM.z0 - 0.12, BATHROOM.z0], c.interior)
+  bx(k, r, [X0 + T, X1 - T], [FFL, FF_CEIL], [-7.12 - EXTRA, -7.0 - EXTRA], c.interior)
 }
 
 /** Charcoal frame, ledgestone pier, teak battens, lattice, soffits, door, glazing and lighting. */
@@ -273,16 +281,14 @@ export function buildFacade(ctx: Ctx) {
   glazing(ctx, 'x', [0.72, 2.48], [1.34, 2.44], CAR_BACK - 0.1, { mullions: [1.31, 1.73] })
   for (const [a0, a1, y0, y1] of [BED_WINDOW, [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97]])
     glazing(ctx, 'x', [a0, a1], [y0, y1], BACK + 0.1, { mullions: [(a0 + a1) / 2] })
-  glazing(ctx, 'z', [-5.9, -4.7], [1.31, 2.71], X0 + 0.1, { mullions: [-5.3] })
-  glazing(ctx, 'z', [-8.57, -7.9], [5.2, 5.8], X0 + 0.1)
-  glazing(ctx, 'z', [-8.76, -8.1], [2.3, 2.9], X1 - 0.1)
+  glazing(ctx, 'z', [-5.55 - EXTRA, -4.35 - EXTRA], [1.31, 2.71], X0 + 0.1, { mullions: [-4.95 - EXTRA] })
+  glazing(ctx, 'z', [-8.57 - EXTRA, -7.9 - EXTRA], [5.2, 5.8], X0 + 0.1)
+  glazing(ctx, 'z', [-8.76 - EXTRA, -8.1 - EXTRA], [2.3, 2.9], X1 - 0.1)
   glazing(ctx, 'z', [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1], [KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], X1 - 0.1, { mullions: [(KITCHEN_WINDOW.z0 + KITCHEN_WINDOW.z1) / 2] })
   glazing(ctx, 'z', [-3.81, -2.95], [5.0, 5.6], X1 - 0.1)
 
   // Sheers drawn to the sides, as in the reference.
   const inside = FACE - T - 0.1
-  curtain(ctx, 'x', [TALL[0] + 0.03, TALL[0] + 0.3], [GFL + 0.02, GF_CEIL - 0.02], inside)
-  curtain(ctx, 'x', [TALL[1] - 0.3, TALL[1] - 0.03], [GFL + 0.02, GF_CEIL - 0.02], inside)
   curtain(ctx, 'x', [TALL[0] + 0.03, TALL[0] + 0.3], [FFL + 0.02, FF_CEIL - 0.02], inside)
   curtain(ctx, 'x', [TALL[1] - 0.3, TALL[1] - 0.03], [FFL + 0.02, FF_CEIL - 0.02], inside)
   curtain(ctx, 'x', [-0.95, -0.72], [FFL + 0.02, FF_CEIL - 0.02], inside)
@@ -292,16 +298,14 @@ export function buildFacade(ctx: Ctx) {
   curtain(ctx, 'x', [2.22, 2.46], [1.2, 2.62], CAR_BACK - T - 0.1)
 
   // Warm rooms behind the glass: ceiling downlights and a low fill per room.
-  for (const [x, z] of [[-2.2, -3.0], [-2.2, -5.2], [-0.6, -5.2]]) downlight(ctx, x, GF_CEIL, z)
-  for (const [x, z] of [[1.6, -6.6], [2.6, -7.6]]) downlight(ctx, x, GF_CEIL, z)
+  for (const [x, z] of [[1.6, -6.6 - EXTRA], [2.6, -7.6 - EXTRA]]) downlight(ctx, x, GF_CEIL, z)
   for (const [x, z] of [[-2.2, -3.2], [-0.6, -3.4], [1.2, -3.4], [1.2, -5.4]]) downlight(ctx, x, FF_CEIL, z)
-  bx(k, r, [X0 + T, X1 - T], [GF_CEIL - 0.01, GF_CEIL], [-8.5, FACE - T], c.room, false)
-  bx(k, r, [X0 + T, X1 - T], [FF_CEIL - 0.01, FF_CEIL], [-7.0, FACE - T], c.room, false)
+  bx(k, r, [X0 + T, X1 - T], [GF_CEIL - 0.01, GF_CEIL], [BATHROOM.z0, FACE - T], c.room, false)
+  bx(k, r, [X0 + T, X1 - T], [FF_CEIL - 0.01, FF_CEIL], [-7.0 - EXTRA, FACE - T], c.room, false)
   lamp(ctx, -2.0, 3.1, -4.2, 6, 7, 0.6)
-  lamp(ctx, 1.6, 3.1, -7.0, 4, 5, 0.6)
+  lamp(ctx, 1.6, 3.1, -7.0 - EXTRA, 4, 5, 0.6)
   lamp(ctx, -2.0, 6.0, -4.0, 5, 6, 0.6)
   lamp(ctx, 1.0, 6.0, -4.2, 6, 7, 0.6)
-  arecaPot({ k, c }, -2.05, FACE - T - 0.6, 1.4, GFL)
   arecaPot({ k, c }, -2.35, FACE - T - 0.6, 1.1, FFL)
   arecaPot({ k, c }, 0.12, FACE + 0.35, 0.9, GFL, c.potDark)
 
