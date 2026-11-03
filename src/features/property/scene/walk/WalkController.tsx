@@ -30,7 +30,7 @@ function describe(o: Object3D): WalkPrompt {
   if (n === 'door_main') return { verb, label: 'Main Door' }
   if (n.startsWith('door_balcony')) return { verb, label: 'Balcony Door' }
   if (n === 'door_bedroom_entry' || n === 'door_bed2_entry' || n === 'door_bed3_entry' || n === 'door_bed4_entry') return { verb, label: 'Bedroom Door' }
-  if (n === 'door_bath_entry' || n === 'door_bed3_bath') return { verb, label: 'Bathroom Door' }
+  if (n === 'door_bath_entry' || n === 'door_bed3_bath' || n === 'door_bath4_entry') return { verb, label: 'Bathroom Door' }
   if (n === 'door_hall_corridor') return { verb, label: 'Kitchen Door' }
   if (n.startsWith('door_toilet_seat')) return { verb: open ? 'Lower' : 'Lift', label: 'Toilet Seat' }
   if (n.startsWith('door_toilet_lid')) return { verb: open ? 'Lower' : 'Lift', label: 'Toilet Lid' }
