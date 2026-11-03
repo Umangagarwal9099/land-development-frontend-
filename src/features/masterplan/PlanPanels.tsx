@@ -21,6 +21,7 @@ export function PlotDetails({ plot, onEnter }: { plot: Plot; onEnter: () => void
     ['Road', `${plot.roadWidthFt} ft`],
   ]
   if (plot.isCorner) facts.push(['Position', 'Corner'])
+  const commercial = plot.unit?.kind === 'commercial'
 
   return (
     <>
@@ -30,11 +31,11 @@ export function PlotDetails({ plot, onEnter }: { plot: Plot; onEnter: () => void
 
       {plot.unit && (
         <motion.div variants={rise} className="mt-8 overflow-hidden rounded-3xl border border-gold/25 bg-gradient-to-br from-gold/10 via-transparent to-transparent p-6">
-          <p className="eyebrow">Residence on this plot</p>
+          <p className="eyebrow">{commercial ? 'Building on this plot' : 'Residence on this plot'}</p>
           <p className="mt-2 font-display text-3xl">{plot.unit.name}</p>
-          <p className="mt-2 text-ivory/60">Step inside to walk every room, floor by floor.</p>
+          <p className="mt-2 text-ivory/60">{commercial ? 'Explore the building, its forecourt and grounds from every side.' : 'Step inside to walk every room, floor by floor.'}</p>
           <Button icon={ArrowRight} onClick={onEnter} className="mt-6 w-full">
-            Enter residence
+            {commercial ? 'Explore the building' : 'Enter residence'}
           </Button>
         </motion.div>
       )}

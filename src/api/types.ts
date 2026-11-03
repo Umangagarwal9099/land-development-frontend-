@@ -79,7 +79,7 @@ export interface Room {
 }
 
 /** Interior designs built procedurally in the front end (walls, finishes, furniture, lighting). */
-export type FurnishedDesign = 'nyshas-haven' | 'kalakal-d65'
+export type FurnishedDesign = 'nyshas-haven' | 'kalakal-d65' | 'kalakal-mall'
 
 /** A real exported model, a generated stand-in used until the 3D artist delivers, or a furnished design model. */
 export type ModelSource =
@@ -114,7 +114,7 @@ export type Point2 = [number, number]
 
 /** A built (or model) home standing on a plot; opens as its own explorable property. */
 export interface PlotUnit {
-  kind: 'villa' | 'farmhouse'
+  kind: 'villa' | 'farmhouse' | 'commercial'
   name: string
   /** Slug of the Property to open when the buyer steps inside. */
   propertySlug: string

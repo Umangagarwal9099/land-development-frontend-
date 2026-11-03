@@ -69,7 +69,7 @@ export function SelectionOutline({ polygon, y = PLOT_HEIGHT }: { polygon: Point2
 /** Floating tag above a plot: its number and current availability status. */
 export function PlotTag({ plot, emphasis }: { plot: Plot; emphasis?: boolean }) {
   const [x, z] = centroid(plot.polygon)
-  const height = plot.unit ? (plot.unit.kind === 'villa' ? 8.5 : 7.5) : 1.5
+  const height = plot.unit ? { villa: 8.5, farmhouse: 7.5, commercial: 20 }[plot.unit.kind] : 1.5
   return (
     <Html position={[x, height, z]} center zIndexRange={[20, 10]} style={{ pointerEvents: 'none' }}>
       <motion.div

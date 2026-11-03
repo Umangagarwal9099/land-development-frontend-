@@ -1,5 +1,6 @@
 import type { FurnishedDesign } from '../../../../api/types'
 import { buildKalakalD65, SITE as KALAKAL_D65_SITE } from './kalakalD65'
+import { buildKalakalMall, SITE as KALAKAL_MALL_SITE } from './kalakalMall'
 import { buildNyshasHaven, SITE as NYSHAS_HAVEN_SITE } from './nyshasHaven'
 import { mergeStatic, prepareRaycast } from './optimize'
 import type { FurnishedModel } from './shared'
@@ -27,6 +28,7 @@ interface FurnishedDesignEntry {
 export const FURNISHED_DESIGNS: Record<FurnishedDesign, FurnishedDesignEntry> = {
   'nyshas-haven': { build: buildNyshasHaven, site: NYSHAS_HAVEN_SITE, landscaped: true },
   'kalakal-d65': { build: () => buildKalakalD65(), buildOnPlot: () => buildKalakalD65(false), site: KALAKAL_D65_SITE, landscaped: true, optimized: true, walkable: true },
+  'kalakal-mall': { build: () => buildKalakalMall(), buildOnPlot: () => buildKalakalMall(false), site: KALAKAL_MALL_SITE, landscaped: true, optimized: true, walkable: true },
 }
 
 const built = new Map<string, FurnishedModel>()

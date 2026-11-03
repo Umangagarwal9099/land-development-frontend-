@@ -51,6 +51,13 @@ const MASSING: Record<PlotUnit['kind'], (w: number, d: number) => Part[]> = {
       { shape: 'box', material: 'water', pos: [-w * 0.08, 0.14, d * 0.38], size: [w * 0.42, 0.1, d * 0.12] },
     ]
   },
+  // A G+2 commercial block behind a forecourt, for commercial plots without a modelled design.
+  commercial: (w, d) => [
+    { shape: 'box', material: 'wall', pos: [0, 7.5, -d * 0.12], size: [w * 0.8, 15, d * 0.58] },
+    { shape: 'box', material: 'glass', pos: [0, 2.6, -d * 0.12], size: [w * 0.8 + 0.06, 4.4, d * 0.58 + 0.06] },
+    { shape: 'box', material: 'trim', pos: [0, 15.2, -d * 0.12], size: [w * 0.82, 0.4, d * 0.6] },
+    { shape: 'box', material: 'deck', pos: [0, 0.1, d * 0.3], size: [w * 0.8, 0.2, d * 0.22] },
+  ],
   farmhouse: (_w, d) => [
     { shape: 'box', material: 'wall', pos: [0, 1.8, 0], size: [17, 3.6, 10] },
     { shape: 'box', material: 'glass', pos: [0, 1.6, 0], size: [17.06, 1.8, 10.06] },
@@ -114,7 +121,7 @@ interface UnitsProps {
 /** Every built home on the plan: one instanced mesh per massing part, whatever the number of homes. */
 export function Units({ plots, interactive, onSelect, onHover }: UnitsProps) {
   const byKind = useMemo(() => {
-    const groups: Record<PlotUnit['kind'], Plot[]> = { villa: [], farmhouse: [] }
+    const groups: Record<PlotUnit['kind'], Plot[]> = { villa: [], farmhouse: [], commercial: [] }
     for (const p of plots) if (p.unit && !p.unit.design) groups[p.unit.kind].push(p)
     return groups
   }, [plots])

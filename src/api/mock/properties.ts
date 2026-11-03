@@ -258,4 +258,61 @@ function kalakalD65(): Property {
   }
 }
 
-export const properties: Property[] = [nyshasHaven(), kalakalD65()]
+/**
+ * Prime Mall on commercial Plot A-02, Kallakal: the G+2 mall of the client's reference design,
+ * modelled in 3D (features/property/scene/furnished/kalakalMall) as an exterior with its grounds.
+ * Areas map to the model's amenity_* hotspots.
+ */
+function kalakalMall(): Property {
+  const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
+    id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
+    dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
+  })
+  const rooms: Room[] = [
+    area('Main Entrance', 'amenity_entrance', [39, 31],
+      'The entrance in the link between the two blocks, where the faceted skin dips: a double-height glazed front behind automatic sliding doors, under a white cantilevered canopy whose line runs on as the band beneath the north block. Inside, a lobby rises through two floors to a gallery and a ring of lit pendants.',
+      ['Double-height structural glazing', 'Automatic sliding doors, 4.4 m frame', 'White ACP canopy on stainless tie rods, recessed downlights', 'Honed stone forecourt at +0.45 m'],
+      ['Steps and a 1:20 accessible ramp from the drop-off', 'Benches and planters on the forecourt']),
+    area('Forecourt & Drop-off', 'amenity_forecourt', [150, 26],
+      'The raised forecourt before the mall steps down to a stone apron and the drop-off lane, which runs across the full frontage from the entry at the south end to the exit at the north. A zebra crossing joins the walk from the road footpath to the entrance steps.',
+      ['Drop-off lane 6.7 m wide', 'Bollards and kerbed apron at the crossing', 'Pole lighting along the apron'], ['Drop-off', 'Pedestrian crossing']),
+    area('Visitor Parking', 'amenity_parking', [108, 16],
+      'Eleven visitor bays in interlocking pavers along the road edge, behind a clipped hedge and a row of shade trees; the main car park is in the basement, reached by the covered ramp behind the building.',
+      ['11 bays, 2.5 × 5 m', 'Wheel stops and painted bay lines', 'Basement car park below'], ['Visitor parking', 'Basement parking']),
+    area('Service Yard & Basement Ramp', 'amenity_service', [150, 26],
+      'Behind the mall: two loading bays with roller shutters and dock bumpers, the covered two-way ramp down to the basement car park, and the fenced substation and generator yard in the north-west corner. The 4.5 m drives down both sides give fire tenders access all round.',
+      ['Two loading bays with roller shutters', 'Covered ramp, 6 m wide, 3.3 m headroom', 'Transformer and DG set in a fenced yard', '4.5 m fire-access drives on both sides'], ['Loading bays', 'Basement ramp', 'Substation']),
+  ]
+  return {
+    id: 'p_kalakal_mall', slug: 'kalakal-mall', name: 'Prime Mall', type: 'commercial', location: 'Kallakal, NH-44',
+    tagline: 'A G+2 shopping mall in a faceted skin, on the HMDA road frontage',
+    thumbnailUrl: placeholderImage('Prime Mall', 210, 800, 500),
+    stats: [{ label: 'Plot', value: '3,704 sq yd' }, { label: 'Floors', value: 'B + G + 2' }, { label: 'Facing', value: 'East' }],
+    description:
+      'A shopping mall on commercial Plot A-02 in Kallakal, facing east onto the 250 ft HMDA master plan road. Two blocks wrapped in a skin of faceted aluminium and dark glass meet at a lower, double-height glazed entrance under a white canopy; the taller south block carries the name and the north block a curved media screen. A raised forecourt, drop-off and visitor parking lie in front, with a basement car park, loading bays and fire-access drives behind and to either side.',
+    highlights: {
+      Plot: 'A-02 · 222′3″ × 150′ (3,704 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Basement + ground + 2 upper floors',
+      Height: 'Roof at 15.45 m; skin crown to 18.4 m', Envelope: '36.7 m frontage × 39.5 m deep', 'Façade': 'Faceted perforated aluminium and solar-control glass',
+      Setbacks: 'Front 20.4 m · sides 4.5 m · rear 7.9 m', Parking: 'Basement car park + 11 visitor bays',
+    },
+    model: { kind: 'furnished', design: 'kalakal-mall' }, floors: [], rooms,
+    // Camera positions in scene metres: +z east (the HMDA road), +x north.
+    presets: [
+      { id: 'street', name: 'From the road', position: [-17, 2.2, 57], target: [-1, 9.5, 12], fov: 50 },
+      { id: 'front', name: 'East elevation', position: [0, 9, 64], target: [0, 8.5, 10], fov: 42 },
+      { id: 'elevation', name: 'Straight-on elevation', position: [0, 9.5, 150], target: [0, 9.5, 12], fov: 15 },
+      { id: 'southeast', name: 'South-east corner', position: [-40, 14, 50], target: [0, 7, 4], fov: 40 },
+      { id: 'northeast', name: 'North-east corner', position: [42, 14, 48], target: [2, 7, 4], fov: 40 },
+      { id: 'south', name: 'South side (avenue)', position: [-62, 9, 2], target: [0, 8, -2] },
+      { id: 'north', name: 'North side', position: [58, 9, 0], target: [0, 8, -2] },
+      { id: 'rear', name: 'Rear and service yard', position: [-10, 14, -70], target: [0, 5, -12] },
+      { id: 'aerial', name: 'Aerial', position: [50, 64, 74], target: [0, 2, 0] },
+      { id: 'entrance', name: 'Entrance, eye level', position: [-3, 1.7, 31], target: [-1, 6, 10], fov: 55 },
+      { id: 'parking', name: 'Visitor parking, eye level', position: [11, 1.6, 39], target: [5, 2.2, 27], fov: 50 },
+      { id: 'top', name: 'Plan view', position: [0, 150, -0.01], target: [0, 0, 0] },
+    ],
+    media: [],
+  }
+}
+
+export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall()]

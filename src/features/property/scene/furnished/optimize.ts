@@ -13,7 +13,7 @@ import { computeBoundsTree } from 'three-mesh-bvh'
 /** Nodes the viewer finds by name: kept whole, with everything beneath them. */
 const LIVE = /^(door_|drawer_|switch_|spin_|room_|amenity_|floor_|roof$)/
 
-const KEEP = ['position', 'normal', 'uv'] as const
+const KEEP = ['position', 'normal', 'uv', 'color'] as const
 
 function signature(g: BufferGeometry) {
   return `${g.index ? 'i' : 'n'}|${KEEP.filter((a) => g.attributes[a]).join(',')}`
