@@ -315,4 +315,64 @@ function kalakalMall(): Property {
   }
 }
 
-export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall()]
+/**
+ * Kallakal Square on commercial Plot A-01, Kallakal: the client's reference design, a G+2 ring of
+ * curved glass pavilions round a fountain plaza, modelled in 3D
+ * (features/property/scene/furnished/kalakalA01) as an exterior with its grounds. Areas map to
+ * the model's amenity_* hotspots.
+ */
+function kalakalA01(): Property {
+  const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
+    id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
+    dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
+  })
+  const rooms: Room[] = [
+    area('Main Entrance', 'amenity_entrance', [26, 10],
+      'The entrance on the centre wing\'s axis, across the plaza from the road: automatic sliding doors in the curved glass under a white blade canopy, with a spiral stair rising beside them in the lobby. The centre\'s roof runs out 2.4 m over the plaza above, carrying the name.',
+      ['Automatic sliding doors, 4.8 m frame', 'White canopy with recessed downlights', 'Cantilevered roof canopy, 2.4 m', 'Spiral stair to the first floor in the lobby'],
+      ['Planters along the glass', 'Benches on the plaza']),
+    area('Fountain Plaza', 'amenity_plaza', [56, 56],
+      'A circular plaza 31 m across, open to the road: concentric rings of polished black granite and honed travertine with a dry-deck fountain set flush in them. Sixty-one nozzles in three rings and a crown of six at the centre throw jets of varying height that rise, break into spray and fall back onto the stone, the height of each ring rising and falling in a slow wave; the run-off spreads over the wet stone to a concealed slot drain round the jets. No basin: the plaza is walkable, wet or dry.',
+      ['Dry-deck fountain: 61 flush stainless nozzles', 'Jets 1.1–1.9 m, each varying on its own', 'Polished black granite and honed travertine', 'Concealed 12 mm slot drain round the jets'],
+      ['Interactive splash plaza', 'Benches and bollard lights']),
+    area('Drive & Visitor Parking', 'amenity_parking', [82, 18],
+      'A 5.5 m two-way drive along the south boundary, from the HMDA road through to the cross road behind, with four parallel visitor bays in concrete pavers along its edge and a speed table at the gate.',
+      ['5.5 m drive, both roads', 'Four parallel bays, 2.5 × 6.3 m', 'Pole lighting along the drive'], ['Visitor parking', 'Drop-off']),
+    area('Basement Ramp & Service Yard', 'amenity_service', [128, 18],
+      'Behind the building: the covered ramp down to the basement car park, its mouth off the end of the drive, and the fenced substation and generator yard in the north-west corner, with service doors in the white rear wall.',
+      ['Covered ramp, 5.5 m wide, 3.3 m headroom', 'Transformer and DG set in a fenced yard', 'Service doors and plant-room louvres at the rear'], ['Basement parking', 'Substation']),
+  ]
+  return {
+    id: 'p_kalakal_a01', slug: 'kalakal-a01', name: 'Kallakal Square', type: 'commercial', location: 'Kallakal, NH-44',
+    tagline: 'Curved glass pavilions round a fountain plaza, on the HMDA road frontage',
+    thumbnailUrl: placeholderImage('Kallakal Square', 160, 800, 500),
+    stats: [{ label: 'Plot', value: '3,022 sq yd' }, { label: 'Floors', value: 'B + G + 2' }, { label: 'Facing', value: 'East' }],
+    description:
+      'A commercial building on Plot A-01 in Kallakal, facing east onto the 250 ft HMDA master plan road. Three curved, fully glazed G+2 wings with white slab edges wrap a circular fountain plaza that opens to the road: the south wing ends in a rounded white wall, the centre wing holds the main entrance under a cantilevered roof, and the north wing stands behind a white wall that sweeps up out of the plaza, pierced by two arches. Three black mesh capsules grown over with creepers rise above the roofs, the tallest to 23 m.',
+    highlights: {
+      Plot: 'A-01 · 166′1″ × 165′5″ (3,022 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Basement + ground + 2 upper floors',
+      Height: 'Roof at 13.55 m; north capsule to 23.2 m', Plan: 'Wings 8 m deep on a 10.5 m / 18.5 m ring', 'Façade': 'Clear curtain glass, white slab bands, white GRC',
+      Setbacks: 'South 9.3 m · north 4.3 m · rear 7.2 m', Parking: 'Basement car park + 4 visitor bays',
+    },
+    model: { kind: 'furnished', design: 'kalakal-a01' }, floors: [], rooms,
+    // Camera positions in scene metres: +z east (the HMDA road), +x north.
+    presets: [
+      { id: 'reference', name: 'From the forecourt', position: [-3.5, 1.7, 19.5], target: [3, 6.5, -6], fov: 60 },
+      { id: 'street', name: 'From the road', position: [-8, 2, 44], target: [2.5, 7, 0], fov: 50 },
+      { id: 'front', name: 'East elevation', position: [2.5, 10, 62], target: [2.5, 8, 0], fov: 42 },
+      { id: 'elevation', name: 'Straight-on elevation', position: [2.5, 10, 150], target: [2.5, 10, 0], fov: 16 },
+      { id: 'northeast', name: 'North-east corner', position: [40, 15, 42], target: [4, 8, 0], fov: 40 },
+      { id: 'southeast', name: 'South-east corner', position: [-38, 14, 44], target: [0, 7, 0], fov: 40 },
+      { id: 'south', name: 'South side (drive)', position: [-52, 9, 2], target: [0, 8, -2] },
+      { id: 'north', name: 'North side', position: [50, 9, 0], target: [0, 8, -2] },
+      { id: 'rear', name: 'Rear and service yard', position: [-8, 14, -58], target: [2, 5, -12] },
+      { id: 'aerial', name: 'Aerial', position: [42, 55, 62], target: [2, 2, 0] },
+      { id: 'fountain', name: 'Fountain, eye level', position: [7.5, 1.6, 9.5], target: [-2, 3.5, -6], fov: 55 },
+      { id: 'jets', name: 'Jets, close-up', position: [6.6, 1.5, 5.2], target: [2.5, 1.1, 0.5], fov: 45 },
+      { id: 'top', name: 'Plan view', position: [0, 130, -0.01], target: [0, 0, 0] },
+    ],
+    media: [],
+  }
+}
+
+export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalA01()]

@@ -1,5 +1,5 @@
 import { Edges } from '@react-three/drei'
-import { useThree, type ThreeEvent } from '@react-three/fiber'
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BufferGeometry, ExtrudeGeometry, InstancedMesh, Light, Matrix4, Object3D, Shape } from 'three'
 import type { FurnishedDesign, Plot, PlotUnit } from '../../../api/types'
@@ -161,6 +161,10 @@ function DesignUnit({ plot, design, interactive, onSelect, onHover }: Omit<Units
     model.setDaylight?.(daylight)
     invalidate()
   }, [model, daylight, invalidate])
+  // Running water keeps frames coming while it is close enough to see.
+  useFrame((state) => {
+    if (model.animate?.(state.clock.elapsedTime, state.camera)) state.invalidate()
+  })
 
   const f = plotFrame(plot)
   return (

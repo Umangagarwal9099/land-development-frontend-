@@ -88,6 +88,8 @@ export function FurnishedModel({
     // Light switches fade their circuits over a few frames; keep frames coming until they settle.
     if (stepCircuits(delta)) state.invalidate()
     model.syncLights?.()
+    // Running water keeps frames coming while it is in view.
+    if (model.animate?.(state.clock.elapsedTime, state.camera)) state.invalidate()
   })
 
   const daylight = useStageStore((s) => s.daylight)
