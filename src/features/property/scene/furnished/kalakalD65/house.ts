@@ -132,6 +132,16 @@ export const BEDROOM3 = {
 /** Bedroom 3's wide double door onto the balcony (house x), and the height of its head. */
 const BALCONY_DOOR: R = [-0.97, 1.0]
 const BALCONY_DOOR_TOP = FFL + 2.3
+/**
+ * Bedroom 4 (see bedroom4.ts): the first-floor rear room on the left, beside Bedroom 2, the same depth
+ * from the landing as Bedroom 2, from the left wall to Bedroom 2's wall. Its frame runs from that wall out.
+ */
+export const BEDROOM4 = {
+  x1: BEDROOM2.x1 - BEDROOM2.w - 0.115, z0: BEDROOM2.z0, w: BEDROOM2.x1 - BEDROOM2.w - 0.115 - (X0 + T), d: BEDROOM2.d,
+  /** Across the room's frame, from Bedroom 2's wall. */
+  door: [0.38, 1.18] as R,
+  window: { z: [0.85, 2.65] as R, h: [0.3, 2.3] as R },
+}
 /** The attached bathroom (see bathroom3.ts): from the right wall to Bedroom 3's wall, its back wall to the façade. */
 export const BATH3 = { x1: X1 - T, z0: BEDROOM3.z1 - BEDROOM3.notch.x, w: X1 - T - (BEDROOM3.x0 + BEDROOM3.w + 0.12), d: BEDROOM3.notch.x }
 /** The bedroom window in the back wall, over the desk beside the wardrobe (house x); its sill clears the desk. */
@@ -140,6 +150,8 @@ const BED_WINDOW: [number, number, number, number] = [BEDROOM.x0 + 2.65, BEDROOM
 const BATH_VENT: Hole = [BATHROOM.z0 + 1.0, BATHROOM.z0 + 1.6, 2.3, 2.85]
 const BATH_NICHE: Hole = [BATHROOM.z0 + 0.45, BATHROOM.z0 + 0.75, GFL + 1.05, GFL + 1.35]
 /** The kitchen window in the left wall, centred over the window-side run: house z, and heights above site ground. */
+/** Bedroom 4's window on the left wall: house z, heights above site ground. */
+const B4_WINDOW: Hole = [BEDROOM4.z0 + BEDROOM4.window.z[0], BEDROOM4.z0 + BEDROOM4.window.z[1], FFL + BEDROOM4.window.h[0], FFL + BEDROOM4.window.h[1]]
 const KW_MID = KITCHEN.z0 + (0.6 + (KITCHEN.d - 2.7) + 1.63) / 2
 export const KITCHEN_WINDOW = { z0: KW_MID - 0.3, z1: KW_MID + 0.3, y0: GFL + 1.05, y1: GFL + 2.25 }
 
@@ -266,7 +278,7 @@ export function buildShell(ctx: Ctx) {
 
   // Sides and back. Openings follow the floor plans (toilet ventilators, dining, kitchen and bedroom windows).
   holed(k, 'z', [BACK, FACE - T], [0, ROOF], [X0, X0 + T], [
-    [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1, KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], [-8.57 - EXTRA, -7.9 - EXTRA, 5.2, 5.8], [HALL_WINDOW[0], HALL_WINDOW[1], 1.31, 2.71],
+    [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1, KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], [HALL_WINDOW[0], HALL_WINDOW[1], 1.31, 2.71], B4_WINDOW,
   ], white)
   holed(k, 'z', [BACK + T, CAR_BACK - T], [0, FFL], [X1 - T, X1], [BATH_NICHE, BATH_VENT], white)
   // The shower's niche is let into the right wall's inner leaf; the outer leaf stays whole.
@@ -304,7 +316,11 @@ export function buildShell(ctx: Ctx) {
 
   // Interior partitions close the visible rooms off from the rest of the plan.
   // Upstairs, this wall is Bedroom 2's door wall on the stair side, cut for its door.
-  holed(k, 'x', [X0 + T, X1 - T], [FFL, FF_CEIL], [-7.12 - EXTRA, -7.0 - EXTRA], [[B2.x1 - B2.door[1], B2.x1 - B2.door[0], FFL, FFL + 2.1]], c.interior)
+  holed(k, 'x', [X0 + T, X1 - T], [FFL, FF_CEIL], [-7.12 - EXTRA, -7.0 - EXTRA], [
+    [BEDROOM4.x1 - BEDROOM4.door[1], BEDROOM4.x1 - BEDROOM4.door[0], FFL, FFL + 2.1], [B2.x1 - B2.door[1], B2.x1 - B2.door[0], FFL, FFL + 2.1],
+  ], c.interior)
+  // Bedroom 4's bed wall.
+  bx(k, r, [X0 + T, BEDROOM4.x1], [FFL, FF_CEIL], [BEDROOM4.z0 - 0.12, BEDROOM4.z0], c.interior)
   // Bedroom 3: its back wall with the entrance, the return round the notch, and the bathroom's wall
   // with its doorway. The bathroom beyond is a plain shell for now.
   const B3 = BEDROOM3
@@ -383,7 +399,8 @@ export function buildFacade(ctx: Ctx) {
   for (const [a0, a1, y0, y1] of [BED_WINDOW, [-2.1, -0.95, 4.57, 5.97], [1.52, 2.67, 4.57, 5.97]])
     glazing(ctx, 'x', [a0, a1], [y0, y1], BACK + 0.1, { mullions: [(a0 + a1) / 2] })
   glazing(ctx, 'z', HALL_WINDOW, [1.31, 2.71], X0 + 0.1, { mullions: [(HALL_WINDOW[0] + HALL_WINDOW[1]) / 2] })
-  glazing(ctx, 'z', [-8.57 - EXTRA, -7.9 - EXTRA], [5.2, 5.8], X0 + 0.1)
+  // Bedroom 4's window, in place of the old high ventilator.
+  glazing(ctx, 'z', [B4_WINDOW[0], B4_WINDOW[1]], [B4_WINDOW[2], B4_WINDOW[3]], X0 + 0.1, { transoms: [FFL + 2.0], mullions: [(B4_WINDOW[0] + B4_WINDOW[1]) / 2] })
   glazing(ctx, 'z', [BATH_VENT[0], BATH_VENT[1]], [BATH_VENT[2], BATH_VENT[3]], X1 - 0.1)
   glazing(ctx, 'z', [KITCHEN_WINDOW.z0, KITCHEN_WINDOW.z1], [KITCHEN_WINDOW.y0, KITCHEN_WINDOW.y1], X0 + 0.1, { mullions: [(KITCHEN_WINDOW.z0 + KITCHEN_WINDOW.z1) / 2] })
   glazing(ctx, 'z', [BEDROOM2.z0 + BEDROOM2.window.z[0], BEDROOM2.z0 + BEDROOM2.window.z[1]], [FFL + BEDROOM2.window.h[0], FFL + BEDROOM2.window.h[1]], X1 - 0.1, { mullions: [BEDROOM2.z0 + (BEDROOM2.window.z[0] + BEDROOM2.window.z[1]) / 2] })

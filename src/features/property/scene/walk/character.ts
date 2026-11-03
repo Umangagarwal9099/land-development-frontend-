@@ -12,6 +12,22 @@ const HEIGHT = 1.55
 /** The walk clip's own ground speed in the model's units per second (from its root motion, removed from the clip). */
 const CLIP_DISTANCE = 121.4 / 1.2
 
+/** How long a reach takes to arrive, how long the hand stays with what it touched, and the return. */
+const REACH_IN = 0.34
+const REACH_HOLD = 0.32
+const REACH_OUT = 0.42
+/** Furthest the shoulders lean forward to bring a low drawer within reach, radians. */
+const LEAN = 0.62
+/** Deepest crouch for something near the floor, metres. */
+const CROUCH = 0.42
+
+interface Reach {
+  target: Object3D
+  t: number
+  side: 0 | 1
+  onContact: (() => void) | null
+}
+
 export interface Pose {
   /** Ground speed, m/s, signed: negative while stepping backwards. */
   speed: number
@@ -88,6 +104,16 @@ const u = new Vector3()
 const w = new Vector3()
 const target = new Vector3()
 
+/** The middle of an object's geometry, in the world. */
+function centre(o: Object3D, out: Vector3) {
+  const g = (o as Mesh).geometry
+  if (g) {
+    if (!g.boundingSphere) g.computeBoundingSphere()
+    return out.copy(g.boundingSphere!.center).applyMatrix4(o.matrixWorld)
+  }
+  return o.getWorldPosition(out)
+}
+
 /** Sets a bone's local rotation so that its world rotation becomes `world`. */
 function setWorldRotation(bone: Object3D, world: Quaternion) {
   bone.parent!.getWorldQuaternion(q2)
@@ -141,12 +167,44 @@ export class Character {
   private walk: AnimationAction | null = null
   private idle: AnimationAction | null = null
   private legs: { thigh: Bone; shin: Bone; foot: Bone }[] = []
+  private arms: { upper: Bone; fore: Bone; hand: Bone }[] = []
+  private spine: Bone | null = null
+  private reaching: Reach | null = null
   private model: Object3D | null = null
   private clipSpeed = 1
+  /** Shoulder height standing, from the soles. */
+  private shoulderHeight = 1.25
   private amount = 0
   private disposed = false
   /** Reports a failed download, so the caller can fall back to the first-person view. */
   onFail: (() => void) | null = null
+
+  /** Loaded and able to reach. */
+  get ready() {
+    return this.mixer !== null
+  }
+
+  /** Where a reach is going, while one is under way: the body turns to face it. */
+  get reachTarget() {
+    if (!this.reaching) return null
+    return centre(this.reaching.target, new Vector3())
+  }
+
+  /**
+   * Reaches for `target` (a door's or drawer's front, a switch rocker) with the nearer hand.
+   * `onContact` runs as the hand arrives, so the thing moves when it is touched, and the hand
+   * then stays with it a moment as it opens.
+   */
+  reach(target: Object3D, onContact: () => void) {
+    if (this.reaching) {
+      this.reaching.onContact?.()
+      this.reaching = null
+    }
+    centre(target, T)
+    this.root.worldToLocal(T)
+    // The figure faces −z in its own frame, so its right hand is on +x.
+    this.reaching = { target, t: 0, side: T.x >= 0 ? 1 : 0, onContact }
+  }
 
   get gait() {
     const t = this.walk?.time ?? 0
@@ -170,6 +228,8 @@ export class Character {
   private mount(scene: Group, clips: AnimationClip[]) {
     const bone = (n: string) => scene.getObjectByName(`Bip01_${n}`) as Bone
     const legs = ['L', 'R'].map((s) => ({ thigh: bone(`${s}_Thigh`), shin: bone(`${s}_Calf`), foot: bone(`${s}_Foot`) }))
+    this.arms = ['L', 'R'].map((s) => ({ upper: bone(`${s}_UpperArm`), fore: bone(`${s}_Forearm`), hand: bone(`${s}_Hand`) }))
+    this.spine = bone('Spine1')
     this.mixer = new AnimationMixer(scene)
     const clip = (n: string) => clips.find((c) => c.name === n)!
     this.walk = this.mixer.clipAction(clip('walk')).play()
@@ -188,6 +248,8 @@ export class Character {
     scene.scale.setScalar(s)
     scene.position.y = -(box.min.y - this.root.getWorldPosition(new Vector3()).y) * s
     this.clipSpeed = CLIP_DISTANCE * s
+    this.root.updateMatrixWorld(true)
+    this.shoulderHeight = this.arms[0].upper.getWorldPosition(new Vector3()).y - this.root.getWorldPosition(new Vector3()).y
     this.legs = legs
     this.model = scene
   }
@@ -213,16 +275,72 @@ export class Character {
       return g === null ? 0 : MathUtils.clamp(g - base, -0.3, 0.4)
     })
     // The hips ride over the lower foot, so a raised tread bends a knee rather than lifting the body off it.
+    // Reaching for something low, they drop further and both knees bend: a crouch.
+    const crouch = this.crouchFor()
     const low = Math.min(offset[0], offset[1])
-    this.figure.position.y = low
+    this.figure.position.y = low - crouch
     this.blob.position.y = low + 0.02
     this.root.updateMatrixWorld(true)
     this.legs.forEach(({ thigh, shin, foot }, i) => {
-      const lift = offset[i] - low
+      const lift = offset[i] - low + crouch
       if (lift < 0.004) return
       foot.getWorldPosition(C)
       solveLeg(thigh, shin, foot, target.set(C.x, C.y + lift, C.z))
     })
+    this.reachFor(delta)
+  }
+
+  /** How far through its reach the arm is: 0 at rest, 1 at the object. */
+  private reachWeight() {
+    const r = this.reaching
+    if (!r) return 0
+    const ease = (x: number) => x * x * (3 - 2 * x)
+    return r.t < REACH_IN ? ease(r.t / REACH_IN) : r.t < REACH_IN + REACH_HOLD ? 1 : Math.max(0, 1 - ease((r.t - REACH_IN - REACH_HOLD) / REACH_OUT))
+  }
+
+  /** The crouch a low reach needs, beyond what leaning gives. */
+  private crouchFor() {
+    const r = this.reaching
+    if (!r || !this.mixer) return 0
+    centre(r.target, T)
+    return this.reachWeight() * MathUtils.clamp(this.shoulderHeight - (T.y - this.root.position.y) - 0.78, 0, CROUCH)
+  }
+
+  /** Drives the reaching arm, and the lean that brings a low drawer within it. */
+  private reachFor(delta: number) {
+    const r = this.reaching
+    if (!r || !this.spine) return
+    r.t += delta
+    if (r.t >= REACH_IN && r.onContact) {
+      r.onContact()
+      r.onContact = null
+    }
+    const end = REACH_IN + REACH_HOLD + REACH_OUT
+    if (r.t >= end) {
+      this.reaching = null
+      return
+    }
+    const w = this.reachWeight()
+    const { upper, fore, hand } = this.arms[r.side]
+    // A low target bends the body forward from the chest first.
+    centre(r.target, T)
+    upper.getWorldPosition(A)
+    const drop = A.y - T.y
+    const lean = w * MathUtils.clamp((drop - 0.35) * 1.1, 0, LEAN)
+    if (lean > 0.001) {
+      this.root.getWorldQuaternion(q)
+      // The figure's own right-hand axis, in the world.
+      u.set(1, 0, 0).applyQuaternion(q)
+      this.spine.getWorldQuaternion(footWorld)
+      setWorldRotation(this.spine, footWorld.premultiply(q2.setFromAxisAngle(u, -lean)).clone())
+    }
+    // The hand goes to the object's face, stopping just short so it rests on it rather than in it.
+    hand.getWorldPosition(C)
+    upper.getWorldPosition(A)
+    dir.subVectors(T, A)
+    const reach = Math.min(dir.length() - 0.05, 0.62)
+    T.copy(A).addScaledVector(dir.normalize(), Math.max(0.1, reach))
+    solveLeg(upper, fore, hand, target.lerpVectors(C, T, w))
   }
 
   dispose() {

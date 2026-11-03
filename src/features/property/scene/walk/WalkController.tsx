@@ -13,8 +13,12 @@ import { Walker } from './walker'
 const EYE = 1.44
 const FOV = 68
 const REACH = 1.55
+/** Within an arm's length of the shoulder across the floor, and anywhere from the floor to overhead: leaning and crouching cover the height. */
+const ARM = 0.8
 const LOOK_SPEED = 0.0024
 const PITCH = 1.35
+
+const flatTo = (dx: number, dz: number) => Math.hypot(dx, dz)
 
 /** What the prompt calls a door, drawer, switch or fan. */
 function describe(o: Object3D): WalkPrompt {
@@ -25,12 +29,13 @@ function describe(o: Object3D): WalkPrompt {
   if (isSpinner(n)) return { verb: o.userData.on ? 'Stop' : 'Start', label: 'Ceiling Fan' }
   if (n === 'door_main') return { verb, label: 'Main Door' }
   if (n.startsWith('door_balcony')) return { verb, label: 'Balcony Door' }
-  if (n === 'door_bedroom_entry' || n === 'door_bed2_entry' || n === 'door_bed3_entry') return { verb, label: 'Bedroom Door' }
+  if (n === 'door_bedroom_entry' || n === 'door_bed2_entry' || n === 'door_bed3_entry' || n === 'door_bed4_entry') return { verb, label: 'Bedroom Door' }
   if (n === 'door_bath_entry' || n === 'door_bed3_bath') return { verb, label: 'Bathroom Door' }
   if (n === 'door_hall_corridor') return { verb, label: 'Kitchen Door' }
   if (n.startsWith('door_toilet_seat')) return { verb: open ? 'Lower' : 'Lift', label: 'Toilet Seat' }
   if (n.startsWith('door_toilet_lid')) return { verb: open ? 'Lower' : 'Lift', label: 'Toilet Lid' }
-  if (n.startsWith('door_wardrobe') || n.startsWith('door_bed2_loft') || n.startsWith('door_bed3_loft')) return { verb, label: 'Wardrobe Loft' }
+  if (n.startsWith('door_bed4_wardrobe')) return { verb, label: 'Wardrobe' }
+  if (n.startsWith('door_wardrobe') || n.startsWith('door_bed4_loft') || n.startsWith('door_bed2_loft') || n.startsWith('door_bed3_loft')) return { verb, label: 'Wardrobe Loft' }
   if (n.startsWith('drawer_wardrobe_slider') || n.startsWith('drawer_bed2_wardrobe_') || /^drawer_bed3_wardrobe_\d$/.test(n)) return { verb, label: 'Wardrobe' }
   if (n.startsWith('drawer_bed2_side') || n.startsWith('drawer_bed2_foot')) return { verb, label: 'Bed Drawer' }
   if (isDrawer(n)) return { verb, label: n.includes('desk') ? 'Desk Drawer' : 'Drawer' }
@@ -200,7 +205,9 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
     // The body faces the way it walks; backing up, it keeps facing away from its direction of travel.
     const heading = speed > 0.15 ? Math.atan2(-walker.velocity.x, -walker.velocity.z) : walker.yaw
     const back = forward < -0.1 && Math.abs(right) < 0.5
-    const aim = back ? walker.yaw : heading
+    // Reaching for something, the body turns to face it.
+    const reachAt = character.current?.reachTarget
+    const aim = reachAt && speed < 0.3 ? Math.atan2(-(reachAt.x - p.x), -(reachAt.z - p.z)) : back ? walker.yaw : heading
     const turnBy = MathUtils.euclideanModulo(aim - facing.current + Math.PI, Math.PI * 2) - Math.PI
     facing.current += turnBy * (1 - Math.exp(-10 * delta))
     const turnRate = Math.abs(MathUtils.euclideanModulo(walker.yaw - lastYaw.current + Math.PI, Math.PI * 2) - Math.PI) / Math.max(delta, 1e-3)
@@ -250,6 +257,7 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
         const dz = z - eye.z
         const d = Math.hypot(dx, dy, dz)
         if (d > REACH) continue
+        if (flatTo(dx, dz) > ARM) continue
         const flat = Math.hypot(dx, dz)
         const dot3 = (dx * look.x + dy * look.y + dz * look.z) / Math.max(d, 1e-3)
         const lookFlat = Math.hypot(look.x, look.z)
@@ -282,9 +290,18 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
 
     if (walkInput.interact) {
       walkInput.interact = false
-      if (nearest.current) {
-        operate(nearest.current)
-        sense.current = 0
+      const node = nearest.current
+      const figure = character.current
+      if (node) {
+        const done = () => {
+          operate(node)
+          sense.current = 0
+        }
+        // Seen in third person, the hand goes to it first, and it moves as it is touched. Through
+        // the walker's own eyes there is no arm to watch, so it answers at once.
+        const front = targets.find((t) => t.node === node)?.front ?? node
+        if (third && figure?.ready && figure.root.visible) figure.reach(isSwitch(node.name) ? node.getObjectByName('rocker') ?? front : front, done)
+        else done()
       }
     }
     state.invalidate()
