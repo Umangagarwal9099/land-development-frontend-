@@ -438,4 +438,72 @@ function kalakalA01(): Property {
   }
 }
 
-export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalHotel(), kalakalA01()]
+/**
+ * Kallakal Hospital on commercial Plot A-03, Kallakal: the client's reference design, a B2 + G + 3
+ * hospital in white cladding and blue-grey glass, modelled in 3D
+ * (features/property/scene/furnished/kalakalHospital) as an exterior with its grounds. Areas map
+ * to the model's amenity_* hotspots.
+ */
+function kalakalHospital(): Property {
+  const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
+    id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
+    dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
+  })
+  const rooms: Room[] = [
+    area('Main Entrance & Drop-off', 'amenity_entrance', [46, 43],
+      'The main entrance at the foot of the curtain wall, under a thin white porte-cochère that reaches out over the drop-off lane on slim round columns: automatic sliding doors into the reception hall, wheelchairs waiting by the doors, downlights in the canopy\'s soffit, and a zebra with tactile paving straight across the lane to the entrance walk.',
+      ['Porte-cochère 14 × 13 m, 4.25 m clear', 'Automatic sliding doors, 2.6 m clear', 'Flush kerbs and tactile paving at the crossing', 'One-way drop-off lane, 6.5 m'],
+      ['Reception and pharmacy', 'Wheelchairs at the door']),
+    area('Emergency & Ambulance Bay', 'amenity_emergency', [16, 24],
+      'The emergency entrance in the end of the north wing, with its own lower canopy over a marked ambulance bay that ambulances back into straight off the lane. EMERGENCY in red channel letters on the canopy\'s fascia, a red-cross lightbox over it, automatic doors straight into triage.',
+      ['Covered ambulance bay, 3.4 × 7 m, 3.55 m clear', 'Separate from the main drop-off', 'Illuminated red signage'], ['24 × 7 emergency', 'Ambulance access']),
+    area('Outpatient Entrance', 'amenity_outpatient', [31, 20],
+      'The outpatient entrance at the foot of the south tower, under a flat white canopy on tension rods with OUTPATIENT on the fascia above: a glazed front with automatic doors into the outpatient hall, and a paved terrace before it with benches for those waiting to be collected.',
+      ['Glazed front, automatic doors', 'Canopy on stainless tension rods', 'Terrace with benches and planters'], ['Outpatient registration', 'Waiting area']),
+    area('Garden & Entrance Walk', 'amenity_garden', [84, 59],
+      'The garden between the drop-off lane and the road: lawns edged in granite with neem, rain and mast Ashoka trees, a seating court round a raised bed, low hedges along the entrance walk from the road to the main doors, bollard lights, and the wayfinding monolith at the way in.',
+      ['Granite-edged lawns and shade trees', 'Seating court with teak benches', 'Bollard lighting along the walk', 'Wayfinding monolith at the gate'], ['Healing garden', 'Seating']),
+    area('Parking & Basement Ramp', 'amenity_parking', [64, 55],
+      'Behind the building: the covered ramp down to the two basement parking levels, its mouth on the drive under a lit sign and a height bar, its roof planted; and a row of bays along the back wall on an aisle off the drive, with the service gate to the cross road.',
+      ['Covered ramp to two basement levels, 2.4 m headroom', 'Seven surface bays with wheel stops', 'Service gate on the 33 ft cross road'], ['Basement parking', 'Staff parking']),
+    area('Utility Yard', 'amenity_service', [41, 30],
+      'The fenced utility yard in the north-west corner: the liquid oxygen tank on its legs with its banks of vaporisers for the medical gas supply, the transformer, and the standby generator in its acoustic enclosure, beside the service court and the stores\' roller shutters in the back wall.',
+      ['Liquid oxygen tank and vaporisers', 'Transformer and standby generator', 'Service court with loading shutters'], ['Medical oxygen', 'Standby power']),
+  ]
+  return {
+    id: 'p_kalakal_hospital', slug: 'kalakal-hospital', name: 'Kallakal Hospital', type: 'commercial', location: 'Kallakal, NH-44',
+    tagline: 'A four-storey hospital in white cladding and blue glass on the HMDA road frontage, with its own emergency entrance',
+    thumbnailUrl: placeholderImage('Kallakal Hospital', 205, 800, 500),
+    stats: [{ label: 'Plot', value: '4,090 sq yd' }, { label: 'Floors', value: 'B2 + G + 3' }, { label: 'Facing', value: 'East' }],
+    description:
+      'A hospital on Plot A-03 in Kallakal, the corner plot facing east onto the 250 ft HMDA master plan road with the 60 ft main avenue along its north side. From the road: a white tower with a grid of punched windows over the outpatient entrance; a lower glazed link; the main block, a blue-grey curtain wall held in a deep white frame whose top band carries the blue cross and the name, with a porte-cochère over the drop-off in front of the main entrance; and the end of the north wing in white bands and ribbon glazing, with the emergency entrance and the ambulance bay under their own canopy. The wards fill a deep block behind round a light court with a podium garden. Cars come in off the drive along the south boundary, along the drop-off lane and out at the north end; the drive carries on to the covered basement ramp, the parking and the utility yard behind.',
+    highlights: {
+      Plot: 'A-03 · 125′ × 294′6″ (4,090 sq yd)', Facing: 'East, onto the 250 ft HMDA road; 60 ft avenue to the north', Structure: '2 basements + ground + 3 floors',
+      Height: 'Parapet 18.75 m; name band 20.25 m', Plan: 'Ward block 28.6 × 41 m round a 12 × 12 m light court', 'Façade': 'White GRC cladding, blue-grey curtain wall, white composite bands',
+      Setbacks: 'South 7.25 m (drive) · north 2.25 m · rear 18.9 m · front 30 m', Access: 'One-way drop-off lane; separate ambulance bay',
+    },
+    model: { kind: 'furnished', design: 'kalakal-hospital' }, floors: [], rooms,
+    // Camera positions in scene metres: +z east (the HMDA road), +x north. The main doors are at (6.8, 13).
+    // The controls keep the camera from looking upwards (polar angle ≤ 86°), so every view looks level or down.
+    presets: [
+      { id: 'reference', name: 'As in the reference', position: [-12, 10, 50], target: [4, 6.5, 6], fov: 50 },
+      { id: 'street', name: 'From the road', position: [8, 5.5, 50], target: [5, 1.8, 10], fov: 62 },
+      { id: 'front', name: 'East elevation', position: [2.5, 10, 80], target: [2.5, 9, 0], fov: 42 },
+      { id: 'elevation', name: 'Straight-on elevation', position: [2.5, 10, 180], target: [2.5, 10, 0], fov: 18 },
+      { id: 'northeast', name: 'North-east, from the avenue', position: [46, 16, 50], target: [3, 12, 0], fov: 42 },
+      { id: 'southeast', name: 'South-east corner', position: [-44, 16, 52], target: [2, 12, 0], fov: 42 },
+      { id: 'north', name: 'North side, along the avenue', position: [58, 14, -6], target: [6, 14, -6] },
+      { id: 'south', name: 'South side (the drive)', position: [-56, 12, -4], target: [-8, 12, -4] },
+      { id: 'rear', name: 'Rear, ramp and yard', position: [-4, 20, -82], target: [3, 8, -28] },
+      { id: 'aerial', name: 'Aerial', position: [58, 78, 72], target: [2, 8, -6] },
+      { id: 'entrance', name: 'Main entrance, eye level', position: [6.8, 1.7, 34], target: [6.8, 0.2, 14], fov: 58 },
+      { id: 'emergency', name: 'Emergency entrance', position: [15.5, 1.7, 30], target: [15.3, 0.4, 14], fov: 52 },
+      { id: 'outpatient', name: 'Outpatient entrance', position: [-5, 1.7, 24], target: [-7.1, 0.7, 12], fov: 58 },
+      { id: 'court', name: 'Light court from above', position: [1.5, 36, 2], target: [1.5, 9, -12], fov: 50 },
+      { id: 'top', name: 'Plan view', position: [0, 200, -0.01], target: [0, 0, 0] },
+    ],
+    media: [],
+  }
+}
+
+export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalHotel(), kalakalA01(), kalakalHospital()]

@@ -741,15 +741,26 @@ const advanceOf = (ch: string) => {
 
 const glyphCache = new WeakMap<Kit, Map<string, { face: Material; side: Material }>>()
 
+/** A letter's colours: its face, the glow it gives off when lit, and its returns. */
+export interface LetterTone {
+  face: string
+  emissive: string
+  intensity: number
+  side: string
+}
+const OPAL: LetterTone = { face: '#ffffff', emissive: '#fff6e8', intensity: 1.3, side: '#c9ccd0' }
+
 /**
  * One channel letter, cap height `cap`, `depth` deep: an opal face lit from within over aluminium
- * returns, built as a stack of cut-outs. Baseline at y = 0, centred on x = 0, facing +z.
+ * returns (or the colours of `tone`), built as a stack of cut-outs. Baseline at y = 0, centred on
+ * x = 0, facing +z.
  */
-export function channelLetter(ctx: HotelCtx, ch: string, cap: number, depth: number) {
+export function channelLetter(ctx: HotelCtx, ch: string, cap: number, depth: number, tone: LetterTone = OPAL) {
   const { k, lighting } = ctx
   let cache = glyphCache.get(k)
   if (!cache) glyphCache.set(k, (cache = new Map()))
-  let mats = cache.get(ch)
+  const key = tone === OPAL ? ch : `${ch}|${tone.face}|${tone.emissive}`
+  let mats = cache.get(key)
   if (!mats) {
     const map = k.tex.painted(256, 256, (g, w, h) => {
       g.fillStyle = '#000'
@@ -761,10 +772,10 @@ export function channelLetter(ctx: HotelCtx, ch: string, cap: number, depth: num
       g.fillText(ch, w / 2, h / 2 + (h * 0.7 * CAP) / 2)
     })
     mats = {
-      face: lighting.glow(new MeshStandardMaterial({ color: '#ffffff', emissive: '#fff6e8', emissiveIntensity: 1.3, roughness: 0.3, alphaMap: map, alphaTest: 0.5 }), 0.1),
-      side: new MeshStandardMaterial({ color: '#c9ccd0', metalness: 0.7, roughness: 0.35, alphaMap: map, alphaTest: 0.5, side: DoubleSide }),
+      face: lighting.glow(new MeshStandardMaterial({ color: tone.face, emissive: tone.emissive, emissiveIntensity: tone.intensity, roughness: 0.3, alphaMap: map, alphaTest: 0.5 }), 0.1),
+      side: new MeshStandardMaterial({ color: tone.side, metalness: 0.7, roughness: 0.35, alphaMap: map, alphaTest: 0.5, side: DoubleSide }),
     }
-    cache.set(ch, mats)
+    cache.set(key, mats)
   }
   const size = cap / (0.7 * CAP)
   const g = new Group()
@@ -779,11 +790,12 @@ export function channelLetter(ctx: HotelCtx, ch: string, cap: number, depth: num
   return { group: g, advance: advanceOf(ch) * size * 0.7 + cap * 0.1 }
 }
 
-/** A line of letters centred on x = 0, facing +z, baseline at y = 0. */
-export function signLine(ctx: HotelCtx, text: string, cap: number, depth: number) {
+/** A line of letters centred on x = 0, facing +z, baseline at y = 0; its length in `userData.width`. */
+export function signLine(ctx: HotelCtx, text: string, cap: number, depth: number, tone?: LetterTone) {
   const g = new Group()
-  const letters = [...text].map((ch) => (ch === ' ' ? { group: null, advance: cap * 0.45 } : channelLetter(ctx, ch, cap, depth)))
+  const letters = [...text].map((ch) => (ch === ' ' ? { group: null, advance: cap * 0.45 } : channelLetter(ctx, ch, cap, depth, tone)))
   const total = letters.reduce((s, l) => s + l.advance, 0)
+  g.userData.width = total
   let x = -total / 2
   for (const l of letters) {
     if (l.group) {

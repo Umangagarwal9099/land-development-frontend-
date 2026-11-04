@@ -31,14 +31,14 @@ const D = Math.PI / 180
 /* ---------- geometry helpers ---------- */
 
 /** A quad turned to face `want`, whichever way round its corners were given. */
-function facing(t: Tris, a: Vector3, b: Vector3, c: Vector3, d: Vector3, ua: number[], ub: number[], uc: number[], ud: number[], want: Vector3) {
+export function facing(t: Tris, a: Vector3, b: Vector3, c: Vector3, d: Vector3, ua: number[], ub: number[], uc: number[], ud: number[], want: Vector3) {
   const n = new Vector3().subVectors(b, a).cross(new Vector3().subVectors(d, a))
   if (n.dot(want) >= 0) t.quad(a, b, c, d, ua, ub, uc, ud)
   else t.quad(a, d, c, b, ua, ud, uc, ub)
 }
 
 /** An axis-aligned box into a mesh under construction, its UVs in metres on every face. */
-function box(t: Tris, [x0, x1]: R, [y0, y1]: R, [z0, z1]: R) {
+export function box(t: Tris, [x0, x1]: R, [y0, y1]: R, [z0, z1]: R) {
   const v = (x: number, y: number, z: number) => new Vector3(x, y, z)
   t.quad(v(x0, y0, z1), v(x1, y0, z1), v(x1, y1, z1), v(x0, y1, z1), [x0, y0], [x1, y0], [x1, y1], [x0, y1])
   t.quad(v(x1, y0, z0), v(x0, y0, z0), v(x0, y1, z0), v(x1, y1, z0), [-x1, y0], [-x0, y0], [-x0, y1], [-x1, y1])
@@ -52,7 +52,7 @@ function box(t: Tris, [x0, x1]: R, [y0, y1]: R, [z0, z1]: R) {
  * One face of the block, as a frame: s runs along it from `o` (left to right seen from outside),
  * d outwards from it.
  */
-interface Face {
+export interface Face {
   o: Point2
   u: Point2
   n: Point2
@@ -66,17 +66,17 @@ const FACES = {
   north: { o: [BX1, BZ1], u: [0, -1], n: [1, 0], len: BZ1 - BZ0 },
 } satisfies Record<string, Face>
 
-const onFace = (f: Face, s: number, d: number): Point2 => [f.o[0] + f.u[0] * s + f.n[0] * d, f.o[1] + f.u[1] * s + f.n[1] * d]
+export const onFace = (f: Face, s: number, d: number): Point2 => [f.o[0] + f.u[0] * s + f.n[0] * d, f.o[1] + f.u[1] * s + f.n[1] * d]
 
 /** A box on a face: s0..s1 along it, d0..d1 out from it. */
-function fbox(t: Tris, f: Face, [s0, s1]: R, ys: R, [d0, d1]: R) {
+export function fbox(t: Tris, f: Face, [s0, s1]: R, ys: R, [d0, d1]: R) {
   const [ax, az] = onFace(f, s0, d0)
   const [bx, bz] = onFace(f, s1, d1)
   box(t, [Math.min(ax, bx), Math.max(ax, bx)], ys, [Math.min(az, bz), Math.max(az, bz)])
 }
 
 /** A sheet parallel to a face at depth d, facing out; UVs from (s, y), metres unless given. */
-function fplane(t: Tris, f: Face, [s0, s1]: R, [y0, y1]: R, d: number, uv = (s: number, y: number) => [s, y]) {
+export function fplane(t: Tris, f: Face, [s0, s1]: R, [y0, y1]: R, d: number, uv = (s: number, y: number) => [s, y]) {
   const p = (s: number, y: number) => {
     const [x, z] = onFace(f, s, d)
     return new Vector3(x, y, z)

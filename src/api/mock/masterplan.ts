@@ -233,6 +233,8 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
   plots.find((p) => p.id === 'plot_4')!.unit = { kind: 'commercial', name: 'Kallakal Hotel', propertySlug: 'kalakal-hotel', design: 'kalakal-hotel' }
   // A-01, the commercial plot at the north end of the frontage, carries Kallakal Square, the car park with shops.
   plots.find((p) => p.id === 'plot_1')!.unit = { kind: 'commercial', name: 'Kallakal Square', propertySlug: 'kalakal-a01', design: 'kalakal-a01' }
+  // A-03, the corner plot south of the avenue's mouth, carries Kallakal Hospital.
+  plots.find((p) => p.id === 'plot_3')!.unit = { kind: 'commercial', name: 'Kallakal Hospital', propertySlug: 'kalakal-hospital', design: 'kalakal-hospital' }
 
   // Keep planting within landscaped parks; road edges and the avenue median stay clear.
   const trees = [
