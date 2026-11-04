@@ -375,4 +375,67 @@ function kalakalHotel(): Property {
   }
 }
 
-export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalHotel()]
+/**
+ * Kallakal Square on commercial Plot A-01, Kallakal: the client's reference design, a multi-storey
+ * car park over ground-floor shops with a glazed ramp drum, modelled in 3D
+ * (features/property/scene/furnished/kalakalA01) as an exterior with its grounds. Areas map to
+ * the model's amenity_* hotspots.
+ */
+function kalakalA01(): Property {
+  const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
+    id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
+    dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
+  })
+  const rooms: Room[] = [
+    area('Main Entrance & Ramp Drum', 'amenity_entrance', [20, 12],
+      'The pedestrian entrance at the foot of the glazed drum, on the walk from the road: automatic sliding doors in a black frame open into a round lobby with a terrazzo floor, two lifts and the level directory. Above it the helical ramp turns up through the three decks to the roof behind clear glass, its LED strips lighting the turns at night; the drum\'s deep black crown carries the name.',
+      ['Drum 14.8 m across, glazed full height', 'Automatic sliding doors, 3.6 m frame', 'Two passenger lifts', 'Helical ramp, three turns, one deck to a turn'],
+      ['Lobby benches', 'Cycle stands outside']),
+    area('Shopfronts', 'amenity_shops', [45, 13],
+      'Four shops under the decks along the front, and a fifth south of the drum: full-height clear glass in black frames between charcoal piers, a glazed door in each, a lit name box on the charcoal fascia, and planters along the paving in front.',
+      ['Shopfronts 3.15 m high, 5 m deep shops', 'Charcoal aluminium composite fascia and piers', 'Backlit fascia signs'], ['Retail', 'Café']),
+    area('Forecourt & Lawns', 'amenity_forecourt', [136, 39],
+      'The landscaped forecourt between the building and the road: flamed granite paving with an entrance walk straight to the drum\'s doors, between two lawns edged in granite and planted with neem and a rain tree, low hedges along the walk, benches and bollard lights.',
+      ['Flamed granite paving', 'Granite-edged lawns with neem and rain trees', 'Bollard lighting along the walk', 'Stainless bollards on the road edge'], ['Seating', 'Shade trees']),
+    area('Vehicle Entry & Exit', 'amenity_parking', [20, 32],
+      'The way in for cars: a 5.8 m drive along the south boundary from the HMDA road to the cross road behind, with the entry and exit portals in the block\'s south end, each under a striped height bar either side of a kerbed island with the parking sign.',
+      ['Two portals, 3.6 m wide, 2.75 m clear', 'Height bars at 2.4 m', '5.8 m two-way drive, gates on both roads', 'Speed tables at both gates'], ['Multi-level parking', 'Drop-off on the drive']),
+    area('Service Court & Utility Yard', 'amenity_service', [143, 37],
+      'Behind the block: an asphalt service court off the drive with roller-shuttered service rooms in the rear wall, a lawn with rain trees, and the fenced substation and generator yard in the north-west corner.',
+      ['Service court off the drive', 'Transformer and DG set in a fenced yard', 'Roller-shuttered stores at the rear'], ['Substation', 'Service access']),
+  ]
+  return {
+    id: 'p_kalakal_a01', slug: 'kalakal-a01', name: 'Kallakal Square', type: 'commercial', location: 'Kallakal, NH-44',
+    tagline: 'Shops and a multi-storey car park behind a timber screen, with a glazed ramp drum, on the HMDA road frontage',
+    thumbnailUrl: placeholderImage('Kallakal Square', 160, 800, 500),
+    stats: [{ label: 'Plot', value: '3,022 sq yd' }, { label: 'Floors', value: 'G + 3' }, { label: 'Facing', value: 'East' }],
+    description:
+      'A commercial building on Plot A-01 in Kallakal, facing east onto the 250 ft HMDA master plan road: shops on the ground floor and three parking decks above. The long block runs parallel to the road, its decks screened in vertical thermowood slats hung in staggered panels, some flush, some forward, with mid-grey infill panels and open bays among them between exposed concrete slab edges. A fully glazed drum holding the helical ramp stands proud of the front under a deep black crown with black returns either side, the main entrance at its foot. A cream stair tower with a tall glazed slit and a dark grey lift core close the north end. Cars come in off a drive along the south boundary through portals in the block\'s south end.',
+    highlights: {
+      Plot: 'A-01 · 166′1″ × 165′5″ (3,022 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Ground (shops) + 3 parking decks',
+      Height: 'Parapet 15.15 m; drum crown 16.75 m', Plan: 'Block 40.2 × 17.2 m; ramp drum 14.8 m across', 'Façade': 'Thermowood slat screen, charcoal and grey composite, clear glass',
+      Setbacks: 'South 6.7 m (drive) · north 3.5 m · rear 12.8 m · front 20.4 m', Parking: 'About 80 cars on three decks',
+    },
+    model: { kind: 'furnished', design: 'kalakal-a01' }, floors: [], rooms,
+    // Camera positions in scene metres: +z east (the HMDA road), +x north. The drum is centred at (-5.6, 6.6).
+    presets: [
+      { id: 'reference', name: 'As in the reference', position: [-13, 1.7, 40], target: [2, 7, 3], fov: 52 },
+      { id: 'street', name: 'From the road', position: [-6, 2, 44], target: [0, 7, 2], fov: 50 },
+      { id: 'front', name: 'East elevation', position: [1.5, 9, 70], target: [1.5, 8, 0], fov: 42 },
+      { id: 'elevation', name: 'Straight-on elevation', position: [1.5, 8.5, 160], target: [1.5, 8.5, 0], fov: 16 },
+      { id: 'northeast', name: 'North-east corner', position: [42, 14, 40], target: [2, 7, 0], fov: 40 },
+      { id: 'southeast', name: 'South-east corner', position: [-40, 14, 42], target: [0, 7, 0], fov: 40 },
+      { id: 'south', name: 'South side (drive and portals)', position: [-58, 9, 4], target: [-12, 5, -4], fov: 45 },
+      { id: 'north', name: 'North side', position: [48, 9, -2], target: [0, 8, -3] },
+      { id: 'rear', name: 'Rear and service court', position: [-6, 16, -60], target: [1, 6, -6] },
+      { id: 'aerial', name: 'Aerial', position: [45, 55, 60], target: [1, 3, 0] },
+      { id: 'entrance', name: 'Entrance, eye level', position: [-3, 1.6, 24], target: [-5.6, 4, 10], fov: 55 },
+      { id: 'drum', name: 'Ramp drum, close-up', position: [3, 2, 22], target: [-5.6, 8.5, 6], fov: 45 },
+      { id: 'screen', name: 'Timber screen, close-up', position: [14, 3, 14], target: [10, 8.5, 5], fov: 45 },
+      { id: 'top', name: 'Plan view', position: [0, 130, -0.01], target: [0, 0, 0] },
+    ],
+    media: [],
+  }
+}
+
+export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalHotel(), kalakalA01()]

@@ -745,7 +745,7 @@ const glyphCache = new WeakMap<Kit, Map<string, { face: Material; side: Material
  * One channel letter, cap height `cap`, `depth` deep: an opal face lit from within over aluminium
  * returns, built as a stack of cut-outs. Baseline at y = 0, centred on x = 0, facing +z.
  */
-function channelLetter(ctx: HotelCtx, ch: string, cap: number, depth: number) {
+export function channelLetter(ctx: HotelCtx, ch: string, cap: number, depth: number) {
   const { k, lighting } = ctx
   let cache = glyphCache.get(k)
   if (!cache) glyphCache.set(k, (cache = new Map()))

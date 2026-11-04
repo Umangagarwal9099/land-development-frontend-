@@ -79,7 +79,7 @@ export interface Room {
 }
 
 /** Interior designs built procedurally in the front end (walls, finishes, furniture, lighting). */
-export type FurnishedDesign = 'nyshas-haven' | 'kalakal-d65' | 'kalakal-mall' | 'kalakal-hotel'
+export type FurnishedDesign = 'nyshas-haven' | 'kalakal-d65' | 'kalakal-mall' | 'kalakal-hotel' | 'kalakal-a01'
 
 /** A real exported model, a generated stand-in used until the 3D artist delivers, or a furnished design model. */
 export type ModelSource =
