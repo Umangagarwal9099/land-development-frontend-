@@ -1,4 +1,5 @@
-import { CylinderGeometry, Group, IcosahedronGeometry, MeshPhysicalMaterial, MeshStandardMaterial, type Material, type Object3D } from 'three'
+import { Group, IcosahedronGeometry, type Material, type Object3D } from 'three'
+import { parkedCar } from '../car'
 import { PI, type Kit } from '../kit'
 import type { D65Materials } from './materials'
 import { pottedPothos } from './plant'
@@ -118,40 +119,7 @@ export function frangipani(p: P, x: number, z: number, s: number) {
   crowns.forEach(([a, b, cc, r], i) => foliageClump(p, g, r * s, a * s, b * s, cc * s, 0.6, i))
 }
 
-/** A white compact SUV, nose out, as parked in the reference. */
-export function car({ k, c }: P, x: number, z: number, y: number) {
-  const g = new Group()
-  g.position.set(x, y, z)
-  k.root.add(g)
-  const paint = new MeshPhysicalMaterial({ color: '#f1f2f2', roughness: 0.28, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.08 })
-  const glass = new MeshStandardMaterial({ color: '#16191d', roughness: 0.05, metalness: 0.6 })
-  const trim = new MeshStandardMaterial({ color: '#17181b', roughness: 0.6 })
-  const rim = new MeshStandardMaterial({ color: '#b9bcc0', roughness: 0.3, metalness: 0.85 })
-  // Body, a dark glasshouse with white pillars and roof, and black cladding round the base.
-  k.soft(g, 1.82, 0.6, 4.4, 0.14, paint, 0, 0.7, 0)
-  // Glasshouse: side glass and backlight in a box, with a raked windscreen running down to the bonnet.
-  k.soft(g, 1.62, 0.44, 2.1, 0.08, glass, 0, 1.2, -0.55)
-  k.soft(g, 1.6, 0.08, 2.2, 0.04, paint, 0, 1.44, -0.5)
-  const screen = k.box(g, 1.5, 0.02, 0.84, glass, 0, 1.2, 0.82, false)
-  screen.rotation.x = 0.62
-  for (const s of [-1, 1]) {
-    k.box(g, 0.07, 0.02, 0.86, paint, s * 0.76, 1.2, 0.82).rotation.x = 0.62
-    k.box(g, 0.06, 0.42, 0.14, paint, s * 0.79, 1.2, -1.58)
-    k.box(g, 0.04, 0.03, 2.1, rim, s * 0.6, 1.5, -0.4)
-    k.box(g, 0.42, 0.06, 0.04, c.head, s * 0.6, 0.86, 2.2, false)
-    k.box(g, 0.36, 0.07, 0.04, c.tail, s * 0.64, 0.9, -2.2, false)
-    k.box(g, 0.16, 0.1, 0.07, paint, s * 0.95, 1.08, 0.62)
-  }
-  k.box(g, 1.84, 0.18, 4.42, trim, 0, 0.42, 0)
-  k.box(g, 1.0, 0.24, 0.04, trim, 0, 0.66, 2.2)
-  k.box(g, 1.4, 0.03, 0.04, rim, 0, 0.8, 2.21)
-  const tyre = new CylinderGeometry(0.36, 0.36, 0.24, 28)
-  tyre.rotateZ(PI / 2)
-  const hub = new CylinderGeometry(0.23, 0.23, 0.25, 20)
-  hub.rotateZ(PI / 2)
-  for (const s of [-1, 1])
-    for (const w of [-1.36, 1.38]) {
-      k.mesh(tyre, trim, g, s * 0.82, 0.36, w)
-      k.mesh(hub, rim, g, s * 0.82, 0.36, w)
-    }
+/** The family's car in the carport: a white compact SUV (see ../car.ts). */
+export function car({ k }: P, x: number, z: number, y: number) {
+  parkedCar(k.root, 'crossover', '#f1f2f2', x, z, 0, y)
 }

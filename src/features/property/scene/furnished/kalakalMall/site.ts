@@ -2,7 +2,7 @@ import { ExtrudeGeometry, Mesh, PointLight, Shape, type Material, type Object3D 
 import type { Point2 } from '../../../../../api/types'
 import { PI } from '../kit'
 import { channelLetters, MALL_NAME, podiumOutline, type MallCtx } from './building'
-import { parkedCar } from './car'
+import { parkedCar } from '../car'
 import { hedge, lawn, shrub, SPECIES, tree } from './foliage'
 import { BAYS, BX0, BX1, clipHalf, DRIVE, ENTRY_X, FRONTAGE_Z, FT, GL, PLAZA_Z, PLOT, REAR_Z } from './plan'
 import { metricBox, rect, slab } from './solids'

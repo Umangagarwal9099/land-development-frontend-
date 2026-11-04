@@ -2,7 +2,7 @@ import { CatmullRomCurve3, Color, CylinderGeometry, Mesh, TubeGeometry, Vector3,
 import { rng } from '../textures'
 import type { Planting } from '../kalakalMall/foliage'
 import { Tris } from '../kalakalMall/skin'
-import type { A01Materials } from './materials'
+import type { HotelMaterials } from './materials'
 
 /*
  * The reference's three "capsules": tall screens of black expanded metal, stadium-shaped (round
@@ -109,7 +109,7 @@ const strut = (parent: Object3D, a: Vector3, b: Vector3, r: number, mat: Materia
 }
 
 /** Builds a capsule: mesh, frame, ribs and bracing into `parent`, creepers into `plant`. */
-export function buildCapsule(c: A01Materials, plant: Planting, parent: Object3D, spec: Capsule, screens: Tris) {
+export function buildCapsule(c: HotelMaterials, plant: Planting, parent: Object3D, spec: Capsule, screens: Tris) {
   const f = new CapsuleFrame(spec)
   const { y0, w } = spec
   const rr = f.rr

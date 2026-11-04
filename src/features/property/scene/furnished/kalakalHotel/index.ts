@@ -5,18 +5,19 @@ import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shar
 import { Contact } from '../kalakalMall/contact'
 import { Planting } from '../kalakalMall/foliage'
 import { buildBuilding } from './building'
-import { a01Materials } from './materials'
-import { BAYS, DRIVE, ENTRY_T, GL, P, PLAN_CENTRE_Z, PLAZA_R, PLOT, polar, R_IN, RAMP, YARD } from './plan'
+import { hotelMaterials } from './materials'
+import { DRIVE, ENTRY_T, GL, P, PARK, PLAN_CENTRE_Z, PLAZA_R, PLOT, polar, R_IN, YARD } from './plan'
 import { buildContext, buildSite, SITE } from './site'
 
 export { SITE }
 
 /*
- * Kallakal Square on commercial Plot A-01: an exterior model of the client's reference design, a
- * G+2 ring of curved glass pavilions with white slab bands round a fountain plaza, its white
- * sweeping wall and black mesh capsules grown over with creepers, fitted to the 166′1″ × 165′5″
- * east-facing plot with its drive, visitor bays, basement ramp and service yard. See plan.ts for
- * how the reference was fitted to the plot.
+ * Kallakal Hotel on commercial Plot A-04: an exterior model of the client's reference design, a
+ * G+2 ring of curved glass pavilions with white slab bands round a fountain plaza (the lobby and
+ * restaurant below, guest rooms above), its white sweeping wall and black mesh capsules grown
+ * over with creepers, fitted to the front of the 124′3″ × 340′7″ east-facing plot, with the
+ * guests' car park, utility yard and service gate filling the depth behind. See plan.ts for how
+ * the reference was fitted to the plot.
  */
 
 type Zone = [x0: number, x1: number, z0: number, z1: number]
@@ -27,8 +28,8 @@ const [, entryZ] = polar(ENTRY_T, R_IN)
 const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[] }> = {
   amenity_entrance: { y: GL, height: 5, zones: [[P.x - 4, P.x + 4, entryZ, entryZ + 3.2]] },
   amenity_plaza: { y: GL, height: 2.5, zones: [[P.x - PLAZA_R, P.x + PLAZA_R, P.z - PLAZA_R + 3.2, P.z + PLAZA_R]] },
-  amenity_parking: { y: 0.03, height: 2.4, zones: [[DRIVE.x0, BAYS.x1, BAYS.z0, BAYS.z1]] },
-  amenity_service: { y: 0.03, height: 4, zones: [[RAMP.x0, YARD.x1, PLOT.z0 + 0.3, RAMP.z1]] },
+  amenity_parking: { y: 0.03, height: 2.4, zones: [[DRIVE.x1, PLOT.x1 - 0.3, PARK.back[0], PARK.front[1]]] },
+  amenity_service: { y: 0.03, height: 4, zones: [[DRIVE.x1, YARD.x1, PLOT.z0 + 0.3, PARK.back[0]]] },
 }
 
 /**
@@ -36,9 +37,9 @@ const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[] }> = {
  * plan, which draws its own roads, builds it without them and with the forecourt trimmed to the
  * layout's road edge.
  */
-export function buildKalakalA01(context = true): FurnishedModel {
+export function buildKalakalHotel(context = true): FurnishedModel {
   const root = new Group()
-  root.name = 'kalakal_a01'
+  root.name = 'kalakal_hotel'
   const building = new Group()
   building.name = 'building'
   const site = new Group()
@@ -47,7 +48,7 @@ export function buildKalakalA01(context = true): FurnishedModel {
 
   const lighting = new Lighting()
   const k = new Kit(root)
-  const c = a01Materials(k, lighting)
+  const c = hotelMaterials(k, lighting)
   const ctx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact() }
 
   buildBuilding(ctx, building)

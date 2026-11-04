@@ -1,9 +1,9 @@
 import type { Point2 } from '../../../../../api/types'
 
 /*
- * Commercial Plot A-01, Kallakal: 166′1″ of frontage (north → south) × 165′5″ deep (west → east),
- * 3,022 sq yd, facing east onto the HMDA master plan road on NH-44, with the 33 ft cross road
- * behind it and Plot A-02 (Prime Mall) to the south.
+ * Kallakal Hotel on commercial Plot A-04, Kallakal: 124′3″ of frontage (north → south) × 340′7″
+ * deep (west → east), 4,676 sq yd, facing east onto the HMDA master plan road on NH-44, with the
+ * 33 ft cross road behind it, Plot A-03 to the north and the site boundary to the south.
  *
  * Site frame, as for D-65 and the mall: +z east (the road), +x north, y up, origin at the plot
  * centre. The reference design is fitted to the plot like this:
@@ -14,40 +14,60 @@ import type { Point2 } from '../../../../../api/types'
  *   the plaza, pierced by two arches. Three black mesh "capsules" with round openings, grown over
  *   with creepers, rise over the south wing, the centre and (the tallest) the north wing.
  *
- *   ring:     centred on the plaza at P, glass lines at radius 10.5 (plaza side) and 18.5
- *   setbacks: south 9.3 m (the drive and visitor bays), north 4.3 m (fire walk), rear 7.2 m
- *   levels:   ground +0.15 (the plaza), first +5.15, second +9.35, roof +13.55
- *             (5.0 / 4.2 / 4.2 m floor to floor); north capsule to +23.4
+ *   The plot is narrow and deep, so the ring stands at the front, scaled to its frontage, and
+ *   the guests' car park fills the depth behind it, reached by the drive down the south side.
+ *
+ *   ring:     centred on the plaza at P, glass lines at radius 8.2 (plaza side) and 14.3
+ *   rear wing: 18 m wide behind the centre, G+3, guest rooms either side of a corridor
+ *   setbacks: south 6.2 m (the drive), north 2.1 m (fire walk), front 10 m (forecourt)
+ *   levels:   ground +0.15 (lobby and restaurant), first +5.15, second +8.75, roof +12.35
+ *             (5.0 / 3.6 / 3.6 m floor to floor, guest rooms above); the rear wing's third
+ *             floor at +12.35 and its roof at +15.95; north capsule to +23
+ *   behind:   a car park of four rows of bays on two aisles and the drive, 44 bays, with the
+ *             utility yard and a service gate to the cross road at the back
  */
 
 export const FT = 0.3048
 
-/** The plot: 166′1″ along the road × 165′5″ deep, as the plan's plot table gives it. */
-export const PLOT = { x0: (-166 - 1 / 12) * FT * 0.5, x1: (166 + 1 / 12) * FT * 0.5, z0: (-165 - 5 / 12) * FT * 0.5, z1: (165 + 5 / 12) * FT * 0.5 }
+/** The plot: 124′3″ along the road × 340′7″ deep, as the plan's plot table gives it. */
+export const PLOT = { x0: (-124 - 3 / 12) * FT * 0.5, x1: (124 + 3 / 12) * FT * 0.5, z0: (-340 - 7 / 12) * FT * 0.5, z1: (340 + 7 / 12) * FT * 0.5 }
 
 /**
  * The layout plan draws the plot's road edge along the HMDA road, which runs at a skew to the
  * layout grid: at depth z = FRONTAGE_Z(x). The master plan trims the forecourt to it.
  */
-export const FRONTAGE_Z = (x: number) => 24.66 - 0.3636 * x
+export const FRONTAGE = { c: 51.21, k: -0.3636 }
+export const FRONTAGE_Z = (x: number) => FRONTAGE.c + FRONTAGE.k * x
 /** Where the plan's plot polygon centre (the mean of its corners) sits in this frame. */
 export const PLAN_CENTRE_Z = (2 * PLOT.z0 + FRONTAGE_Z(PLOT.x0) + FRONTAGE_Z(PLOT.x1)) / 4
 
 /** Centre of the plaza and of the ring of buildings round it. */
-export const P = { x: 2.5, z: 0.5 }
+export const P = { x: 2.0, z: 30 }
 /** Glass lines of the ring: the plaza side and the outside. */
-export const R_IN = 10.5
-export const R_OUT = 18.5
+export const R_IN = 8.2
+export const R_OUT = 14.3
+/** The wing's depth, glass to glass: what fittings inside are placed by. */
+export const DEPTH = R_OUT - R_IN
 /** Slab edges stand this far proud of the glass. */
 export const NOSE = 0.3
 
 /** Floor levels; slabs are SLAB deep below each. */
 export const GL = 0.15
 export const L1 = 5.15
-export const L2 = 9.35
-export const ROOF = 13.55
-export const SLAB = 0.55
+export const L2 = 8.75
+export const ROOF = 12.35
+export const SLAB = 0.5
 export const LEVELS = [GL, L1, L2] as const
+/** The rear wing rises a floor above the ring: its third floor is at the ring's roof. */
+export const L3 = ROOF
+export const ROOF_B = ROOF + 3.6
+
+/**
+ * The rear wing: guest rooms behind the centre, 18 m wide on the plaza's axis, its front following
+ * the ring's outer glass and its back end a half circle. Plan: x0..x1 across, the half circle's
+ * centre at zc.
+ */
+export const ANNEX = { x0: -7, x1: 11, zc: 5 }
 
 /**
  * Angles round P in degrees: 0 is east (towards the road), −90 south, −180 west. The ring runs
@@ -58,19 +78,30 @@ export const SOUTH = { t0: -128, t1: -62 }
 export const MAIN = { t0: -296, t1: -140 }
 export const CENTRE = { t0: -212, t1: -140 }
 /** The white wall in front of the north wing, its foot rising out of the plaza at the centre's edge. */
-export const WALL = { t0: -295, t1: -212, r: R_IN - 1.8, rise: -240, thick: 0.38 }
+export const WALL = { t0: -295, t1: -212, r: R_IN - 1.5, rise: -240, thick: 0.34 }
 /** The main entrance, on the centre wing's axis. */
 export const ENTRY_T = -180
+/** How far the centre's roof runs out over the plaza. */
+export const CANTILEVER = 1.8
 
 /** The fountain's rings, and the outer rings of the paving, which run on under the wings and out into the forecourt. */
-export const PLAZA_R = 8.6
-export const PAVED_R = 15.4
+export const PLAZA_R = 6.4
+export const PAVED_R = 11.5
 
-/** The south drive (asphalt), its parallel visitor bays, and the covered ramp to the basement. */
-export const DRIVE = { x0: PLOT.x0 + 0.23, x1: -19.6 }
-export const BAYS = { x0: -19.6, x1: -17.1, z0: -12.4, z1: 12.8 }
-export const RAMP = { x0: -14, x1: 5, z0: -24.85, z1: -19.4, h: 3.3 }
-export const YARD = { x0: 9, x1: PLOT.x1 - 0.23, z0: PLOT.z0 + 0.23, z1: -18.6 }
+/** The drive down the south side, from the road to the car park and the service gate behind. */
+export const DRIVE = { x0: PLOT.x0 + 0.23, x1: -13.2 }
+/** The car park: rows of 2.5 × 5 m bays between the drive and two aisles, between two cross aisles. */
+export const PARK = {
+  z0: -40,
+  z1: -10,
+  /** Cross aisles at the back and the front of the car park. */
+  back: [-46, -40] as [number, number],
+  front: [-10, -4] as [number, number],
+  /** Rows of bays (x ranges) and which way their cars face (+1 north, −1 south). */
+  rows: [[-13.2, -8.2, -1], [-8.2, -3.2, 1], [2.8, 7.8, -1], [7.8, 12.8, 1]] as [number, number, 1 | -1][],
+  aisles: [[-3.2, 2.8], [12.8, PLOT.x1 - 0.23]] as [number, number][],
+}
+export const YARD = { x0: 6, x1: PLOT.x1 - 0.23, z0: PLOT.z0 + 0.23, z1: -46.5 }
 
 const D = Math.PI / 180
 
@@ -151,6 +182,6 @@ export function wallTop(t: number) {
 
 /** The two arches through the white wall: centre angle, half-width and spring height (m). */
 export const ARCHES = [
-  { t: -256, half: 1.3, spring: 2.5 },
-  { t: -280, half: 1.3, spring: 2.5 },
+  { t: -256, half: 1.1, spring: 2.4 },
+  { t: -280, half: 1.1, spring: 2.4 },
 ] as const

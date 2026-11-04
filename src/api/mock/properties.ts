@@ -316,63 +316,63 @@ function kalakalMall(): Property {
 }
 
 /**
- * Kallakal Square on commercial Plot A-01, Kallakal: the client's reference design, a G+2 ring of
+ * Kallakal Hotel on commercial Plot A-04, Kallakal: the client's reference design, a G+2 ring of
  * curved glass pavilions round a fountain plaza, modelled in 3D
- * (features/property/scene/furnished/kalakalA01) as an exterior with its grounds. Areas map to
+ * (features/property/scene/furnished/kalakalHotel) as an exterior with its grounds. Areas map to
  * the model's amenity_* hotspots.
  */
-function kalakalA01(): Property {
+function kalakalHotel(): Property {
   const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
     id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
     dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
   })
   const rooms: Room[] = [
-    area('Main Entrance', 'amenity_entrance', [26, 10],
-      'The entrance on the centre wing\'s axis, across the plaza from the road: automatic sliding doors in the curved glass under a white blade canopy, with a spiral stair rising beside them in the lobby. The centre\'s roof runs out 2.4 m over the plaza above, carrying the name.',
-      ['Automatic sliding doors, 4.8 m frame', 'White canopy with recessed downlights', 'Cantilevered roof canopy, 2.4 m', 'Spiral stair to the first floor in the lobby'],
+    area('Main Entrance & Lobby', 'amenity_entrance', [26, 10],
+      'The hotel\'s entrance on the centre wing\'s axis, across the plaza from the road: automatic sliding doors in the curved glass under a white blade canopy, opening into the double-height lobby with its reception and a spiral stair to the first floor. The centre\'s roof runs out over the plaza above, carrying the name.',
+      ['Automatic sliding doors, 3.8 m frame', 'White canopy with recessed downlights', 'Cantilevered roof canopy, 1.8 m', 'Reception, lobby lounge and all-day restaurant on the ground floor'],
       ['Planters along the glass', 'Benches on the plaza']),
-    area('Fountain Plaza', 'amenity_plaza', [56, 56],
-      'A circular plaza 31 m across, open to the road: concentric rings of polished black granite and honed travertine with a dry-deck fountain set flush in them. Sixty-one nozzles in three rings and a crown of six at the centre throw jets of varying height that rise, break into spray and fall back onto the stone, the height of each ring rising and falling in a slow wave; the run-off spreads over the wet stone to a concealed slot drain round the jets. No basin: the plaza is walkable, wet or dry.',
-      ['Dry-deck fountain: 61 flush stainless nozzles', 'Jets 1.1–1.9 m, each varying on its own', 'Polished black granite and honed travertine', 'Concealed 12 mm slot drain round the jets'],
+    area('Fountain Plaza', 'amenity_plaza', [42, 42],
+      'A circular plaza 23 m across, open to the road: concentric rings of polished black granite and honed travertine with a dry-deck fountain set flush in them. Forty-seven nozzles in three rings and a crown of six at the centre throw jets of varying height that rise, break into spray and fall back onto the stone, the height of each ring rising and falling in a slow wave; the run-off spreads over the wet stone to a concealed slot drain round the jets. No basin: the plaza is walkable, wet or dry.',
+      ['Dry-deck fountain: 47 flush stainless nozzles', 'Jets 1.0–1.7 m, each varying on its own', 'Polished black granite and honed travertine', 'Concealed 12 mm slot drain round the jets'],
       ['Interactive splash plaza', 'Benches and bollard lights']),
-    area('Drive & Visitor Parking', 'amenity_parking', [82, 18],
-      'A 5.5 m two-way drive along the south boundary, from the HMDA road through to the cross road behind, with four parallel visitor bays in concrete pavers along its edge and a speed table at the gate.',
-      ['5.5 m drive, both roads', 'Four parallel bays, 2.5 × 6.3 m', 'Pole lighting along the drive'], ['Visitor parking', 'Drop-off']),
-    area('Basement Ramp & Service Yard', 'amenity_service', [128, 18],
-      'Behind the building: the covered ramp down to the basement car park, its mouth off the end of the drive, and the fenced substation and generator yard in the north-west corner, with service doors in the white rear wall.',
-      ['Covered ramp, 5.5 m wide, 3.3 m headroom', 'Transformer and DG set in a fenced yard', 'Service doors and plant-room louvres at the rear'], ['Basement parking', 'Substation']),
+    area('Guest Car Park', 'amenity_parking', [118, 138],
+      'Behind the hotel\'s rear wing: 44 nose-in bays in concrete pavers in four rows, on two aisles and the drive, with neem trees in planted islands and twin-headed pole lights. The 5.5 m drive runs the length of the south boundary from the HMDA road, past the forecourt for drop-off and the rear wing, to the car park and on to a service gate on the cross road.',
+      ['44 bays, 2.5 × 5 m, wheel stops and painted lines', '6 m aisles, cross aisles front and back', 'Neem trees in kerbed islands', '5.5 m two-way drive, gates on both roads'], ['Guest parking', 'Drop-off on the drive']),
+    area('Utility Yard & Service Gate', 'amenity_service', [118, 23],
+      'At the back of the plot: the fenced substation and generator yard, a planted strip with rain trees, and the service gate onto the 33 ft cross road, so deliveries and staff stay clear of the guests\' forecourt.',
+      ['Transformer and DG set in a fenced yard', 'Service gate on the cross road', 'Rain trees on a planted strip'], ['Substation', 'Service access']),
   ]
   return {
-    id: 'p_kalakal_a01', slug: 'kalakal-a01', name: 'Kallakal Square', type: 'commercial', location: 'Kallakal, NH-44',
-    tagline: 'Curved glass pavilions round a fountain plaza, on the HMDA road frontage',
-    thumbnailUrl: placeholderImage('Kallakal Square', 160, 800, 500),
-    stats: [{ label: 'Plot', value: '3,022 sq yd' }, { label: 'Floors', value: 'B + G + 2' }, { label: 'Facing', value: 'East' }],
+    id: 'p_kalakal_hotel', slug: 'kalakal-hotel', name: 'Kallakal Hotel', type: 'commercial', location: 'Kallakal, NH-44',
+    tagline: 'A boutique hotel of curved glass pavilions round a fountain plaza, on the HMDA road frontage',
+    thumbnailUrl: placeholderImage('Kallakal Hotel', 160, 800, 500),
+    stats: [{ label: 'Plot', value: '4,676 sq yd' }, { label: 'Floors', value: 'G + 3' }, { label: 'Facing', value: 'East' }],
     description:
-      'A commercial building on Plot A-01 in Kallakal, facing east onto the 250 ft HMDA master plan road. Three curved, fully glazed G+2 wings with white slab edges wrap a circular fountain plaza that opens to the road: the south wing ends in a rounded white wall, the centre wing holds the main entrance under a cantilevered roof, and the north wing stands behind a white wall that sweeps up out of the plaza, pierced by two arches. Three black mesh capsules grown over with creepers rise above the roofs, the tallest to 23 m.',
+      'A hotel on Plot A-04 in Kallakal, facing east onto the 250 ft HMDA master plan road. Three curved, fully glazed G+2 wings with white slab edges wrap a circular fountain plaza that opens to the road: the lobby, reception and all-day restaurant on the ground floor, guest rooms behind sheer curtains on the two floors above. Behind the centre a G+3 rear wing, glazed and banded to match and a storey taller, holds more guest rooms either side of a corridor over a banquet and dining floor. The south wing ends in a glass corner and a white curved fin, the centre wing holds the entrance under a cantilevered roof, and the north wing stands behind a white wall that sweeps up out of the plaza, pierced by two arches. Three black mesh capsules grown over with creepers rise above the roofs. The plot runs 104 m deep, holding the guests\' car park behind the rear wing, the utility yard and a service gate to the cross road.',
     highlights: {
-      Plot: 'A-01 · 166′1″ × 165′5″ (3,022 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Basement + ground + 2 upper floors',
-      Height: 'Roof at 13.55 m; north capsule to 23.2 m', Plan: 'Wings 8 m deep on a 10.5 m / 18.5 m ring', 'Façade': 'Clear curtain glass, white slab bands, white GRC',
-      Setbacks: 'South 9.3 m · north 4.3 m · rear 7.2 m', Parking: 'Basement car park + 4 visitor bays',
+      Plot: 'A-04 · 124′3″ × 340′7″ (4,676 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Ring G + 2, rear wing G + 3',
+      Height: 'Ring roof 12.35 m, rear wing 15.95 m; north capsule to 23 m', Plan: 'Wings 6.1 m deep on an 8.2 m / 14.3 m ring; rear wing 18 m wide', 'Façade': 'Clear curtain glass, white slab bands, white GRC',
+      Setbacks: 'South 6.2 m (drive) · north 2.1 m · front 10 m', Parking: '44 bays in the car park behind',
     },
-    model: { kind: 'furnished', design: 'kalakal-a01' }, floors: [], rooms,
-    // Camera positions in scene metres: +z east (the HMDA road), +x north.
+    model: { kind: 'furnished', design: 'kalakal-hotel' }, floors: [], rooms,
+    // Camera positions in scene metres: +z east (the HMDA road), +x north. The plaza is centred at (2, 30).
     presets: [
-      { id: 'reference', name: 'From the forecourt', position: [-3.5, 1.7, 19.5], target: [3, 6.5, -6], fov: 60 },
-      { id: 'street', name: 'From the road', position: [-8, 2, 44], target: [2.5, 7, 0], fov: 50 },
-      { id: 'front', name: 'East elevation', position: [2.5, 10, 62], target: [2.5, 8, 0], fov: 42 },
-      { id: 'elevation', name: 'Straight-on elevation', position: [2.5, 10, 150], target: [2.5, 10, 0], fov: 16 },
-      { id: 'northeast', name: 'North-east corner', position: [40, 15, 42], target: [4, 8, 0], fov: 40 },
-      { id: 'southeast', name: 'South-east corner', position: [-38, 14, 44], target: [0, 7, 0], fov: 40 },
-      { id: 'south', name: 'South side (drive)', position: [-52, 9, 2], target: [0, 8, -2] },
-      { id: 'north', name: 'North side', position: [50, 9, 0], target: [0, 8, -2] },
-      { id: 'rear', name: 'Rear and service yard', position: [-8, 14, -58], target: [2, 5, -12] },
-      { id: 'aerial', name: 'Aerial', position: [42, 55, 62], target: [2, 2, 0] },
-      { id: 'fountain', name: 'Fountain, eye level', position: [7.5, 1.6, 9.5], target: [-2, 3.5, -6], fov: 55 },
-      { id: 'jets', name: 'Jets, close-up', position: [6.6, 1.5, 5.2], target: [2.5, 1.1, 0.5], fov: 45 },
-      { id: 'top', name: 'Plan view', position: [0, 130, -0.01], target: [0, 0, 0] },
+      { id: 'reference', name: 'From the forecourt', position: [-3.5, 1.7, 47], target: [3, 6, 24], fov: 60 },
+      { id: 'street', name: 'From the road', position: [-8, 2, 66], target: [2, 6, 30], fov: 50 },
+      { id: 'front', name: 'East elevation', position: [2, 10, 84], target: [2, 7, 28], fov: 42 },
+      { id: 'elevation', name: 'Straight-on elevation', position: [2, 9, 170], target: [2, 9, 28], fov: 16 },
+      { id: 'northeast', name: 'North-east corner', position: [36, 15, 62], target: [3, 7, 28], fov: 40 },
+      { id: 'southeast', name: 'South-east corner', position: [-34, 14, 64], target: [0, 7, 28], fov: 40 },
+      { id: 'south', name: 'South side (drive)', position: [-40, 10, 18], target: [0, 7, 16] },
+      { id: 'carpark', name: 'Car park', position: [-16, 8, -2], target: [2, 0, -28], fov: 55 },
+      { id: 'rear', name: 'Rear and service gate', position: [-8, 22, -82], target: [0, 4, -10] },
+      { id: 'aerial', name: 'Aerial', position: [55, 75, 80], target: [0, 2, 0] },
+      { id: 'fountain', name: 'Fountain, eye level', position: [6, 1.6, 37], target: [-1.5, 3.2, 25], fov: 55 },
+      { id: 'jets', name: 'Jets, close-up', position: [5.2, 1.5, 33.6], target: [2, 1.0, 30], fov: 45 },
+      { id: 'top', name: 'Plan view', position: [0, 260, -0.01], target: [0, 0, 0] },
     ],
     media: [],
   }
 }
 
-export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalA01()]
+export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalHotel()]

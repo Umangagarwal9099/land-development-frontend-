@@ -6,15 +6,15 @@ import type { Contact } from '../kalakalMall/contact'
 import { shrub, type Planting } from '../kalakalMall/foliage'
 import { Tris } from '../kalakalMall/skin'
 import { metricBox, sheet } from '../kalakalMall/solids'
-import type { A01Materials } from './materials'
+import type { HotelMaterials } from './materials'
 import {
-  ARCHES, CENTRE, ENTRY_T, GL, L1, L2, LEVELS, MAIN, mainOutline, NOSE, perDeg, polar, R_IN, R_OUT, radial, ROOF, SLAB, SOUTH, southOutline, tangent, WALL, wallTop, wingOutline,
+  ANNEX, ARCHES, CANTILEVER, CENTRE, DEPTH, ENTRY_T, GL, L1, L2, L3, LEVELS, MAIN, mainOutline, NOSE, P, perDeg, polar, R_IN, R_OUT, radial, ROOF, ROOF_B, SLAB, SOUTH, southOutline, tangent, WALL, wallTop, wingOutline,
 } from './plan'
 import { buildCapsule, type Capsule } from './towers'
 
-export interface A01Ctx {
+export interface HotelCtx {
   k: Kit
-  c: A01Materials
+  c: HotelMaterials
   lighting: Lighting
   /** Planting gathered across the site, built as a few meshes at the end. */
   plant: Planting
@@ -30,12 +30,13 @@ const v3 = ([x, z]: Point2, y: number) => new Vector3(x, y, z)
 const deg = (len: number, r: number) => len / perDeg(r)
 
 /** The rounded end walls wrap this far along each face before the glass begins. */
-const CAP_WRAP = 2
+const CAP_WRAP = 1.5
 /** The entrance doors stand on the chord of the plaza-side glass, ±2.4 m about the axis. */
-const DOOR_HALF = 2.4
+const DOOR_HALF = 1.9
 const DOOR_DEG = Math.asin(DOOR_HALF / R_IN) / D
-/** The service frontage at the back of the main building is solid on the ground floor. */
-const REAR: [number, number] = [-212, -150]
+/** Where the rear wing meets the ring's outer glass, as angles round P (see buildAnnex). */
+const annexT = (x: number, r = R_OUT) => -180 - (Math.asin((x - P.x) / r) * 180) / Math.PI
+const ANNEX_T: [number, number] = [annexT(ANNEX.x1), annexT(ANNEX.x0)]
 
 /** A quad turned to face `want`, whichever way round its corners were given. */
 function facing(t: Tris, a: Vector3, b: Vector3, c: Vector3, d: Vector3, ua: number[], ub: number[], uc: number[], ud: number[], want: Vector3) {
@@ -167,11 +168,10 @@ function pathBand(t: Tris, pts: Point2[], y0: number, y1: number, centre: Point2
 }
 
 /** Curtain walls on both faces, floor by floor: glass between white slab bands, mullions at 1.6 m. */
-function buildGlazing(ctx: A01Ctx, parent: Object3D) {
+function buildGlazing(ctx: HotelCtx, parent: Object3D) {
   const { c, k } = ctx
   const glass = new Tris()
   const frames = new Tris()
-  const solid = new Tris()
   for (const w of WINGS)
     LEVELS.forEach((y, i) => {
       const top = (i < 2 ? LEVELS[i + 1] : ROOF) - SLAB
@@ -179,7 +179,7 @@ function buildGlazing(ctx: A01Ctx, parent: Object3D) {
         const [a, b] = glazedRun(w, r, inward)
         const cuts: [number, number][] = []
         if (i === 0 && inward) cuts.push([ENTRY_T - DOOR_DEG, ENTRY_T + DOOR_DEG])
-        if (i === 0 && !inward) cuts.push(REAR)
+        if (!inward) cuts.push(ANNEX_T)
         for (const [t0, t1] of less(a, b, cuts)) {
           arcBand(glass, r, t0, t1, y, top, inward)
           // Sill and head profiles, and a transom over the ground floor's doors.
@@ -204,18 +204,8 @@ function buildGlazing(ctx: A01Ctx, parent: Object3D) {
         m.rotation.y = Math.atan2(px - centre[0], pz - centre[1])
       }
     })
-  // The service frontage behind: white GRC with louvred plant-room openings and service doors.
-  arcBand(solid, R_OUT, REAR[0], REAR[1], GL - 0.02, L1 - SLAB, false)
-  for (const t of [-202, -187, -163]) {
-    const isDoor = t !== -187
-    const wid = isDoor ? 1.5 : 3.2
-    ringBox(k, parent, t, R_OUT + 0.03, wid, isDoor ? 2.4 : 1.6, 0.06, isDoor ? GL + 1.2 : 2.6, isDoor ? c.greigeMetric : c.shutter)
-    ringBox(k, parent, t, R_OUT + 0.06, wid + 0.16, 0.1, 0.1, isDoor ? GL + 2.45 : 3.45, c.mullion)
-    if (isDoor) ringBox(k, parent, t, R_OUT + 0.08, 0.5, 0.22, 0.06, GL + 2.75, c.lamp, false)
-  }
   glass.mesh(c.shopGlass, parent, 'curtain_glass', false)
   frames.mesh(c.mullion, parent, 'curtain_frames')
-  solid.mesh(c.grc, parent, 'service_wall')
 
   for (const w of WINGS) {
     const line = w.outline(0, 0.5)
@@ -223,8 +213,8 @@ function buildGlazing(ctx: A01Ctx, parent: Object3D) {
   }
 }
 
-/** Floor slabs and the roof, banded white; floors, lit ceilings and shop interiors behind the glass. */
-function buildFloors(ctx: A01Ctx, parent: Object3D) {
+/** Floor slabs and the roof, banded white; floors, lit ceilings, the lobby and the guest rooms behind the glass. */
+function buildFloors(ctx: HotelCtx, parent: Object3D) {
   const { c, k } = ctx
   for (const w of WINGS) {
     const edge = w.outline(NOSE)
@@ -235,18 +225,40 @@ function buildFloors(ctx: A01Ctx, parent: Object3D) {
       const top = (i < 2 ? LEVELS[i + 1] : ROOF) - SLAB
       sheet(parent, inner, y + 0.004, c.floor)
       sheet(parent, inner, top - 0.004, c.ceiling, true)
-      // The shops' back walls, lit, on a line through the middle of the wing; partitions at 7 m.
+      // A wall down the middle of the wing, lit: the lobby and restaurant on the ground floor;
+      // above, guest rooms 3.9 m wide either side of it, divided by partitions, behind curtains.
       const spine = new Tris()
-      const [a, b] = glazedRun(w, R_IN + 4.6)
-      const uv = (s: number, yy: number) => [s / 22, (yy - y) / (top - y)]
-      arcBand(spine, R_IN + 4.6, a, b, y, top, true, uv, 0.6)
-      arcBand(spine, R_IN + 4.8, a, b, y, top, false, uv, 0.6)
-      spine.mesh(c.shops, parent, 'shops', false)
-      const n = Math.max(1, Math.round(((b - a) * perDeg(R_IN)) / 7))
+      const [a, b] = glazedRun(w, R_IN + DEPTH * 0.58)
+      const rooms = Math.max(1, Math.round(((b - a) * perDeg(R_IN)) / 3.9))
+      const sr = R_IN + DEPTH * 0.58
+      const span = (b - a) * perDeg(sr)
+      const uv = i === 0 ? (s: number, yy: number) => [s / 22, (yy - y) / (top - y)] : (s: number, yy: number) => [(s / span) * rooms, (yy - y) / (top - y)]
+      arcBand(spine, sr, a, b, y, top, true, uv, 0.3)
+      arcBand(spine, sr + 0.2, a, b, y, top, false, uv, 0.3)
+      spine.mesh(i === 0 ? c.lobby : c.room, parent, i === 0 ? 'lobby' : 'rooms', false)
+      const n = i === 0 ? Math.max(1, Math.round(((b - a) * perDeg(R_IN)) / 7)) : rooms
       for (let j = 1; j < n; j++) {
         const t = a + ((b - a) * j) / n
         if (i === 0 && Math.abs(t - ENTRY_T) < DOOR_DEG + 4) continue
-        ringBox(k, parent, t, R_IN + 2.4, 0.14, top - y, 4.0, (y + top) / 2, c.whiteMetric, false)
+        // Partitions run right through the wing between rooms, from glass to glass.
+        const d = i === 0 ? DEPTH * 0.5 : DEPTH - 0.3
+        ringBox(k, parent, t, i === 0 ? R_IN + DEPTH * 0.29 : (R_IN + R_OUT) / 2, 0.14, top - y, d, (y + top) / 2, c.whiteMetric, false)
+      }
+      if (i > 0) {
+        // Each room's sheer curtains, drawn part-way across from its sides, a different amount in each.
+        const drapes = new Tris()
+        let seed = 31 + i * 7 + Math.round(a)
+        const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+        for (const [r, inward] of [[R_IN + 0.12, true], [R_OUT - 0.12, false]] as const)
+          for (let j = 0; j < rooms; j++) {
+            const t0 = a + ((b - a) * j) / rooms
+            const t1 = a + ((b - a) * (j + 1)) / rooms
+            const left = 0.12 + rnd() * 0.35
+            const right = 0.08 + rnd() * 0.3
+            arcBand(drapes, r, t0, t0 + (t1 - t0) * left, y + 0.02, top - 0.05, inward)
+            arcBand(drapes, r, t1 - (t1 - t0) * right, t1, y + 0.02, top - 0.05, inward)
+          }
+        drapes.mesh(c.curtain, parent, 'curtains', false)
       }
     })
   }
@@ -290,7 +302,7 @@ function pathWall(t: Tris, pts: Point2[], y0: number, top: (i: number) => number
 }
 
 /** The rounded white ends of the wings, rising past the roof as a solid parapet, and the flat cheeks at the gap. */
-function buildEndWalls(ctx: A01Ctx, parent: Object3D) {
+function buildEndWalls(ctx: HotelCtx, parent: Object3D) {
   const { c, k } = ctx
   const walls = new Tris()
   const out = NOSE + 0.1
@@ -323,7 +335,7 @@ function buildEndWalls(ctx: A01Ctx, parent: Object3D) {
  * The white wall before the north wing: rising out of the plaza at the centre's edge in a long
  * curve to the first floor, then running on to the north tip, cut through by two round arches.
  */
-function buildSweepWall(ctx: A01Ctx, parent: Object3D) {
+function buildSweepWall(ctx: HotelCtx, parent: Object3D) {
   const { c, k } = ctx
   const wall = new Tris()
   const rf = WALL.r - WALL.thick / 2
@@ -373,7 +385,7 @@ function buildSweepWall(ctx: A01Ctx, parent: Object3D) {
   // The arcade behind it: its roof is the first floor carried out to the wall, lit by downlights.
   const flat = wingOutline(WALL.t0, WALL.rise, WALL.r + WALL.thick / 2 - 0.02, R_IN - NOSE + 0.02, { start: false, end: false })
   roundSlab(parent, flat, L1 - SLAB, L1, c.band, 'arcade_roof')
-  for (let t = WALL.t0 + 3; t < WALL.rise - 1; t += deg(2.2, 9.6)) k.cyl(parent, 0.09, 0.09, 0.02, c.downlight, ...xz(polar(t, 9.6), L1 - SLAB - 0.01), 14).castShadow = false
+  for (let t = WALL.t0 + 3; t < WALL.rise - 1; t += deg(2.2, (WALL.r + R_IN) / 2)) k.cyl(parent, 0.09, 0.09, 0.02, c.downlight, ...xz(polar(t, (WALL.r + R_IN) / 2), L1 - SLAB - 0.01), 14).castShadow = false
 
   // Shade at its foot: running round with increasing t, the plaza lies to the right.
   const foot = (r: number) => Array.from({ length: Math.ceil(WALL.t1 - WALL.t0) * 2 + 1 }, (_, i) => polar(Math.min(WALL.t1, WALL.t0 + i / 2), r))
@@ -385,7 +397,7 @@ const xz = ([x, z]: Point2, y: number): [number, number, number] => [x, y, z]
 
 /* ---------- the entrance ---------- */
 
-function buildEntrance(ctx: A01Ctx, parent: Object3D) {
+function buildEntrance(ctx: HotelCtx, parent: Object3D) {
   const { c, k, lighting } = ctx
   // The doors stand on the chord between the ends of the curved glass, facing the plaza.
   const chord = Math.sqrt(R_IN * R_IN - DOOR_HALF * DOOR_HALF)
@@ -414,9 +426,9 @@ function buildEntrance(ctx: A01Ctx, parent: Object3D) {
   k.box(g, 2 * DOOR_HALF, 0.008, 2.0, c.plantDark, 0, GL + 0.004, 1.1, false)
 
   // A white blade canopy over the doors, its front corners rounded, lit from beneath.
-  const cw = 7.4
-  const cd = 3.0
-  const cr = 1.2
+  const cw = 6.0
+  const cd = 2.4
+  const cr = 1.0
   const s = new Shape()
   s.moveTo(-cw / 2, 0)
   s.lineTo(cw / 2, 0)
@@ -433,7 +445,7 @@ function buildEntrance(ctx: A01Ctx, parent: Object3D) {
   canopy.receiveShadow = true
   canopy.name = 'entrance_canopy'
   g.add(canopy)
-  for (const lx of [-2.6, -0.9, 0.9, 2.6]) for (const lz of [0.9, 2.1]) k.cyl(g, 0.08, 0.08, 0.02, c.downlight, lx, 3.9, lz, 14).castShadow = false
+  for (const lx of [-2.1, -0.7, 0.7, 2.1]) for (const lz of [0.8, 1.7]) k.cyl(g, 0.08, 0.08, 0.02, c.downlight, lx, 3.9, lz, 14).castShadow = false
   for (const lx of [-1.6, 1.6]) {
     const l = lighting.light(new PointLight('#ffd7a3', 7, 10, 2), 0)
     l.position.set(lx, 3.4, 1.6)
@@ -441,14 +453,14 @@ function buildEntrance(ctx: A01Ctx, parent: Object3D) {
   }
   ctx.shade.rect(x, GL + 0.006, z + 1.6, cw * 0.9, cd * 0.8, 0, 0.14)
   const lobby = lighting.light(new PointLight('#ffe2bb', 12, 14, 2), 0.2)
-  lobby.position.set(...xz(polar(ENTRY_T, R_IN + 3), 3.6))
+  lobby.position.set(...xz(polar(ENTRY_T, R_IN + DEPTH * 0.45), 3.6))
   parent.add(lobby)
 }
 
 /** A spiral stair in the centre's lobby, seen through the glass beside the entrance as in the reference. */
-function buildStair(ctx: A01Ctx, parent: Object3D) {
+function buildStair(ctx: HotelCtx, parent: Object3D) {
   const { c, k } = ctx
-  const [cx, cz] = polar(-197, R_IN + 2.5)
+  const [cx, cz] = polar(-197, R_IN + DEPTH * 0.42)
   const steps = 26
   const rise = (L1 - GL) / steps
   const turn = (300 / steps) * D
@@ -458,10 +470,10 @@ function buildStair(ctx: A01Ctx, parent: Object3D) {
   for (let i = 0; i < steps; i++) {
     const a = i * turn
     const y = GL + (i + 1) * rise
-    const tread = k.box(parent, 1.25, 0.05, 0.42, c.tread, cx + Math.cos(a) * 0.75, y - 0.025, cz + Math.sin(a) * 0.75)
+    const tread = k.box(parent, 1.05, 0.05, 0.38, c.tread, cx + Math.cos(a) * 0.64, y - 0.025, cz + Math.sin(a) * 0.64)
     tread.rotation.y = -a
-    helix.push(new Vector3(cx + Math.cos(a) * 1.4, y - 0.12, cz + Math.sin(a) * 1.4))
-    rail.push(new Vector3(cx + Math.cos(a) * 1.4, y + 0.95, cz + Math.sin(a) * 1.4))
+    helix.push(new Vector3(cx + Math.cos(a) * 1.18, y - 0.12, cz + Math.sin(a) * 1.18))
+    rail.push(new Vector3(cx + Math.cos(a) * 1.18, y + 0.95, cz + Math.sin(a) * 1.18))
   }
   for (const [pts, r] of [[helix, 0.07], [rail, 0.025]] as const) {
     const m = new Mesh(new TubeGeometry(new CatmullRomCurve3(pts), steps * 4, r, 8), c.steel)
@@ -476,12 +488,12 @@ function buildStair(ctx: A01Ctx, parent: Object3D) {
 
 /* ---------- roof ---------- */
 
-function buildRoof(ctx: A01Ctx, parent: Object3D) {
+function buildRoof(ctx: HotelCtx, parent: Object3D) {
   const { c, k } = ctx
   // The centre's roof runs out over the plaza as a thin cantilevered canopy.
-  const canopy = wingOutline(CENTRE.t0 + 3, CENTRE.t1 - 3, R_IN - 2.4, R_IN - NOSE + 0.05, { start: false, end: false })
+  const canopy = wingOutline(CENTRE.t0 + 3, CENTRE.t1 - 3, R_IN - CANTILEVER, R_IN - NOSE + 0.05, { start: false, end: false })
   roundSlab(parent, canopy, ROOF - 0.5, ROOF + 0.05, c.band, 'roof_canopy')
-  for (let t = CENTRE.t0 + 5; t < CENTRE.t1 - 4; t += deg(2.0, R_IN - 1.4)) k.cyl(parent, 0.08, 0.08, 0.02, c.downlight, ...xz(polar(t, R_IN - 1.4), ROOF - 0.51), 14).castShadow = false
+  for (let t = CENTRE.t0 + 5; t < CENTRE.t1 - 4; t += deg(2.0, R_IN - 1.1)) k.cyl(parent, 0.08, 0.08, 0.02, c.downlight, ...xz(polar(t, R_IN - 1.1), ROOF - 0.51), 14).castShadow = false
 
   // Frameless glass balustrades round the roof terraces, with a slim steel top rail.
   const glass = new Tris()
@@ -492,19 +504,19 @@ function buildRoof(ctx: A01Ctx, parent: Object3D) {
     pathBand(rail, capPath(w, NOSE - 0.09, 0, CAP_SPLIT, 16).pts, ROOF + 1.1, ROOF + 1.16, centre)
     for (const [r, inward] of [[R_IN - NOSE + 0.12, true], [R_OUT + NOSE - 0.12, false]] as const) {
       const [a, b] = glazedRun(w, r, inward)
-      for (const [t0, t1] of inward ? less(a, b, [[CENTRE.t0 + 3, CENTRE.t1 - 3]]) : [[a, b] as [number, number]]) {
+      for (const [t0, t1] of less(a, b, [inward ? [CENTRE.t0 + 3, CENTRE.t1 - 3] : ANNEX_T])) {
         arcBand(glass, r, t0, t1, ROOF, ROOF + 1.1, inward)
         arcBand(rail, r + (inward ? -0.03 : 0.03), t0, t1, ROOF + 1.1, ROOF + 1.16, inward)
       }
     }
   }
-  const edge = R_IN - 2.4 + 0.15
+  const edge = R_IN - CANTILEVER + 0.15
   arcBand(glass, edge, CENTRE.t0 + 3, CENTRE.t1 - 3, ROOF + 0.05, ROOF + 1.15, true)
   arcBand(rail, edge - 0.03, CENTRE.t0 + 3, CENTRE.t1 - 3, ROOF + 1.15, ROOF + 1.21, true)
   glass.mesh(c.tintGlass, parent, 'roof_balustrade', false)
   rail.mesh(c.steel, parent, 'roof_rail')
 
-  // Stair and lift headrooms, and condensers set back on the main roof's outer side.
+  // A stair headroom on the south wing; the rest of the plant stands on the rear wing's roof.
   const room = (t: number, r: number, w: number, d: number, h: number) => {
     const [x, z] = polar(t, r)
     const m = k.mesh(metricBox(w, h, d), c.grc, parent, x, ROOF + h / 2, z)
@@ -512,23 +524,13 @@ function buildRoof(ctx: A01Ctx, parent: Object3D) {
     ringBox(k, parent, t, r, w + 0.15, 0.12, d + 0.15, ROOF + h + 0.06, c.coping)
     ctx.shade.rect(x, ROOF + 0.005, z, w + 0.6, d + 0.6, -t * D, 0.5)
   }
-  room(-214, 15.6, 4.2, 4.6, 3.0)
-  room(-100, 15.4, 3.6, 4.4, 2.8)
-  for (const t of [-178, -186, -194]) {
-    const [x, z] = polar(t, 16.6)
-    ringBox(k, parent, t, 16.6, 1.0, 0.25, 1.9, ROOF + 0.125, c.plantDark)
-    ringBox(k, parent, t, 16.6, 0.9, 1.0, 1.8, ROOF + 0.75, c.plant)
-    for (const dz of [-0.45, 0.45]) {
-      const [fx, fz] = [x + radial(t)[0] * dz, z + radial(t)[1] * dz]
-      k.cyl(parent, 0.36, 0.36, 0.05, c.plantDark, fx, ROOF + 1.27, fz, 24)
-    }
-  }
+  room(-100, R_IN + DEPTH * 0.6, 3.0, 3.2, 2.8)
 }
 
 /* ---------- the capsules ---------- */
 
 /** A planter trough along a capsule's foot for its creepers, `off` in front of the screen (behind if negative). */
-function trough(ctx: A01Ctx, parent: Object3D, cap: Capsule, off: number) {
+function trough(ctx: HotelCtx, parent: Object3D, cap: Capsule, off: number) {
   const { c, k } = ctx
   const [fx, fz] = cap.face
   const len = cap.w * (off > 0 ? 0.92 : 0.7)
@@ -545,7 +547,7 @@ function trough(ctx: A01Ctx, parent: Object3D, cap: Capsule, off: number) {
   }
 }
 
-function buildCapsules(ctx: A01Ctx, parent: Object3D) {
+function buildCapsules(ctx: HotelCtx, parent: Object3D) {
   const screens = new Tris()
   const toPlaza = (t: number): [number, number] => {
     const [nx, nz] = radial(t)
@@ -557,12 +559,12 @@ function buildCapsules(ctx: A01Ctx, parent: Object3D) {
   }
   const capsules: Capsule[] = [
     // Over the south wing's tip: the smallest, on the roof terrace.
-    place(-77, 13.2, { w: 4.2, y0: ROOF, h: 6.6, rc: 4, tube: 0.13, green: 0.6, seed: 2101 }),
+    place(-77, R_IN + DEPTH * 0.45, { w: 3.4, y0: ROOF, h: 6.6, rc: 3.4, tube: 0.13, green: 0.6, seed: 2101 }),
     // Behind the centre, rising over its roof.
-    place(-158, 16.4, { w: 4.6, y0: ROOF, h: 8.6, rc: 5, hole: { y: ROOF + 8.6 - 2.3, r: 1.35 }, tube: 0.14, green: 0.8, seed: 2102 }),
+    place(-158, R_IN + DEPTH * 0.75, { w: 3.8, y0: ROOF, h: 8.6, rc: 4.2, hole: { y: ROOF + 8.6 - 1.9, r: 1.1 }, tube: 0.14, green: 0.8, seed: 2102 }),
     // The north wing's, the tallest: rising off the white wall, to +23.2. It bulges towards the
     // plaza while the glass behind it curves away, so it stands on the wall's line to clear it.
-    place(-268, WALL.r, { w: 7.2, y0: L1, h: 18, rc: 10, hole: { y: L1 + 18 - 3.6, r: 1.9 }, tube: 0.19, brace: { back: 1.0, top: ROOF }, green: 1, seed: 2103 }),
+    place(-268, WALL.r, { w: 5.4, y0: L1, h: 18, rc: 8, hole: { y: L1 + 18 - 2.7, r: 1.5 }, tube: 0.17, brace: { back: 1.15, top: ROOF }, green: 1, seed: 2103 }),
   ]
   capsules.forEach((cap, i) => {
     buildCapsule(ctx.c, ctx.plant, parent, cap, screens)
@@ -574,6 +576,155 @@ function buildCapsules(ctx: A01Ctx, parent: Object3D) {
   const l = ctx.lighting.light(new PointLight('#ffe6c4', 10, 16, 2), 0)
   l.position.set(capsules[2].x + capsules[2].face[0] * 2, L1 + 1.5, capsules[2].z + capsules[2].face[1] * 2)
   parent.add(l)
+}
+
+/* ---------- the rear wing ---------- */
+
+/**
+ * The rear wing's outline grown by g: in front the ring's outer arc at radius rf (inside the ring,
+ * so the two join), then its north side, the half-round back and its south side.
+ */
+function annexOutline(g: number, rf = R_OUT - 0.4): Point2[] {
+  const { x0, x1, zc } = ANNEX
+  const rr = (x1 - x0) / 2 + g
+  const pts: Point2[] = []
+  const ta = annexT(x0 - g, rf)
+  const tb = annexT(x1 + g, rf)
+  for (let i = 0; i <= 24; i++) pts.push(polar(ta + ((tb - ta) * i) / 24, rf))
+  for (let i = 0; i <= 32; i++) {
+    const a = (i / 32) * Math.PI
+    pts.push([P.x + rr * Math.cos(a), zc - rr * Math.sin(a)])
+  }
+  return pts
+}
+
+/** Where the wing's sides meet the ring's outer glass. */
+const annexFront = (x: number) => P.z - Math.sqrt(R_OUT * R_OUT - (x - P.x) ** 2)
+
+/** The wing's facade line `off` beyond its glass: south side back, round the back, north side forward. */
+function annexPath(off: number): Point2[] {
+  const { x0, x1, zc } = ANNEX
+  const rr = (x1 - x0) / 2 + off
+  const pts: Point2[] = []
+  const zf = annexFront(x0) + off * 0.5
+  for (let i = 0; i <= 8; i++) pts.push([x0 - off, zf + ((zc - zf) * i) / 8])
+  for (let i = 1; i < 32; i++) {
+    const a = Math.PI - (i / 32) * Math.PI
+    pts.push([P.x + rr * Math.cos(a), zc - rr * Math.sin(a)])
+  }
+  for (let i = 0; i <= 8; i++) pts.push([x1 + off, zc + ((zf - zc) * i) / 8])
+  return pts
+}
+
+/**
+ * The rear wing: guest rooms either side of a corridor on three floors over a banquet and dining
+ * floor, a storey taller than the ring, glazed and banded like it, its roof carrying the hotel's
+ * plant out of sight of the plaza.
+ */
+function buildAnnex(ctx: HotelCtx, parent: Object3D) {
+  const { c, k } = ctx
+  const { x0, x1, zc } = ANNEX
+  const centre: Point2 = [P.x, zc + 3]
+  const levels = [GL, L1, L2, L3]
+  const glass = new Tris()
+  const frames = new Tris()
+  const drapes = new Tris()
+  const line = annexPath(0)
+  const rim = annexPath(0.05)
+
+  // Slabs: its floors join the ring's; the third floor stands on the ring's roof, its own roof above.
+  const edge = annexOutline(NOSE)
+  for (const y of [L1, L2]) roundSlab(parent, edge, y - SLAB, y, c.band, 'annex_slab')
+  roundSlab(parent, annexOutline(NOSE, R_OUT - 0.4), L3 - SLAB, L3, c.band, 'annex_slab')
+  roundSlab(parent, annexOutline(NOSE, R_OUT + NOSE), ROOF_B - SLAB, ROOF_B, c.band, 'annex_roof')
+  const inner = annexOutline(-0.02)
+
+  // Rooms either side of a corridor along the wing, 3 to a side between the ring and the half-round end.
+  const corridor = 1.2
+  const zs = annexFront(x0) - 0.4
+  const rooms = Math.max(1, Math.round((zs - zc) / 3.9))
+  const roomLen = (zs - zc) / rooms
+  levels.forEach((y, i) => {
+    const top = (i < 3 ? levels[i + 1] : ROOF_B) - SLAB
+    const h = top - y
+    sheet(parent, inner, y + 0.004, c.floor)
+    sheet(parent, inner, top - 0.004, c.ceiling, true)
+    // Glass all round its sides and back; on the third floor, across its front too.
+    pathBand(glass, line, y, top, centre)
+    pathBand(frames, rim, y, y + 0.09, centre)
+    pathBand(frames, rim, top - 0.07, top, centre)
+    if (i === 3) {
+      arcBand(glass, R_OUT, ANNEX_T[0], ANNEX_T[1], y, top, true)
+      arcBand(frames, R_OUT - 0.05, ANNEX_T[0], ANNEX_T[1], y, y + 0.09, true)
+      arcBand(frames, R_OUT - 0.05, ANNEX_T[0], ANNEX_T[1], top - 0.07, top, true)
+      const n = Math.round(((ANNEX_T[1] - ANNEX_T[0]) * perDeg(R_OUT)) / 1.6)
+      for (let j = 0; j <= n; j++) ringBox(k, parent, ANNEX_T[0] + ((ANNEX_T[1] - ANNEX_T[0]) * j) / n, R_OUT - 0.05, 0.07, h, 0.16, (y + top) / 2, c.mullion)
+    }
+    // Mullions at about 1.6 m round the glass.
+    let run = 0
+    for (let j = 1; j < rim.length; j++) {
+      const [ax, az] = rim[j - 1]
+      const [bx, bz] = rim[j]
+      run += Math.hypot(bx - ax, bz - az)
+      if (run < 1.6 && j < rim.length - 1) continue
+      run = 0
+      const m = k.box(parent, 0.07, h, 0.16, c.mullion, bx, (y + top) / 2, bz)
+      m.rotation.y = Math.atan2(bx - centre[0], bz - centre[1])
+    }
+    // The rooms' back walls along the corridor (the dining room's on the ground floor) and the partitions.
+    for (const side of [-1, 1]) {
+      const wx = P.x + side * (corridor + 0.075)
+      for (let j = 0; j < rooms; j++) {
+        const z = zc + roomLen * (j + 0.5)
+        k.box(parent, 0.15, h, roomLen - 0.02, i === 0 ? c.lobby : c.room, wx, (y + top) / 2, z, false)
+      }
+      if (i === 0) continue
+      const fx = side < 0 ? x0 : x1
+      for (let j = 0; j <= rooms; j++) {
+        const z = zc + roomLen * j
+        const len = Math.abs(fx - wx) - 0.2
+        k.box(parent, len, h, 0.14, c.whiteMetric, (fx + wx) / 2, (y + top) / 2, z, false)
+      }
+      // Sheer curtains drawn part-way across each room's window.
+      let seed = 53 + i * 11 + side
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+      const gx = fx - side * 0.12
+      for (let j = 0; j < rooms; j++) {
+        const za = zc + roomLen * j
+        const zb = za + roomLen
+        pathBand(drapes, [[gx, za], [gx, za + roomLen * (0.1 + rnd() * 0.35)]], y + 0.02, top - 0.05, centre)
+        pathBand(drapes, [[gx, zb - roomLen * (0.08 + rnd() * 0.3)], [gx, zb]], y + 0.02, top - 0.05, centre)
+      }
+    }
+  })
+  glass.mesh(c.shopGlass, parent, 'annex_glass', false)
+  frames.mesh(c.mullion, parent, 'annex_frames')
+  drapes.mesh(c.curtain, parent, 'annex_curtains', false)
+  ctx.shade.edge(line, GL + 0.004, 0.9, 1, 0.45)
+
+  // The roof: a glass balustrade round it, lift and stair headrooms, condensers and tanks.
+  const ring = annexOutline(NOSE - 0.12, R_OUT + NOSE - 0.12)
+  const bal = new Tris()
+  const top = new Tris()
+  pathBand(bal, [...ring, ring[0]], ROOF_B, ROOF_B + 1.1, centre)
+  pathBand(top, [...annexOutline(NOSE - 0.09, R_OUT + NOSE - 0.09), annexOutline(NOSE - 0.09, R_OUT + NOSE - 0.09)[0]], ROOF_B + 1.1, ROOF_B + 1.16, centre)
+  bal.mesh(c.tintGlass, parent, 'annex_balustrade', false)
+  top.mesh(c.steel, parent, 'annex_rail')
+  const box = (x: number, z: number, w: number, d: number, h: number) => {
+    k.mesh(metricBox(w, h, d), c.grc, parent, x, ROOF_B + h / 2, z)
+    k.box(parent, w + 0.15, 0.12, d + 0.15, c.coping, x, ROOF_B + h + 0.06, z)
+    ctx.shade.rect(x, ROOF_B + 0.005, z, w + 0.6, d + 0.6, 0, 0.5)
+  }
+  box(P.x - 3.4, zc + 8, 3.2, 4.2, 3.0)
+  box(P.x + 3.6, zc + 3, 2.8, 3.0, 3.2)
+  for (const dx of [-3, -1, 1, 3]) {
+    const x = P.x + dx
+    const z = zc - 3
+    k.box(parent, 0.9, 1.0, 1.8, c.plant, x, ROOF_B + 0.75, z)
+    k.box(parent, 1.0, 0.25, 1.9, c.plantDark, x, ROOF_B + 0.125, z)
+    for (const dz of [-0.45, 0.45]) k.cyl(parent, 0.36, 0.36, 0.05, c.plantDark, x, ROOF_B + 1.27, z + dz, 24)
+  }
+  for (const dx of [-2, 2]) k.cyl(parent, 0.9, 0.9, 1.6, c.whiteMetric, P.x + dx + 4, ROOF_B + 0.8, zc + 9, 28)
 }
 
 /* ---------- signage ---------- */
@@ -594,7 +745,7 @@ const glyphCache = new WeakMap<Kit, Map<string, { face: Material; side: Material
  * One channel letter, cap height `cap`, `depth` deep: an opal face lit from within over aluminium
  * returns, built as a stack of cut-outs. Baseline at y = 0, centred on x = 0, facing +z.
  */
-function channelLetter(ctx: A01Ctx, ch: string, cap: number, depth: number) {
+function channelLetter(ctx: HotelCtx, ch: string, cap: number, depth: number) {
   const { k, lighting } = ctx
   let cache = glyphCache.get(k)
   if (!cache) glyphCache.set(k, (cache = new Map()))
@@ -629,7 +780,7 @@ function channelLetter(ctx: A01Ctx, ch: string, cap: number, depth: number) {
 }
 
 /** A line of letters centred on x = 0, facing +z, baseline at y = 0. */
-export function signLine(ctx: A01Ctx, text: string, cap: number, depth: number) {
+export function signLine(ctx: HotelCtx, text: string, cap: number, depth: number) {
   const g = new Group()
   const letters = [...text].map((ch) => (ch === ' ' ? { group: null, advance: cap * 0.45 } : channelLetter(ctx, ch, cap, depth)))
   const total = letters.reduce((s, l) => s + l.advance, 0)
@@ -644,14 +795,14 @@ export function signLine(ctx: A01Ctx, text: string, cap: number, depth: number) 
   return g
 }
 
-export const NAME = 'KALLAKAL SQUARE'
+export const NAME = 'KALLAKAL HOTEL'
 
 /** The name along the canopy's edge over the entrance, letter by letter round the curve. */
-function buildSignage(ctx: A01Ctx, parent: Object3D) {
+function buildSignage(ctx: HotelCtx, parent: Object3D) {
   // Above the canopy's glass balustrade, on a rail carried by posts from the canopy.
-  const cap = 0.9
+  const cap = 0.7
   const base = ROOF + 1.32
-  const r = R_IN - 2.4 + 0.5
+  const r = R_IN - CANTILEVER + 0.5
   const letters = [...NAME].map((ch) => (ch === ' ' ? { group: null, advance: cap * 0.45 } : channelLetter(ctx, ch, cap, 0.1)))
   const total = letters.reduce((s, l) => s + l.advance, 0)
   let s = -total / 2
@@ -674,11 +825,11 @@ function buildSignage(ctx: A01Ctx, parent: Object3D) {
 }
 
 /** Planters along the foot of the glass on the plaza side, as in the reference. */
-function buildPlanters(ctx: A01Ctx, parent: Object3D) {
+function buildPlanters(ctx: HotelCtx, parent: Object3D) {
   const { c, k } = ctx
   let seed = 2300
-  for (const t of [-118, -104, -90, -148, -160, -167, -193, -200, -207]) {
-    const [x, z] = polar(t, R_IN - 1.0)
+  for (const t of [-115, -97, -150, -162, -198, -210]) {
+    const [x, z] = polar(t, R_IN - 0.8)
     k.cyl(parent, 0.5, 0.42, 0.62, c.grc, x, GL + 0.31, z, 32)
     k.cyl(parent, 0.45, 0.45, 0.02, c.mulch, x, GL + 0.6, z, 24).castShadow = false
     shrub(ctx.plant, x, GL + 0.6, z, 0.42, 0.7, seed++, seed % 3 ? 'shrub' : 'hedge')
@@ -686,7 +837,7 @@ function buildPlanters(ctx: A01Ctx, parent: Object3D) {
   }
 }
 
-export function buildBuilding(ctx: A01Ctx, parent: Object3D) {
+export function buildBuilding(ctx: HotelCtx, parent: Object3D) {
   buildGlazing(ctx, parent)
   buildFloors(ctx, parent)
   buildEndWalls(ctx, parent)
@@ -694,6 +845,7 @@ export function buildBuilding(ctx: A01Ctx, parent: Object3D) {
   buildEntrance(ctx, parent)
   buildStair(ctx, parent)
   buildRoof(ctx, parent)
+  buildAnnex(ctx, parent)
   buildCapsules(ctx, parent)
   buildSignage(ctx, parent)
   buildPlanters(ctx, parent)
