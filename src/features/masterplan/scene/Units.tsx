@@ -1,13 +1,15 @@
 import { Edges } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { BufferGeometry, ExtrudeGeometry, InstancedMesh, Light, Matrix4, Object3D, Shape } from 'three'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { BufferGeometry, ExtrudeGeometry, InstancedMesh, Light, MathUtils, Matrix4, Object3D, Shape, Vector3, type Group, type PerspectiveCamera } from 'three'
 import type { FurnishedDesign, Plot, PlotUnit } from '../../../api/types'
 import { bounds, centroid } from '../../../lib/geometry'
 import { GOLD, IVORY } from '../../../lib/palette'
-import { disposeObject } from '../../../lib/three'
+import { whenIdle } from '../../../lib/idle'
+import { disposeObject, prepareOnGpu } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
-import { FURNISHED_DESIGNS, furnishedModel, isCached, prewarmFurnished } from '../../property/scene/furnished'
+import { FURNISHED_DESIGNS, furnishedModel, isCached, prewarmFurnished, type FurnishedModel } from '../../property/scene/furnished'
+import { DETAIL_RADIUS } from '../../property/scene/furnished/optimize'
 import { PLOT_HEIGHT } from './plotGeometry'
 
 const TAP_TOLERANCE_PX = 8
@@ -144,31 +146,43 @@ export function Units({ plots, interactive, onSelect, onHover }: UnitsProps) {
 /** A home modelled in full, standing on its plot and facing its road. */
 function DesignUnit({ plot, design, interactive, onSelect, onHover }: Omit<UnitsProps, 'plots'> & { plot: Plot; design: FurnishedDesign }) {
   const invalidate = useThree((s) => s.invalidate)
-  const model = useMemo(() => {
-    const m = furnishedModel(design, true)
-    // The plan has hundreds of materials; the model's own point lights would cost every one of them.
-    const lights: Object3D[] = []
-    m.root.traverse((o) => o instanceof Light && lights.push(o))
-    for (const l of lights) l.removeFromParent()
-    return m
-  }, [design])
-  useEffect(() => () => void (isCached(design) || disposeObject(model.root)), [model, design])
+  const model = usePlotModel(design)
+  useEffect(() => () => void (model && !isCached(design) && disposeObject(model.root)), [model, design])
   // Anyone looking at this home on the plan may step inside next: build its full model while idle.
   useEffect(() => prewarmFurnished(design), [design])
 
   const daylight = useStageStore((s) => s.daylight)
   useEffect(() => {
-    model.setDaylight?.(daylight)
+    model?.setDaylight?.(daylight)
     invalidate()
   }, [model, daylight, invalidate])
-  // Running water keeps frames coming while it is close enough to see.
+  // Fine detail (see mergeStatic) is left undrawn only while it would be smaller than a physical
+  // pixel, where it can add nothing but shimmer; it returns before it could be seen to be missing.
+  const group = useRef<Group>(null)
+  const detail = useMemo(() => {
+    const out: Object3D[] = []
+    model?.root.traverse((o) => o.userData.detail && out.push(o))
+    return out
+  }, [model])
+  const near = useRef<boolean | null>(null)
   useFrame((state) => {
-    if (model.animate?.(state.clock.elapsedTime, state.camera)) state.invalidate()
+    if (model?.animate?.(state.clock.elapsedTime, state.camera)) state.invalidate()
+    if (!group.current || !detail.length) return
+    const d = state.camera.position.distanceTo(group.current.getWorldPosition(at))
+    const camera = state.camera as PerspectiveCamera
+    const pixels = (2 * DETAIL_RADIUS * state.gl.domElement.height) / (2 * d * Math.tan(MathUtils.degToRad(camera.fov) / 2))
+    const show = near.current ? pixels > 0.9 : pixels >= 1.1
+    if (show === near.current) return
+    near.current = show
+    for (const o of detail) o.visible = show
   })
+
+  if (!model) return null
 
   const f = plotFrame(plot)
   return (
     <group
+      ref={group}
       position={[f.cx, PLOT_HEIGHT, f.cz]}
       rotation-y={f.rotation}
       onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -186,6 +200,43 @@ function DesignUnit({ plot, design, interactive, onSelect, onHover }: Omit<Units
       <primitive object={model.root} />
     </group>
   )
+}
+
+const at = new Vector3()
+
+/**
+ * A designed home's model for its plot, ready to draw: built in an idle moment of its own (never
+ * several in one frame, so the landing screen's titles and the camera keep their frames), then
+ * put on the GPU in the background, its finishes a few per frame and its shaders compiled in
+ * parallel. Until then the plot shows without it.
+ */
+function usePlotModel(design: FurnishedDesign): FurnishedModel | null {
+  const gl = useThree((s) => s.gl)
+  const camera = useThree((s) => s.camera)
+  const scene = useThree((s) => s.scene)
+  const invalidate = useThree((s) => s.invalidate)
+  const [ready, setReady] = useState<{ design: FurnishedDesign; model: FurnishedModel } | null>(null)
+  useEffect(() => {
+    let live = true
+    const cancel = whenIdle(() => {
+      if (!live) return
+      const m = furnishedModel(design, true)
+      // The plan has hundreds of materials; the model's own point lights would cost every one of them.
+      const lights: Object3D[] = []
+      m.root.traverse((o) => o instanceof Light && lights.push(o))
+      for (const l of lights) l.removeFromParent()
+      void prepareOnGpu(m.root, gl, camera, scene, { live: () => live }).then(() => {
+        if (!live) return
+        setReady({ design, model: m })
+        invalidate()
+      })
+    })
+    return () => {
+      live = false
+      cancel()
+    }
+  }, [design, gl, camera, scene, invalidate])
+  return ready?.design === design ? ready.model : null
 }
 
 function UnitKind({ kind, plots, interactive, onSelect, onHover }: UnitsProps & { kind: PlotUnit['kind'] }) {

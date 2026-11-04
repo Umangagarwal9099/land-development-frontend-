@@ -3,15 +3,21 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { LoaderMark } from '../components/ui/LoaderMark'
 import { useStageStore } from '../store/stage'
 
-/** Shown over the canvas while a scene's model/geometry is being prepared. */
+/**
+ * Shown over the canvas while a scene's model/geometry is being prepared, with its real progress:
+ * downloads for an artist's model, or the stages of preparing one built in code (building it,
+ * uploading its finishes, compiling its materials). With nothing to measure, it simply turns.
+ */
 export function StageLoader() {
   const sceneReady = useStageStore((s) => s.sceneReady)
   const hasScene = useStageStore((s) => s.scene !== null)
+  const loading = useStageStore((s) => s.loading)
   // The landing screen crossfades between projects instead of showing a loader.
   const explore = useStageStore((s) => s.mode === 'explore')
   const { active, progress } = useProgress()
   const visible = hasScene && explore && (!sceneReady || active)
-  const pct = active ? progress : sceneReady ? 100 : 12
+  const pct = active ? progress : sceneReady ? 100 : loading ? loading.progress * 100 : undefined
+  const label = !active && loading ? loading.label : 'Preparing your private viewing'
 
   return (
     <AnimatePresence>
@@ -22,7 +28,7 @@ export function StageLoader() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.8 } }}
         >
-          <LoaderMark progress={pct} label="Preparing your private viewing" />
+          <LoaderMark progress={pct} label={label} />
         </motion.div>
       )}
     </AnimatePresence>

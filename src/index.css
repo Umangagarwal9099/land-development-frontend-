@@ -108,3 +108,49 @@
     transform: translateX(100%);
   }
 }
+
+/*
+ * The landing title card's entrance, in CSS rather than script: CSS transform and opacity
+ * animations run on the compositor, so they keep moving even while the main thread is busy
+ * (setting up the 3D stage behind them). Delays come from inline `animation-delay`.
+ */
+@keyframes rise {
+  from {
+    transform: translateY(105%);
+  }
+}
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-from, 12px));
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.anim-rise {
+  animation: rise 1.1s var(--ease-lux) both;
+}
+.anim-reveal {
+  animation: reveal-up 0.8s var(--ease-lux) both;
+}
+.anim-fade {
+  animation: fade-in 0.8s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise,
+  .anim-reveal,
+  .anim-fade {
+    animation: none;
+  }
+}

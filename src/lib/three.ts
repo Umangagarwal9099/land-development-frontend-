@@ -1,4 +1,4 @@
-import { Material, Mesh, Texture, type Object3D, type WebGLRenderer } from 'three'
+import { Material, Mesh, Texture, type Camera, type Object3D, type Scene, type WebGLRenderer } from 'three'
 import { KTX2Loader } from 'three-stdlib'
 
 // Decoders are served from public/ (see scripts/copy-decoders.mjs) so nothing depends on a CDN.
@@ -40,4 +40,38 @@ export function findNamedAncestor(obj: Object3D | null, match: (name: string) =>
     if (o.name && match(o.name)) return o
   }
   return null
+}
+
+/**
+ * Puts a model on the GPU without stalling a frame: its textures go up a few per frame (a big
+ * upload takes milliseconds of its own), then its shaders compile, in parallel where the browser
+ * supports it. Drawing a model whose shaders aren't ready blocks the main thread until they link.
+ * `onProgress` gets 0..1 over the uploads; `live()` returning false abandons the work.
+ */
+export function prepareOnGpu(
+  root: Object3D,
+  gl: WebGLRenderer,
+  camera: Camera,
+  scene: Scene,
+  { onProgress, live = () => true }: { onProgress?: (fraction: number) => void; live?: () => boolean } = {},
+): Promise<void> {
+  const textures = new Set<Texture>()
+  root.traverse((o) => {
+    const mats = (o as Mesh).material
+    if (!mats) return
+    for (const m of Array.isArray(mats) ? mats : [mats]) for (const v of Object.values(m)) if (v instanceof Texture) textures.add(v)
+  })
+  const queue = [...textures]
+  const total = Math.max(1, queue.length)
+  return new Promise((resolve) => {
+    const upload = () => {
+      if (!live()) return resolve()
+      const end = performance.now() + 6
+      while (queue.length && performance.now() < end) gl.initTexture(queue.pop()!)
+      onProgress?.(1 - queue.length / total)
+      if (queue.length) requestAnimationFrame(upload)
+      else gl.compileAsync(root, camera, scene).then(() => resolve(), () => resolve())
+    }
+    requestAnimationFrame(upload)
+  })
 }

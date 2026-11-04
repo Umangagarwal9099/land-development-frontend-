@@ -1,27 +1,15 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useCallback, useEffect, useMemo } from 'react'
-import type { Mesh, Object3D, Texture } from 'three'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { Object3D } from 'three'
 import type { FurnishedDesign, Room } from '../../../api/types'
-import { disposeObject } from '../../../lib/three'
+import { disposeObject, prepareOnGpu } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
 import { useWalkStore } from '../../../store/walk'
-import { furnishedModel, isCached } from './furnished'
+import { furnishedModel, isBuilt, isCached, type FurnishedModel as Model } from './furnished'
 import { stepCircuits } from './furnished/kalakalD65/fixtures'
 import { WalkController } from './walk/WalkController'
 
-/**
- * A furnished interior design model generated in code: architecture with walls cut away at
- * 2.6 m, finishes, custom furniture and warm interior lighting. Follows the same naming contract
- * as an artist GLB (floor_* groups, room_* and amenity_* hotspots), so rooms are tappable as usual.
- */
-export function FurnishedModel({
-  design,
-  selectedMesh,
-  hoveredMesh = null,
-  roomView = false,
-  rooms = [],
-  onReady,
-}: {
+interface Props {
   design: FurnishedDesign
   selectedMesh: string | null
   hoveredMesh?: string | null
@@ -29,42 +17,62 @@ export function FurnishedModel({
   roomView?: boolean
   rooms?: Room[]
   onReady: () => void
-}) {
+}
+
+/**
+ * A furnished interior design model generated in code: architecture with walls cut away at
+ * 2.6 m, finishes, custom furniture and warm interior lighting. Follows the same naming contract
+ * as an artist GLB (floor_* groups, room_* and amenity_* hotspots), so rooms are tappable as usual.
+ */
+export function FurnishedModel(props: Props) {
+  const model = useBuiltModel(props.design)
+  return model ? <Furnished {...props} model={model} /> : null
+}
+
+/**
+ * The design's model, built after the stage loader has painted: building it in code holds the
+ * main thread for its whole duration, so it waits two frames for the loader to appear and say so.
+ * A model kept from an earlier visit (or built ahead while the visitor looked at the plan) is
+ * there at once.
+ */
+function useBuiltModel(design: FurnishedDesign): Model | null {
+  const setLoading = useStageStore((s) => s.setLoading)
+  const [built, setBuilt] = useState<{ design: FurnishedDesign; model: Model } | null>(() =>
+    isBuilt(design) ? { design, model: furnishedModel(design) } : null,
+  )
+  const model = built?.design === design ? built.model : null
+  useEffect(() => {
+    if (model) return
+    setLoading({ label: 'Building the model', progress: 0.02 })
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => setBuilt({ design, model: furnishedModel(design) }))
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [design, model, setLoading])
+  return model
+}
+
+function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView = false, rooms = [], onReady }: Props & { model: Model }) {
   const invalidate = useThree((s) => s.invalidate)
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera)
   const scene = useThree((s) => s.scene)
-  const model = useMemo(() => furnishedModel(design), [design])
+  const setLoading = useStageStore((s) => s.setLoading)
 
-  // Compile every shader the model needs before revealing it (in parallel where the browser
-  // supports it), so the first frames after entering aren't a stall; the stage loader shows meanwhile.
-  // Textures go up to the GPU a few per frame first, so the loader keeps moving instead of
-  // freezing while dozens of painted finishes upload at once.
+  // Put the model on the GPU before revealing it: its finishes go up a few per frame, then every
+  // shader it needs compiles (in parallel where the browser supports it), so the first frames
+  // after entering aren't a stall. The stage loader shows each stage's real progress meanwhile.
   useEffect(() => {
     let live = true
-    let frame = 0
-    const reveal = () => live && onReady()
-    const textures = new Set<Texture>()
-    model.root.traverse((o) => {
-      const mats = (o as Mesh).material
-      if (!mats) return
-      for (const m of Array.isArray(mats) ? mats : [mats])
-        for (const v of Object.values(m)) if ((v as Texture | null)?.isTexture) textures.add(v as Texture)
-    })
-    const queue = [...textures]
-    const upload = () => {
-      if (!live) return
-      const end = performance.now() + 8
-      while (queue.length && performance.now() < end) gl.initTexture(queue.pop()!)
-      if (queue.length) frame = requestAnimationFrame(upload)
-      else gl.compileAsync(model.root, camera, scene).then(reveal, reveal)
-    }
-    frame = requestAnimationFrame(upload)
+    setLoading({ label: 'Uploading finishes', progress: 0.3 })
+    void prepareOnGpu(model.root, gl, camera, scene, {
+      live: () => live,
+      onProgress: (f) => setLoading(f < 1 ? { label: 'Uploading finishes', progress: 0.3 + 0.55 * f } : { label: 'Compiling materials', progress: 0.88 }),
+    }).then(() => live && onReady())
     return () => {
       live = false
-      cancelAnimationFrame(frame)
     }
-  }, [model, onReady, gl, camera, scene])
+  }, [model, onReady, gl, camera, scene, setLoading])
 
   // Photograph textures arrive after the first frame; the stage renders on demand, so redraw then.
   useEffect(() => {

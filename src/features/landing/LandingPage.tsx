@@ -8,6 +8,7 @@ import type { CatalogItem, MediaItem } from '../../api/types'
 import { BrandMark } from '../../components/BrandMark'
 import { Button, IconButton } from '../../components/ui/Button'
 import { ErrorState, ScreenLoader } from '../../components/ui/Feedback'
+import { useFontsReady } from '../../hooks/useFontsReady'
 import { useFullscreen } from '../../hooks/useFullscreen'
 import { useShowroomNavigate } from '../../hooks/useShowroomNavigate'
 import { wait } from '../../lib/async'
@@ -48,6 +49,7 @@ export default function LandingPage() {
   const item = items.length ? items[active % items.length] : null
   const show = useStageStore((s) => s.show)
   const go = useShowroomNavigate()
+  const fontsReady = useFontsReady()
 
   // Show the active project on the stage. The first time, cut straight to it; afterwards, dissolve.
   const [shownSlug, setShownSlug] = useState<string | null>(null)
@@ -102,7 +104,7 @@ export default function LandingPage() {
   }
 
   if (error) return <ErrorState title="The showroom couldn't load its projects" detail={error.message} onRetry={() => void refetch()} showHome={false} />
-  if (isPending || !item) return <ScreenLoader label="Opening the showroom" />
+  if (isPending || !item || !fontsReady) return <ScreenLoader label="Opening the showroom" />
 
   return (
     <div className="pointer-events-none fixed inset-0">
@@ -158,69 +160,53 @@ function ProjectCard({ item, index, total, ready, onExplore }: { item: CatalogIt
 
   return (
     <motion.div className="pointer-events-auto" exit={{ opacity: 0, y: -12, transition: { duration: 0.4 } }}>
-      <motion.p className="eyebrow flex items-center gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.1 }}>
+      {/* The entrance is CSS (see index.css): it keeps moving while the 3D stage sets up behind it. */}
+      <p className="eyebrow anim-fade flex items-center gap-4" style={{ animationDelay: '0.1s' }}>
         <span className="font-display text-base tracking-[0.2em] text-gold">
           {String(index + 1).padStart(2, '0')} <span className="text-ivory/30">/ {String(total).padStart(2, '0')}</span>
         </span>
         <span className="h-px w-10 bg-gold/50" />
         {typeLabel(item)}
-      </motion.p>
+      </p>
 
       {/* Title rises word by word from behind a mask. */}
       <h1 className="mt-6 font-display text-[clamp(3.6rem,7.2vw,8.5rem)] font-medium leading-[0.9] tracking-tight">
         {words.map((w, i) => (
           <span key={i} className="inline-block overflow-hidden pb-[0.08em] align-bottom">
-            <motion.span
-              className="inline-block"
-              initial={{ y: '105%' }}
-              animate={{ y: 0 }}
-              transition={{ duration: 1.1, delay: 0.15 + i * 0.09, ease: EASE }}
-            >
+            <span className="anim-rise inline-block" style={{ animationDelay: `${0.15 + i * 0.09}s` }}>
               {w}
               {i < words.length - 1 && ' '}
-            </motion.span>
+            </span>
           </span>
         ))}
       </h1>
 
-      <motion.p
-        className="mt-6 max-w-[34rem] font-display text-[1.7rem] italic leading-snug text-ivory/70"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.45, ease: EASE }}
+      <p
+        className="anim-reveal mt-6 max-w-[34rem] font-display text-[1.7rem] italic leading-snug text-ivory/70"
+        style={{ animationDelay: '0.45s', animationDuration: '0.9s', ['--reveal-from' as string]: '10px' }}
       >
         {item.tagline}
-      </motion.p>
-      <motion.p className="mt-3 text-sm uppercase tracking-[0.3em] text-ivory/45" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+      </p>
+      <p className="anim-fade mt-3 text-sm uppercase tracking-[0.3em] text-ivory/45" style={{ animationDelay: '0.6s' }}>
         {item.location}
-      </motion.p>
+      </p>
 
       {item.stats && item.stats.length > 0 && (
-        <motion.dl
-          className="mt-9 flex gap-10"
-          initial="hidden"
-          animate="shown"
-          variants={{ shown: { transition: { staggerChildren: 0.08, delayChildren: 0.6 } } }}
-        >
+        <dl className="mt-9 flex gap-10">
           {item.stats.map((s, i) => (
-            <motion.div
+            <div
               key={s.label}
-              className={clsx(i > 0 && 'border-l border-gold/25 pl-10')}
-              variants={{ hidden: { opacity: 0, y: 12 }, shown: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE } } }}
+              className={clsx('anim-reveal', i > 0 && 'border-l border-gold/25 pl-10')}
+              style={{ animationDelay: `${0.6 + i * 0.08}s`, animationDuration: '0.7s' }}
             >
               <dd className="font-display text-[2.6rem] leading-none text-ivory">{s.value}</dd>
               <dt className="mt-2 text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-ivory/45">{s.label}</dt>
-            </motion.div>
+            </div>
           ))}
-        </motion.dl>
+        </dl>
       )}
 
-      <motion.div
-        className="mt-10 flex flex-wrap items-center gap-4"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.8, ease: EASE }}
-      >
+      <div className="anim-reveal mt-10 flex flex-wrap items-center gap-4" style={{ animationDelay: '0.8s' }}>
         <Button icon={ArrowRight} onClick={onExplore} disabled={!ready}>
           Explore in 3D
         </Button>
@@ -234,7 +220,7 @@ function ProjectCard({ item, index, total, ready, onExplore }: { item: CatalogIt
             From <span className="ml-1 font-display text-2xl normal-case tracking-normal text-gold">{formatPrice(item.startingPrice)}</span>
           </span>
         )}
-      </motion.div>
+      </div>
     </motion.div>
   )
 }
@@ -268,14 +254,13 @@ function ProjectIndex({
         return (
           <button key={it.id} onClick={() => onSelect(i)} className="group min-w-[14rem] flex-1 pt-5 text-left md:max-w-[22rem]">
             <span className="relative block h-px w-full overflow-hidden bg-ivory/15">
-              {on && (
-                // The gold line fills over the project's turn on stage.
-                <motion.span
+              {on && !paused && (
+                // The gold line fills over the project's turn on stage: by scale, not width, so it
+                // never makes the page lay out again as it grows.
+                <span
                   key={cycle.key}
-                  className="absolute inset-y-0 left-0 bg-gold"
-                  initial={{ width: '0%' }}
-                  animate={{ width: paused ? '0%' : '100%' }}
-                  transition={{ duration: paused ? 0.3 : cycle.seconds, ease: 'linear' }}
+                  className="absolute inset-0 origin-left bg-gold"
+                  style={{ animation: `fill ${cycle.seconds}s linear both` }}
                 />
               )}
             </span>

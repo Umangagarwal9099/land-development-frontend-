@@ -2,8 +2,11 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router/dom'
 import { queryClient } from './api/queries'
+import { preloadTitleFonts } from './hooks/useFontsReady'
 import './index.css'
 import { router } from './routes'
+
+void preloadTitleFonts()
 
 // Long-press on a touch TV would otherwise open the browser context menu.
 window.addEventListener('contextmenu', (e) => e.preventDefault())

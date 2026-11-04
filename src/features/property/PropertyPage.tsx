@@ -20,7 +20,7 @@ import { useViewerStore } from '../../store/viewer'
 import { useWalkStore } from '../../store/walk'
 import { PropertyOverview, RoomDetails } from './PropertyPanels'
 import { RoomViewer } from './RoomViewer'
-import { FURNISHED_DESIGNS } from './scene/furnished'
+import { WALKABLE } from './scene/furnished/walkable'
 import { WalkOverlay } from './WalkOverlay'
 
 /**
@@ -62,7 +62,7 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
   const roomInView = property.rooms.find((r) => r.id === roomViewId) ?? null
   const walking = useWalkStore((s) => s.active)
   const startWalking = useWalkStore((s) => s.start)
-  const walkable = property.model.kind === 'furnished' && FURNISHED_DESIGNS[property.model.design].walkable
+  const walkable = property.model.kind === 'furnished' && WALKABLE.has(property.model.design)
   const walk = useCallback(() => {
     closeRoomView()
     selectRoom(null)

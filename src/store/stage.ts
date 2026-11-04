@@ -37,6 +37,10 @@ interface StageState {
   dimmed: boolean
   /** Daylight view instead of the default evening presentation. */
   daylight: boolean
+  /** What the scene is preparing and how far along it is (0..1), while it isn't ready yet. */
+  loading: { label: string; progress: number } | null
+  /** A newly mounted scene's shaders are compiling; nothing is drawn until they are ready. */
+  compiling: boolean
 
   show: (scene: StageScene | null, mode: StageMode) => void
   setControls: (controls: CameraControls | null) => void
@@ -48,6 +52,8 @@ interface StageState {
   setCurtain: (curtain: StageState['curtain'], awaitingScene?: boolean) => void
   setDimmed: (dimmed: boolean) => void
   setDaylight: (daylight: boolean) => void
+  setLoading: (loading: StageState['loading']) => void
+  setCompiling: (compiling: boolean) => void
 }
 
 const sameScene = (a: StageScene | null, b: StageScene | null) => a?.kind === b?.kind && a?.slug === b?.slug
@@ -65,6 +71,8 @@ export const useStageStore = create<StageState>((set, get) => ({
   awaitingScene: false,
   dimmed: false,
   daylight: false,
+  loading: null,
+  compiling: false,
 
   show: (scene, mode) => {
     const changed = !sameScene(get().scene, scene)
@@ -73,11 +81,11 @@ export const useStageStore = create<StageState>((set, get) => ({
       mode,
       awaitingScene: false,
       autoRotate: mode === 'attract',
-      ...(changed ? { sceneReady: false } : null),
+      ...(changed ? { sceneReady: false, loading: null } : null),
     })
   },
   setControls: (controls) => set({ controls }),
-  setSceneReady: (sceneReady) => set({ sceneReady }),
+  setSceneReady: (sceneReady) => set(sceneReady ? { sceneReady, loading: null } : { sceneReady }),
   setAutoRotate: (autoRotate) => set({ autoRotate }),
   setAmbient: (ambient) => set({ ambient }),
   setHome: (home) => set({ home }),
@@ -85,4 +93,6 @@ export const useStageStore = create<StageState>((set, get) => ({
   setCurtain: (curtain, awaitingScene) => set(awaitingScene === undefined ? { curtain } : { curtain, awaitingScene }),
   setDimmed: (dimmed) => set({ dimmed }),
   setDaylight: (daylight) => set({ daylight }),
+  setLoading: (loading) => set({ loading }),
+  setCompiling: (compiling) => set({ compiling }),
 }))

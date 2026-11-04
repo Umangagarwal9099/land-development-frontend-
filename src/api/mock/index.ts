@@ -3,8 +3,9 @@ import type { Catalog, CatalogItem, MasterPlan, Property } from '../types'
 import { masterPlans } from './masterplan'
 import { properties } from './properties'
 
-// Simulated latency so loading states are visible during development.
-const delay = <T>(value: T, ms = 250) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms))
+// Simulated latency so loading states are visible during development; none in a build, where the
+// mock data is the content and waiting for it only held up the first screen.
+const delay = <T>(value: T, ms = import.meta.env.DEV ? 250 : 0) => (ms ? new Promise<T>((resolve) => setTimeout(() => resolve(value), ms)) : Promise.resolve(value))
 
 const toCatalogItem = ({ id, slug, name, type, location, tagline, thumbnailUrl, startingPrice, stats }: CatalogItem): CatalogItem => ({
   id, slug, name, type, location, tagline, thumbnailUrl, startingPrice, stats,

@@ -19,7 +19,9 @@ function canvas(w: number, h: number, paint: Paint): HTMLCanvasElement {
   const c = document.createElement('canvas')
   c.width = w
   c.height = h
-  paint(c.getContext('2d')!, w, h)
+  // Kept in CPU memory: relief maps read every finish back, and reading a GPU-backed canvas stalls
+  // on a readback each time (it was most of a model's build time).
+  paint(c.getContext('2d', { willReadFrequently: true })!, w, h)
   return c
 }
 
@@ -342,10 +344,21 @@ const PAINTERS = {
 
 export type Finish = keyof typeof PAINTERS
 
+/*
+ * Painting is the costly part of building a model, and the designs share most of their finishes
+ * (the hotel, Kallakal Square and the hospital all build on the mall's palette). So every painted
+ * surface and relief map is made once per session and shared: models get clones, which share the
+ * image and, in three.js, its single GPU upload (reference-counted, so disposing one model's
+ * clones leaves the others' intact).
+ */
+const finishes = new Map<string, Texture>()
+const paintings = new WeakMap<Paint, Map<string, Texture>>()
+const reliefs = new Map<string, Texture>()
+
 /** Paints each finish once and hands out repeat-adjusted clones that share the uploaded image. */
 export class TextureLibrary {
-  private base = new Map<string, Texture>()
-  private relief = new Map<string, Texture>()
+  private base = finishes
+  private relief = reliefs
 
   finish(name: Finish, repeatX = 1, repeatY = 1): Texture {
     let t = this.base.get(name)
@@ -360,7 +373,12 @@ export class TextureLibrary {
   }
 
   painted(w: number, h: number, paint: Paint): Texture {
-    return this.make(canvas(w, h, paint))
+    let sizes = paintings.get(paint)
+    if (!sizes) paintings.set(paint, (sizes = new Map()))
+    const key = `${w}x${h}`
+    let t = sizes.get(key)
+    if (!t) sizes.set(key, (t = this.make(canvas(w, h, paint))))
+    return t.clone()
   }
 
   /** A repeat-matched tangent-space normal map derived from the finish's painted height detail. */
@@ -376,10 +394,13 @@ export class TextureLibrary {
 
   /** Relief companion for a bespoke painted surface, cached by its material name. */
   normalPainted(name: string, w: number, h: number, paint: Paint, repeatX = 1, repeatY = 1): Texture {
-    let source = this.relief.get(name)
+    const key = `${name}@${w}x${h}`
+    let source = this.relief.get(key)
     if (!source) {
-      source = this.makeNormal(canvas(w, h, paint))
-      this.relief.set(name, source)
+      // The colour pass of the same painting, if a model has made it, saves painting it twice.
+      const painted = paintings.get(paint)?.get(`${w}x${h}`)?.image as HTMLCanvasElement | undefined
+      source = this.makeNormal(painted ?? canvas(w, h, paint))
+      this.relief.set(key, source)
     }
     const clone = source.clone()
     clone.repeat.set(repeatX, repeatY)

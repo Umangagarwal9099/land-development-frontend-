@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useLocation, useNavigate, useOutlet } from 'react-router'
 import { config } from '../config'
 import { MediaViewer } from '../features/media/MediaViewer'
@@ -24,13 +24,16 @@ export function AppShell() {
   const location = useLocation()
   const outlet = useOutlet()
   const ambient = useStageStore((s) => s.ambient)
+  const stage = useAfterFirstPaint()
   useIdleBehaviour()
 
   return (
     <MotionConfig reducedMotion="user">
-      <Suspense fallback={null}>
-        <Stage />
-      </Suspense>
+      {stage && (
+        <Suspense fallback={null}>
+          <Stage />
+        </Suspense>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -51,6 +54,23 @@ export function AppShell() {
       <Curtain />
     </MotionConfig>
   )
+}
+
+/**
+ * True once the page has painted. The 3D stage creates its WebGL context and builds its scene
+ * synchronously when it mounts; mounted with the first render, that work ran before the browser
+ * had painted anything, so the screen stayed empty for seconds with its content already in place.
+ */
+function useAfterFirstPaint() {
+  const [painted, setPainted] = useState(false)
+  useEffect(() => {
+    // The first frame callback runs before that frame paints; the second, after it.
+    let id = requestAnimationFrame(() => {
+      id = requestAnimationFrame(() => setPainted(true))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [])
+  return painted
 }
 
 function useIdleBehaviour() {
