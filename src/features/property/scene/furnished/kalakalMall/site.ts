@@ -1,7 +1,7 @@
 import { ExtrudeGeometry, Mesh, PointLight, Shape, type Material, type Object3D } from 'three'
 import type { Point2 } from '../../../../../api/types'
 import { PI } from '../kit'
-import { channelLetters, MALL_NAME, podiumOutline, type MallCtx } from './building'
+import { channelLetters, MALL_NAME, podiumOutline, PORTALS, type MallCtx } from './building'
 import { parkedCar } from '../car'
 import { hedge, lawn, shrub, SPECIES, tree } from './foliage'
 import { BAYS, BX0, BX1, clipHalf, DRIVE, ENTRY_X, FRONTAGE_Z, FT, GL, PLAZA_Z, PLOT, REAR_Z } from './plan'
@@ -9,10 +9,13 @@ import { metricBox, rect, slab } from './solids'
 
 /*
  * The grounds: a raised forecourt before the entrance, stepping down to a drop-off lane and a row
- * of visitor parking, with a landscaped strip and the mall's pylon on the road edge. Entry is at
- * the south end of the frontage and exit at the north; 4.5 m fire-access drives run down both
- * sides to the service yard behind, with the loading bays, the covered ramp to the basement car
- * park, and the substation and generator yard.
+ * of visitor parking, with a landscaped strip and the mall's pylon on the road edge. Traffic runs
+ * one way round the building: in at the south gate, either north along the drop-off lane or down
+ * the entry road on the south (left) side; along the service road across the back, past the
+ * loading bays and the basement car park's IN and OUT portals in the rear wall; and up the exit
+ * road on the north (right) side to the drop-off lane's end and out at the north gate. The plot's
+ * back is closed by an unbroken compound wall: nothing reaches the cross road behind. The
+ * substation and generator stand in a shallow fenced enclosure against that wall.
  *
  * Finishes are those such a site is built in: flamed granite on the forecourt, broom-finished
  * concrete on the apron, grey concrete pavers in the bays and on footpaths, bituminous concrete on
@@ -31,9 +34,11 @@ const WALL_T = 0.23
 const SOUTH_GATE: R = [PLOT.x0, -16.4]
 const NORTH_GATE: R = [16.4, PLOT.x1]
 const WALK: R = [ENTRY_X - 2.4, ENTRY_X + 2.4]
-/** The ramp down to the basement: its mouth faces the service yard. */
-const RAMP = { x0: -4, x1: 14.5, z0: -33.4, z1: -27.4, h: 3.3 }
-const YARD = { x0: 15.4, x1: PLOT.x1 - WALL_T, z0: PLOT.z0 + WALL_T, z1: -27.2 }
+/** The substation and generator enclosure against the back wall, clear of the service road's turns. */
+const YARD = { x0: -2, x1: 10, z0: PLOT.z0 + WALL_T, z1: -30.7 }
+/** Where the podium's edge runs across the back, and the service road's lane between it and the enclosure. */
+const REAR_EDGE = REAR_Z - 0.4
+
 
 /** Inside the plot as the plan draws it (with a margin), or anywhere in the property's own view. */
 const within = (ctx: SiteCtx, x: number, z: number, margin = 0.6) => !ctx.onPlan || z <= FRONTAGE_Z(x) - margin
@@ -95,7 +100,7 @@ export function buildSite(ctx: SiteCtx, p: Object3D) {
   buildForecourt(ctx, p)
   buildMarkings(ctx, p)
   buildParking(ctx, p)
-  buildRamp(ctx, p)
+  buildRearAccess(ctx, p)
   buildYard(ctx, p)
   buildWalls(ctx, p)
   buildPlanting(ctx, p)
@@ -178,9 +183,7 @@ function buildMarkings(ctx: SiteCtx, p: Object3D) {
   kerbX(ctx, p, [BX0, BX1], DRIVE.z0 - 0.075, 0.17, 1)
   bxIn(ctx, p, [SOUTH_GATE[1], NORTH_GATE[0]], [0, 0.14], [BAYS.z1 - 0.15, BAYS.z1], c.kerb(NORTH_GATE[0] - SOUTH_GATE[1]), true, true)
   for (const x of [SOUTH_GATE[1], WALK[0], WALK[1], NORTH_GATE[0]]) kerbZ(ctx, p, x, [BAYS.z0, PLOT.z1], 0.17)
-  // Centre line of the drive, dashed, and the drop-off lane's yellow edge.
-  const mid = (DRIVE.z0 + DRIVE.z1) / 2
-  for (let x = PLOT.x0 + 1; x < PLOT.x1 - 2; x += 4.5) if (x + 2.5 < WALK[0] || x > WALK[1]) bxIn(ctx, p, [x, x + 2.5], [0.02, 0.024], [mid - 0.06, mid + 0.06], c.lane, false)
+  // The drop-off lane's yellow edge.
   bx(ctx, p, [BX0, BX1], [0.02, 0.024], [DRIVE.z0 + 0.1, DRIVE.z0 + 0.25], c.hazard, false)
   // Zebra crossing to the walk.
   for (let x = WALK[0] + 0.25; x < WALK[1] - 0.3; x += 1.0) bx(ctx, p, [x, x + 0.5], [0.02, 0.025], [DRIVE.z0 + 0.4, DRIVE.z1 - 0.3], c.lane, false)
@@ -220,55 +223,92 @@ function buildParking(ctx: SiteCtx, p: Object3D) {
   park(ENTRY_X - 7.5, DRIVE.z0 + 1.6, PI / 2, 'sedan', '#c8c9c6')
 }
 
-/** The covered ramp to the basement car park, its mouth facing the service yard. */
-function buildRamp(ctx: SiteCtx, p: Object3D) {
-  const { c, k, shade } = ctx
-  const { x0, x1, z0, z1, h } = RAMP
-  const wall = c.surface('greige', 1, 1)
-  bx(ctx, p, [x0, x1], [0, h], [z0, z0 + 0.25], wall)
-  bx(ctx, p, [x0, x1], [0, h], [z1 - 0.25, z1], wall)
-  bx(ctx, p, [x0 + 0.6, x1], [h - 0.35, h], [z0, z1], c.concrete)
-  bx(ctx, p, [x0 + 0.6, x1], [h, h + 0.12], [z0, z1], c.apron)
-  bx(ctx, p, [x1 - 0.25, x1], [0, h], [z0, z1], wall)
-  shade.edge([[x0, z1], [x1, z1]], 0.025, 0.6, 1, 0.5)
-  // The mouth: a header beam with the car park sign and a height bar, the ramp falling away into the dark.
-  bx(ctx, p, [x0, x0 + 0.6], [h - 0.75, h + 0.12], [z0, z1], c.acp)
-  k.box(p, 0.04, 0.9, 0.9, c.pSign, x0 - 0.03, h - 0.33, (z0 + z1) / 2 + 1.8, false)
-  for (let i = 0; i < 6; i++) bx(ctx, p, [x0 - 0.35, x0 - 0.25], [2.35, 2.5], [z0 + 0.3 + i * 0.9, z0 + 0.75 + i * 0.9], i % 2 ? c.plantDark : c.hazard)
-  for (const z of [z0 + 0.3, z1 - 0.3]) bx(ctx, p, [x0 - 0.35, x0 - 0.25], [0, 2.5], [z - 0.05, z + 0.05], c.plantDark)
-  bx(ctx, p, [x0 + 3.2, x0 + 3.25], [0, h - 0.35], [z0 + 0.25, z1 - 0.25], c.void, false)
-  bx(ctx, p, [x0 + 0.1, x0 + 3.1], [h - 0.37, h - 0.35], [(z0 + z1) / 2 - 0.05, (z0 + z1) / 2 + 0.05], c.led, false)
-  shade.rect(x0 + 1.8, 0.03, (z0 + z1) / 2, 3.2, z1 - z0 - 0.5, 0, 0.6)
-  // Speed hump at the mouth.
-  bx(ctx, p, [x0 - 1.6, x0 - 1.2], [0.02, 0.08], [z0 + 0.3, z1 - 0.3], c.hazard)
+/** A painted arrow on the road: its tip at (x, z), pointing along +x, −x, +z or −z. */
+function arrow(ctx: SiteCtx, p: Object3D, x: number, z: number, dir: '+x' | '-x' | '+z' | '-z') {
+  if (!within(ctx, x, z + 1)) return
+  const s = dir[0] === '+' ? 1 : -1
+  const alongX = dir[1] === 'x'
+  const shaft: [R, R] = alongX ? [[Math.min(x, x - s * 2), Math.max(x, x - s * 2)], [z - 0.08, z + 0.08]] : [[x - 0.08, x + 0.08], [Math.min(z, z - s * 2), Math.max(z, z - s * 2)]]
+  bx(ctx, p, shaft[0], [0.02, 0.025], shaft[1], ctx.c.lane, false)
+  for (const side of [-1, 1]) {
+    const m = bx(ctx, p, [-0.4, 0.4], [0.02, 0.025], [-0.06, 0.06], ctx.c.lane, false)
+    if (alongX) {
+      m.position.set(x - s * 0.28, 0.0225, z + side * 0.2)
+      m.rotation.y = side * s * 0.65
+    } else {
+      m.position.set(x + side * 0.2, 0.0225, z - s * 0.28)
+      m.rotation.y = PI / 2 - side * s * 0.65
+    }
+  }
 }
 
-/** Substation and generator yard: chain-link fence, transformer, DG set with its stack. */
+/**
+ * The one-way circuit's markings and the way into the basement: arrows in on the south road,
+ * across the back and out on the north road, and along the drop-off lane; a give-way line at the
+ * exit gate; ramped aprons up to the basement portals in the rear wall.
+ */
+function buildRearAccess(ctx: SiteCtx, p: Object3D) {
+  const { c, shade } = ctx
+  const southX = (PLOT.x0 + WALL_T + BX0 - 0.4) / 2
+  const northX = (BX1 + 0.4 + PLOT.x1 - WALL_T) / 2
+  const laneZ = (YARD.z1 + REAR_EDGE) / 2
+  for (const z of [12, -4, -20]) arrow(ctx, p, southX, z, '-z')
+  for (const z of [-20, -4, 12]) arrow(ctx, p, northX, z, '+z')
+  for (const x of [-12, 13.5]) arrow(ctx, p, x, (PLOT.z0 + REAR_EDGE) / 2, '+x')
+  arrow(ctx, p, 3.5, laneZ, '+x')
+  for (const x of [-12, 9]) arrow(ctx, p, x, (DRIVE.z0 + DRIVE.z1) / 2 + 1.2, '+x')
+  // The give-way line across the exit gate, and stop bars where the side roads meet the front lane.
+  bxIn(ctx, p, [NORTH_GATE[0] + 0.3, PLOT.x1 - WALL_T - 0.2], [0.02, 0.026], [PLOT.z1 - 2.6, PLOT.z1 - 2.3], c.lane, false)
+  bx(ctx, p, [BX1 + 0.5, PLOT.x1 - WALL_T - 0.2], [0.02, 0.026], [DRIVE.z0 - 0.6, DRIVE.z0 - 0.3], c.lane, false)
+  // A kerb along the enclosure's front, between it and the service road.
+  kerbX(ctx, p, [YARD.x0, YARD.x1], YARD.z1 + 0.075, 0.15, 1)
+  // Ramped aprons up the podium's edge to the portals, and the shade of their mouths.
+  for (const x of [PORTALS.in, PORTALS.out]) {
+    const w = PORTALS.w
+    const shape = new Shape()
+    shape.moveTo(REAR_EDGE - 2.2, 0.02)
+    shape.lineTo(REAR_EDGE, GL)
+    shape.lineTo(REAR_EDGE, 0)
+    shape.lineTo(REAR_EDGE - 2.2, 0)
+    shape.closePath()
+    const geo = new ExtrudeGeometry(shape, { depth: w, bevelEnabled: false })
+    geo.rotateY(-PI / 2)
+    geo.translate(x + w / 2, 0, 0)
+    const m = new Mesh(geo, c.asphalt)
+    m.receiveShadow = true
+    p.add(m)
+    shade.rect(x, GL + 0.01, REAR_Z + 0.6, w, 1.4, 0, 0.6)
+  }
+}
+
+/** Substation and generator enclosure against the back wall: chain-link fence, transformer, DG set with its stack. */
 function buildYard(ctx: SiteCtx, p: Object3D) {
   const { c, shade } = ctx
   const { x0, x1, z0, z1 } = YARD
   bx(ctx, p, [x0, x1], [0, 0.15], [z0, z1], c.apron)
   const fence = (xs: R, zs: R) => bx(ctx, p, xs, [0.15, 2.4], zs, c.fence(Math.max(xs[1] - xs[0], zs[1] - zs[0]), 2.25), false, true)
   fence([x0, x0 + 0.02], [z0, z1])
-  fence([x0, x1 - 2.6], [z1 - 0.02, z1])
-  for (const [x, z] of [[x0, z0], [x0, z1], [x1 - 2.6, z1], [x0, (z0 + z1) / 2]] as const) bx(ctx, p, [x - 0.04, x + 0.04], [0.15, 2.45], [z - 0.04, z + 0.04], c.mullion)
+  fence([x1 - 0.02, x1], [z0, z1])
+  fence([x0, x1 - 2.4], [z1 - 0.02, z1])
+  for (const [x, z] of [[x0, z1], [x1, z1], [x1 - 2.4, z1], [(x0 + x1) / 2, z1]] as const) bx(ctx, p, [x - 0.04, x + 0.04], [0.15, 2.45], [z - 0.04, z + 0.04], c.mullion)
   // Transformer: tank with cooling fins and bushings.
-  const tx = x0 + 1.9
-  const tz = z0 + 2.0
+  const tx = x0 + 1.6
+  const tz = z0 + 1.1
   bx(ctx, p, [tx - 1.0, tx + 1.0], [0.15, 1.95], [tz - 0.7, tz + 0.7], c.plant)
   for (let i = -3; i <= 3; i++) bx(ctx, p, [tx + i * 0.26 - 0.02, tx + i * 0.26 + 0.02], [0.3, 1.7], [tz + 0.7, tz + 1.05], c.plant)
   for (const dx of [-0.5, 0, 0.5]) ctx.k.cyl(p, 0.07, 0.09, 0.45, c.white, tx + dx, 2.15, tz, 10)
   shade.rect(tx, 0.155, tz + 0.2, 2.2, 2.0, 0, 0.6)
-  // Diesel generator in its acoustic enclosure.
-  const gx = x1 - 2.2
-  bx(ctx, p, [gx - 1.25, gx + 1.25], [0.15, 2.55], [z0 + 0.6, z0 + 5.4], c.surface('greige', 1, 1))
-  bx(ctx, p, [gx - 1.3, gx + 1.3], [2.55, 2.65], [z0 + 0.55, z0 + 5.45], c.coping)
-  for (let z = z0 + 1.0; z < z0 + 5.2; z += 0.25) bx(ctx, p, [gx - 1.27, gx - 1.25], [1.2, 2.2], [z, z + 0.12], c.plantDark, false)
-  ctx.k.cyl(p, 0.14, 0.14, 2.2, c.aluminium, gx + 0.7, 3.7, z0 + 1.2, 12)
-  shade.rect(gx, 0.155, z0 + 3, 2.6, 4.9, 0, 0.6)
+  // Diesel generator in its acoustic enclosure, lying along the wall.
+  const gx = x0 + 6.6
+  const gz = z0 + 1.35
+  bx(ctx, p, [gx - 2.4, gx + 2.4], [0.15, 2.55], [gz - 1.1, gz + 1.1], c.surface('greige', 1, 1))
+  bx(ctx, p, [gx - 2.45, gx + 2.45], [2.55, 2.65], [gz - 1.15, gz + 1.15], c.coping)
+  for (let x = gx - 2.0; x < gx + 2.0; x += 0.25) bx(ctx, p, [x, x + 0.12], [1.2, 2.2], [gz + 1.1, gz + 1.12], c.plantDark, false)
+  ctx.k.cyl(p, 0.14, 0.14, 2.2, c.aluminium, gx - 1.8, 3.7, gz - 0.5, 12)
+  shade.rect(gx, 0.155, gz, 5.0, 2.4, 0, 0.6)
 }
 
-/** Compound walls on the south, west and north boundaries: rendered base, stone coping, bar railing. */
+/** Compound walls on the south, west and north boundaries, the back one unbroken: rendered base, stone coping, bar railing. */
 function buildWalls(ctx: SiteCtx, p: Object3D) {
   const { c, shade } = ctx
   const white = c.surface('white', 1, 1)
@@ -347,7 +387,7 @@ function buildLighting(ctx: SiteCtx, p: Object3D) {
     pole(PLOT.x1 - 0.6, z, 7, 0)
   }
   pole(-10, PLOT.z0 + 0.6, 7, 1)
-  pole(8, -26.8, 7, -1)
+  pole(16, PLOT.z0 + 0.6, 7, 1)
   // Ground uplights washing the skin's underside at the forecourt planters.
   for (const x of [-12, 9]) {
     const l = lighting.light(new PointLight('#ffd9ad', 8, 14, 2), 0)
@@ -366,9 +406,12 @@ function buildPylon(ctx: SiteCtx, p: Object3D) {
   bx(ctx, p, [x - 1.05, x + 1.05], [0.3, 6.4], [z - 0.3, z + 0.3], c.frame)
   bx(ctx, p, [x - 0.9, x + 0.9], [0.8, 5.2], [z + 0.3, z + 0.32], c.pylonPanel)
   bx(ctx, p, [x - 1.05, x + 1.05], [5.35, 6.4], [z + 0.3, z + 0.33], c.plantDark)
-  const name = channelLetters(c, MALL_NAME, 0.26, 0.05)
-  name.position.set(x, 5.75, z + 0.33)
-  p.add(name)
+  // The name in two lines on the head, KALLAKAL over MALL.
+  MALL_NAME.split(' ').forEach((line, i) => {
+    const name = channelLetters(c, line, 0.26, 0.05)
+    name.position.set(x, 5.98 - i * 0.42, z + 0.33)
+    p.add(name)
+  })
   ctx.shade.rect(x, 0.025, z, 2.6, 1.1, 0, 0.6)
 }
 

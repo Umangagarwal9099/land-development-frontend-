@@ -15,16 +15,21 @@ import type { Point2 } from '../../../../../api/types'
  *   with creepers, rise over the south wing, the centre and (the tallest) the north wing.
  *
  *   The plot is narrow and deep, so the ring stands at the front, scaled to its frontage, and
- *   the guests' car park fills the depth behind it, reached by the drive down the south side.
+ *   the guests' car park fills the depth behind it. Traffic runs one way round the plot: in by
+ *   the entry road down the south side, through the car park, and out by the exit road up the
+ *   north side to the HMDA road. The back is walled along its full width: no way through to the
+ *   cross road behind. To make room for the exit road the ring's wings are 0.8 m shallower than
+ *   first drawn and the ring stands 1.9 m further south.
  *
- *   ring:     centred on the plaza at P, glass lines at radius 8.2 (plaza side) and 14.3
+ *   ring:     centred on the plaza at P, glass lines at radius 8.2 (plaza side) and 13.5
  *   rear wing: 18 m wide behind the centre, G+3, guest rooms either side of a corridor
- *   setbacks: south 6.2 m (the drive), north 2.1 m (fire walk), front 10 m (forecourt)
+ *   setbacks: south 5.2 m (the 4.6 m entry road), north 5.0 m (the 4.4 m exit road), front
+ *             10 m (forecourt)
  *   levels:   ground +0.15 (lobby and restaurant), first +5.15, second +8.75, roof +12.35
  *             (5.0 / 3.6 / 3.6 m floor to floor, guest rooms above); the rear wing's third
  *             floor at +12.35 and its roof at +15.95; north capsule to +23
- *   behind:   a car park of four rows of bays on two aisles and the drive, 44 bays, with the
- *             utility yard and a service gate to the cross road at the back
+ *   behind:   a car park of four rows of bays on two aisles and the entry road, 44 bays, with
+ *             the utility yard and a planted strip against the back wall
  */
 
 export const FT = 0.3048
@@ -42,10 +47,10 @@ export const FRONTAGE_Z = (x: number) => FRONTAGE.c + FRONTAGE.k * x
 export const PLAN_CENTRE_Z = (2 * PLOT.z0 + FRONTAGE_Z(PLOT.x0) + FRONTAGE_Z(PLOT.x1)) / 4
 
 /** Centre of the plaza and of the ring of buildings round it. */
-export const P = { x: 2.0, z: 30 }
+export const P = { x: 0.1, z: 30 }
 /** Glass lines of the ring: the plaza side and the outside. */
 export const R_IN = 8.2
-export const R_OUT = 14.3
+export const R_OUT = 13.5
 /** The wing's depth, glass to glass: what fittings inside are placed by. */
 export const DEPTH = R_OUT - R_IN
 /** Slab edges stand this far proud of the glass. */
@@ -67,7 +72,7 @@ export const ROOF_B = ROOF + 3.6
  * the ring's outer glass and its back end a half circle. Plan: x0..x1 across, the half circle's
  * centre at zc.
  */
-export const ANNEX = { x0: -7, x1: 11, zc: 5 }
+export const ANNEX = { x0: P.x - 9, x1: P.x + 9, zc: 5 }
 
 /**
  * Angles round P in degrees: 0 is east (towards the road), −90 south, −180 west. The ring runs
@@ -88,8 +93,10 @@ export const CANTILEVER = 1.8
 export const PLAZA_R = 6.4
 export const PAVED_R = 11.5
 
-/** The drive down the south side, from the road to the car park and the service gate behind. */
-export const DRIVE = { x0: PLOT.x0 + 0.23, x1: -13.2 }
+/** The entry road down the south side, one way from the HMDA road to the car park. */
+export const DRIVE = { x0: PLOT.x0 + 0.23, x1: PLOT.x0 + 0.23 + 4.6 }
+/** The exit road up the north side, one way from the car park out to the HMDA road. */
+export const EXIT = { x0: 14.3, x1: PLOT.x1 - 0.23 }
 /** The car park: rows of 2.5 × 5 m bays between the drive and two aisles, between two cross aisles. */
 export const PARK = {
   z0: -40,

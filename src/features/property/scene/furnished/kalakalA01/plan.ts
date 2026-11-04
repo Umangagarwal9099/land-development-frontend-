@@ -3,7 +3,7 @@ import type { Point2 } from '../../../../../api/types'
 /*
  * Commercial Plot A-01, Kallakal: 166′1″ of frontage (north → south) × 165′5″ deep (west → east),
  * 3,022 sq yd, facing east onto the HMDA master plan road on NH-44, with the 33 ft cross road
- * behind it and Plot A-02 (Prime Mall) to the south.
+ * behind it and Plot A-02 (Kallakal Mall) to the south.
  *
  * Site frame, as for the mall and the hotel: +z east (the road), +x north, y up, origin at the
  * plot centre. The reference design, a multi-storey car park with shops below, is fitted to the
@@ -15,8 +15,13 @@ import type { Point2 } from '../../../../../api/types'
  *   black returns either side; the main entrance is at its foot. A cream stair tower and a dark
  *   lift core close the north end of the front, the stair's end wall glazed.
  *
- *   block:    40.2 m along the road × 17.2 m deep; south setback 6.7 m (the drive), north 3.5 m
- *             (fire walk), rear 12.8 m (service court and yard), front 20.4 m (the forecourt)
+ *   block:    38.8 m along the road × 17.2 m deep; south setback 6.7 m (the entry drive), north
+ *             5.1 m (the exit road), rear 12.8 m (the connector and the yard), front 20.4 m (the
+ *             forecourt)
+ *   traffic:  one way round the block. In from the HMDA road down the drive on the south side,
+ *             past the vehicle portals, along the connector behind the block and out by the exit
+ *             road on the north side. The back is walled the full width of the plot: nothing
+ *             opens onto the cross road.
  *   drum:     7.4 m radius, centred 1.8 m in front of the block's face, so it stands 9.2 m proud
  *   levels:   ground +0.15 (shops), decks +4.35, +7.55, +10.75, roof +13.95, parapet +15.15;
  *             the drum's crown to +16.75
@@ -36,7 +41,7 @@ export const FRONTAGE_Z = (x: number) => 24.66 - 0.3636 * x
 export const PLAN_CENTRE_Z = (2 * PLOT.z0 + FRONTAGE_Z(PLOT.x0) + FRONTAGE_Z(PLOT.x1)) / 4
 
 /** The block's footprint, to the face of its slab edges. */
-export const BLOCK = { x0: -18.6, x1: 21.6, z0: -12.4, z1: 4.8 }
+export const BLOCK = { x0: -18.6, x1: 20.2, z0: -12.4, z1: 4.8 }
 
 /** Floor levels: ground, the three parking decks, the roof, and the top of the parapet. */
 export const GL = 0.15
@@ -62,25 +67,31 @@ export const DOOR_T = 14
 export const RETURN = 1.2
 
 /** The stair tower (cream render, its north end glazed) and the dark lift core beside it. */
-export const STAIR = { x0: 18.4, x1: BLOCK.x1, z0: -1.6, z1: BLOCK.z1 + 0.5, top: 16.2 }
+export const STAIR = { x0: BLOCK.x1 - 3.2, x1: BLOCK.x1, z0: -1.6, z1: BLOCK.z1 + 0.5, top: 16.2 }
 export const LIFT = { x0: 16.6, x1: STAIR.x0, z0: 1.4, z1: BLOCK.z1 + 0.3, top: 15.9 }
 
-/** The drive along the south boundary, the vehicle portals in the block's south end, and the yard. */
+/** The entry drive along the south boundary, one way in, and the vehicle portals in the block's south end. */
 export const DRIVE = { x0: PLOT.x0 + 0.23, x1: -19.3 }
 export const PORTALS = [
   { z0: -9.5, z1: -5.9, label: 'in' },
   { z0: -5.3, z1: -1.7, label: 'out' },
 ] as const
 export const PORTAL_H = 2.75
-export const YARD = { x0: 9, x1: PLOT.x1 - 0.23, z0: PLOT.z0 + 0.23, z1: -18.6 }
-/** The rear service court, asphalt, off the drive. */
-export const COURT_REAR = { x0: BLOCK.x0, x1: 4, z0: PLOT.z0 + 0.23, z1: BLOCK.z0 - 1.4 }
+/**
+ * The exit road along the north boundary, one way out to the HMDA road: its carriageway from the
+ * kerb by the block to the compound wall.
+ */
+export const EXIT = { x0: BLOCK.x1 + 0.65, x1: PLOT.x1 - 0.23 }
+/** The connector behind the block, from the entry drive across to the exit road, past the service doors. */
+export const COURT_REAR = { x0: DRIVE.x0, x1: EXIT.x1, z0: -20.3, z1: BLOCK.z0 - 1.4 }
+/** The substation and generator yard, behind the connector against the back wall. */
+export const YARD = { x0: 11, x1: PLOT.x1 - 0.23, z0: PLOT.z0 + 0.23, z1: COURT_REAR.z0 }
 
-/** The forecourt: paving between the drive and the north wall, with two lawns either side of the entrance walk. */
-export const FORE = { x0: DRIVE.x1 + 0.15, x1: PLOT.x1 - 0.23 }
+/** The forecourt: paving between the entry drive and the exit road, with two lawns either side of the entrance walk. */
+export const FORE = { x0: DRIVE.x1 + 0.15, x1: EXIT.x0 - 0.15 }
 export const LAWNS = [
   { x0: -18.2, x1: -11.2, z0: 15.8, z1: 22.2 },
-  { x0: 3.4, x1: 23.4, z0: 12.8, z1: 22.2 },
+  { x0: 3.4, x1: EXIT.x0 - 0.6, z0: 12.8, z1: 22.2 },
 ] as const
 
 const D = Math.PI / 180

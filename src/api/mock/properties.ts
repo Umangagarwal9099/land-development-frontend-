@@ -259,7 +259,7 @@ function kalakalD65(): Property {
 }
 
 /**
- * Prime Mall on commercial Plot A-02, Kallakal: the G+2 mall of the client's reference design,
+ * Kallakal Mall on commercial Plot A-02, Kallakal: the G+2 mall of the client's reference design,
  * modelled in 3D (features/property/scene/furnished/kalakalMall) as an exterior with its grounds.
  * Areas map to the model's amenity_* hotspots.
  */
@@ -274,19 +274,19 @@ function kalakalMall(): Property {
       ['Double-height structural glazing', 'Automatic sliding doors, 4.4 m frame', 'White ACP canopy on stainless tie rods, recessed downlights', 'Honed stone forecourt at +0.45 m'],
       ['Steps and a 1:20 accessible ramp from the drop-off', 'Benches and planters on the forecourt']),
     area('Forecourt & Drop-off', 'amenity_forecourt', [150, 26],
-      'The raised forecourt before the mall steps down to a stone apron and the drop-off lane, which runs across the full frontage from the entry at the south end to the exit at the north. A zebra crossing joins the walk from the road footpath to the entrance steps.',
+      'The raised forecourt before the mall steps down to a stone apron and the drop-off lane, which runs one way across the full frontage from the entry at the south end to the exit at the north. A zebra crossing joins the walk from the road footpath to the entrance steps.',
       ['Drop-off lane 6.7 m wide', 'Bollards and kerbed apron at the crossing', 'Pole lighting along the apron'], ['Drop-off', 'Pedestrian crossing']),
     area('Visitor Parking', 'amenity_parking', [108, 16],
-      'Eleven visitor bays in interlocking pavers along the road edge, behind a clipped hedge and a row of shade trees; the main car park is in the basement, reached by the covered ramp behind the building.',
+      'Eleven visitor bays in interlocking pavers along the road edge, behind a clipped hedge and a row of shade trees; the main car park is in the basement, reached by the entry road down the south side and an IN portal in the rear wall, and left by the OUT portal and the exit road up the north side.',
       ['11 bays, 2.5 × 5 m', 'Wheel stops and painted bay lines', 'Basement car park below'], ['Visitor parking', 'Basement parking']),
     area('Service Yard & Basement Ramp', 'amenity_service', [150, 26],
-      'Behind the mall: two loading bays with roller shutters and dock bumpers, the covered two-way ramp down to the basement car park, and the fenced substation and generator yard in the north-west corner. The 4.5 m drives down both sides give fire tenders access all round.',
-      ['Two loading bays with roller shutters', 'Covered ramp, 6 m wide, 3.3 m headroom', 'Transformer and DG set in a fenced yard', '4.5 m fire-access drives on both sides'], ['Loading bays', 'Basement ramp', 'Substation']),
+      'Behind the mall, closed off from the cross road by an unbroken compound wall: a one-way service road from the entry road on the south side to the exit road on the north, past two loading bays with roller shutters and dock bumpers, the basement car park\'s IN and OUT portals in the rear wall, and the fenced substation and generator enclosure against the back wall. Traffic runs one way round the building: in at the south gate, out at the north.',
+      ['Two loading bays with roller shutters', 'Basement IN and OUT portals, 3.6 m wide, 2.6 m clear', 'Transformer and DG set in a fenced enclosure', 'One-way entry road (south) and exit road (north), 3.9 m clear', 'Rear service road, 7.2 m; no access from the cross road'], ['Loading bays', 'Basement parking', 'Substation']),
   ]
   return {
-    id: 'p_kalakal_mall', slug: 'kalakal-mall', name: 'Prime Mall', type: 'commercial', location: 'Kallakal, NH-44',
+    id: 'p_kalakal_mall', slug: 'kalakal-mall', name: 'Kallakal Mall', type: 'commercial', location: 'Kallakal, NH-44',
     tagline: 'A G+2 shopping mall in a faceted skin, on the HMDA road frontage',
-    thumbnailUrl: placeholderImage('Prime Mall', 210, 800, 500),
+    thumbnailUrl: placeholderImage('Kallakal Mall', 210, 800, 500),
     stats: [{ label: 'Plot', value: '3,704 sq yd' }, { label: 'Floors', value: 'B + G + 2' }, { label: 'Facing', value: 'East' }],
     description:
       'A shopping mall on commercial Plot A-02 in Kallakal, facing east onto the 250 ft HMDA master plan road. Two blocks wrapped in a skin of faceted aluminium and dark glass meet at a lower, double-height glazed entrance under a white canopy; the taller south block carries the name and the north block a curved media screen. A raised forecourt, drop-off and visitor parking lie in front, with a basement car park, loading bays and fire-access drives behind and to either side.',
@@ -305,7 +305,7 @@ function kalakalMall(): Property {
       { id: 'northeast', name: 'North-east corner', position: [42, 14, 48], target: [2, 7, 4], fov: 40 },
       { id: 'south', name: 'South side (avenue)', position: [-62, 9, 2], target: [0, 8, -2] },
       { id: 'north', name: 'North side', position: [58, 9, 0], target: [0, 8, -2] },
-      { id: 'rear', name: 'Rear and service yard', position: [-10, 14, -70], target: [0, 5, -12] },
+      { id: 'rear', name: 'Rear, service road and basement portals', position: [-10, 14, -70], target: [0, 5, -12] },
       { id: 'aerial', name: 'Aerial', position: [50, 64, 74], target: [0, 2, 0] },
       { id: 'entrance', name: 'Entrance, eye level', position: [-3, 1.7, 31], target: [-1, 6, 10], fov: 55 },
       { id: 'parking', name: 'Visitor parking, eye level', position: [11, 1.6, 39], target: [5, 2.2, 27], fov: 50 },
@@ -392,17 +392,17 @@ function kalakalA01(): Property {
       ['Drum 14.8 m across, glazed full height', 'Automatic sliding doors, 3.6 m frame', 'Two passenger lifts', 'Helical ramp, three turns, one deck to a turn'],
       ['Lobby benches', 'Cycle stands outside']),
     area('Shopfronts', 'amenity_shops', [45, 13],
-      'Four shops under the decks along the front, and a fifth south of the drum: full-height clear glass in black frames between charcoal piers, a glazed door in each, a lit name box on the charcoal fascia, and planters along the paving in front.',
-      ['Shopfronts 3.15 m high, 5 m deep shops', 'Charcoal aluminium composite fascia and piers', 'Backlit fascia signs'], ['Retail', 'Café']),
+      'Four shops under the decks along the front, and a fifth south of the drum: full-height clear glass in black frames between charcoal piers, a glazed door in each, and planters along the paving in front. The café south of the drum has its lit name box on the charcoal fascia; the four others are unbranded.',
+      ['Shopfronts 3.15 m high, 5 m deep shops', 'Charcoal aluminium composite fascia and piers', 'Backlit café sign'], ['Retail', 'Café']),
     area('Forecourt & Lawns', 'amenity_forecourt', [136, 39],
       'The landscaped forecourt between the building and the road: flamed granite paving with an entrance walk straight to the drum\'s doors, between two lawns edged in granite and planted with neem and a rain tree, low hedges along the walk, benches and bollard lights.',
       ['Flamed granite paving', 'Granite-edged lawns with neem and rain trees', 'Bollard lighting along the walk', 'Stainless bollards on the road edge'], ['Seating', 'Shade trees']),
     area('Vehicle Entry & Exit', 'amenity_parking', [20, 32],
-      'The way in for cars: a 5.8 m drive along the south boundary from the HMDA road to the cross road behind, with the entry and exit portals in the block\'s south end, each under a striped height bar either side of a kerbed island with the parking sign.',
-      ['Two portals, 3.6 m wide, 2.75 m clear', 'Height bars at 2.4 m', '5.8 m two-way drive, gates on both roads', 'Speed tables at both gates'], ['Multi-level parking', 'Drop-off on the drive']),
+      'One way round the block: in off the HMDA road down a 5.7 m entry drive along the south boundary to the entry and exit portals in the block\'s south end, each under a striped height bar either side of a kerbed island with the parking sign; then across the connector behind the block and out up the 4.2 m exit road along the north boundary to a give-way line at the road.',
+      ['Two portals, 3.6 m wide, 2.75 m clear', 'Height bars at 2.4 m', 'One-way 5.7 m entry drive and 4.2 m exit road', 'Speed tables at the way in and the way out', 'No access from the cross road'], ['Multi-level parking', 'Drop-off on the drive']),
     area('Service Court & Utility Yard', 'amenity_service', [143, 37],
-      'Behind the block: an asphalt service court off the drive with roller-shuttered service rooms in the rear wall, a lawn with rain trees, and the fenced substation and generator yard in the north-west corner.',
-      ['Service court off the drive', 'Transformer and DG set in a fenced yard', 'Roller-shuttered stores at the rear'], ['Substation', 'Service access']),
+      'Behind the block: a 6.5 m connector from the entry drive to the exit road, past the roller-shuttered service rooms in the rear wall; beyond it a lawn with rain trees and the fenced substation and generator yard in the north-west corner, all closed off from the cross road by an unbroken boundary wall.',
+      ['Service connector, one way, drive to exit road', 'Transformer and DG set in a fenced yard', 'Roller-shuttered stores at the rear', 'Unbroken rear boundary wall'], ['Substation', 'Service access']),
   ]
   return {
     id: 'p_kalakal_a01', slug: 'kalakal-a01', name: 'Kallakal Square', type: 'commercial', location: 'Kallakal, NH-44',
@@ -410,11 +410,11 @@ function kalakalA01(): Property {
     thumbnailUrl: placeholderImage('Kallakal Square', 160, 800, 500),
     stats: [{ label: 'Plot', value: '3,022 sq yd' }, { label: 'Floors', value: 'G + 3' }, { label: 'Facing', value: 'East' }],
     description:
-      'A commercial building on Plot A-01 in Kallakal, facing east onto the 250 ft HMDA master plan road: shops on the ground floor and three parking decks above. The long block runs parallel to the road, its decks screened in vertical thermowood slats hung in staggered panels, some flush, some forward, with mid-grey infill panels and open bays among them between exposed concrete slab edges. A fully glazed drum holding the helical ramp stands proud of the front under a deep black crown with black returns either side, the main entrance at its foot. A cream stair tower with a tall glazed slit and a dark grey lift core close the north end. Cars come in off a drive along the south boundary through portals in the block\'s south end.',
+      'A commercial building on Plot A-01 in Kallakal, facing east onto the 250 ft HMDA master plan road: shops on the ground floor and three parking decks above. The long block runs parallel to the road, its decks screened in vertical thermowood slats hung in staggered panels, some flush, some forward, with mid-grey infill panels and open bays among them between exposed concrete slab edges. A fully glazed drum holding the helical ramp stands proud of the front under a deep black crown with black returns either side, the main entrance at its foot. A cream stair tower with a tall glazed slit and a dark grey lift core close the north end. Traffic runs one way round the block: cars come in off the HMDA road down a drive along the south boundary to the portals in the block\'s south end, cross behind the block on a connector and leave by an exit road along the north boundary. The back of the plot is walled the full width, with no gate onto the cross road.',
     highlights: {
       Plot: 'A-01 · 166′1″ × 165′5″ (3,022 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Ground (shops) + 3 parking decks',
-      Height: 'Parapet 15.15 m; drum crown 16.75 m', Plan: 'Block 40.2 × 17.2 m; ramp drum 14.8 m across', 'Façade': 'Thermowood slat screen, charcoal and grey composite, clear glass',
-      Setbacks: 'South 6.7 m (drive) · north 3.5 m · rear 12.8 m · front 20.4 m', Parking: 'About 80 cars on three decks',
+      Height: 'Parapet 15.15 m; drum crown 16.75 m', Plan: 'Block 38.8 × 17.2 m; ramp drum 14.8 m across', 'Façade': 'Thermowood slat screen, charcoal and grey composite, clear glass',
+      Setbacks: 'South 6.7 m (entry drive) · north 5.1 m (exit road) · rear 12.8 m · front 20.4 m', Parking: 'About 80 cars on three decks',
     },
     model: { kind: 'furnished', design: 'kalakal-a01' }, floors: [], rooms,
     // Camera positions in scene metres: +z east (the HMDA road), +x north. The drum is centred at (-5.6, 6.6).
@@ -426,7 +426,7 @@ function kalakalA01(): Property {
       { id: 'northeast', name: 'North-east corner', position: [42, 14, 40], target: [2, 7, 0], fov: 40 },
       { id: 'southeast', name: 'South-east corner', position: [-40, 14, 42], target: [0, 7, 0], fov: 40 },
       { id: 'south', name: 'South side (drive and portals)', position: [-58, 9, 4], target: [-12, 5, -4], fov: 45 },
-      { id: 'north', name: 'North side', position: [48, 9, -2], target: [0, 8, -3] },
+      { id: 'north', name: 'North side (exit road)', position: [48, 9, -2], target: [0, 8, -3] },
       { id: 'rear', name: 'Rear and service court', position: [-6, 16, -60], target: [1, 6, -6] },
       { id: 'aerial', name: 'Aerial', position: [45, 55, 60], target: [1, 3, 0] },
       { id: 'entrance', name: 'Entrance, eye level', position: [-3, 1.6, 24], target: [-5.6, 4, 10], fov: 55 },
@@ -452,11 +452,11 @@ function kalakalHospital(): Property {
   const rooms: Room[] = [
     area('Main Entrance & Drop-off', 'amenity_entrance', [46, 43],
       'The main entrance at the foot of the curtain wall, under a thin white porte-cochère that reaches out over the drop-off lane on slim round columns: automatic sliding doors into the reception hall, wheelchairs waiting by the doors, downlights in the canopy\'s soffit, and a zebra with tactile paving straight across the lane to the entrance walk.',
-      ['Porte-cochère 14 × 13 m, 4.25 m clear', 'Automatic sliding doors, 2.6 m clear', 'Flush kerbs and tactile paving at the crossing', 'One-way drop-off lane, 6.5 m'],
+      ['Porte-cochère 12.6 × 13 m, 4.25 m clear', 'Automatic sliding doors, 2.6 m clear', 'Flush kerbs and tactile paving at the crossing', 'One-way drop-off lane, 6.5 m'],
       ['Reception and pharmacy', 'Wheelchairs at the door']),
-    area('Emergency & Ambulance Bay', 'amenity_emergency', [16, 24],
-      'The emergency entrance in the end of the north wing, with its own lower canopy over a marked ambulance bay that ambulances back into straight off the lane. EMERGENCY in red channel letters on the canopy\'s fascia, a red-cross lightbox over it, automatic doors straight into triage.',
-      ['Covered ambulance bay, 3.4 × 7 m, 3.55 m clear', 'Separate from the main drop-off', 'Illuminated red signage'], ['24 × 7 emergency', 'Ambulance access']),
+    area('Emergency & Ambulance Bay', 'amenity_emergency', [16, 33],
+      'The emergency entrance in the north wing\'s side, on the exit road: a drive-through ambulance bay under a canopy that spans the road from the building to the boundary, so ambulances pull in nose to the road and leave without reversing. EMERGENCY in red channel letters on both of the canopy\'s fascias and on the wing above it, a flush kerb with tactile paving at the automatic doors straight into triage, and a red-cross lightbox on the wing\'s end facing the road.',
+      ['Drive-through bay, 4.1 × 10 m, 4.1 m clear', 'Separate from the main drop-off', 'Illuminated red signage'], ['24 × 7 emergency', 'Ambulance access']),
     area('Outpatient Entrance', 'amenity_outpatient', [31, 20],
       'The outpatient entrance at the foot of the south tower, under a flat white canopy on tension rods with OUTPATIENT on the fascia above: a glazed front with automatic doors into the outpatient hall, and a paved terrace before it with benches for those waiting to be collected.',
       ['Glazed front, automatic doors', 'Canopy on stainless tension rods', 'Terrace with benches and planters'], ['Outpatient registration', 'Waiting area']),
@@ -464,10 +464,10 @@ function kalakalHospital(): Property {
       'The garden between the drop-off lane and the road: lawns edged in granite with neem, rain and mast Ashoka trees, a seating court round a raised bed, low hedges along the entrance walk from the road to the main doors, bollard lights, and the wayfinding monolith at the way in.',
       ['Granite-edged lawns and shade trees', 'Seating court with teak benches', 'Bollard lighting along the walk', 'Wayfinding monolith at the gate'], ['Healing garden', 'Seating']),
     area('Parking & Basement Ramp', 'amenity_parking', [64, 55],
-      'Behind the building: the covered ramp down to the two basement parking levels, its mouth on the drive under a lit sign and a height bar, its roof planted; and a row of bays along the back wall on an aisle off the drive, with the service gate to the cross road.',
-      ['Covered ramp to two basement levels, 2.4 m headroom', 'Seven surface bays with wheel stops', 'Service gate on the 33 ft cross road'], ['Basement parking', 'Staff parking']),
+      'Behind the building: the covered ramp down to the two basement parking levels, its mouth on the entry drive under a lit sign and a height bar, its roof planted; a row of bays along the back wall; and the aisle that carries the traffic round from the entry drive to the exit road. The back is walled off from the cross road, with no gate.',
+      ['Covered ramp to two basement levels, 2.4 m headroom', 'Seven surface bays with wheel stops', 'One-way loop: entry drive, aisle, exit road', 'Continuous boundary wall at the back'], ['Basement parking', 'Staff parking']),
     area('Utility Yard', 'amenity_service', [41, 30],
-      'The fenced utility yard in the north-west corner: the liquid oxygen tank on its legs with its banks of vaporisers for the medical gas supply, the transformer, and the standby generator in its acoustic enclosure, beside the service court and the stores\' roller shutters in the back wall.',
+      'The fenced utility yard at the back, between the parking bays and the exit road: the liquid oxygen tank on its legs with its banks of vaporisers for the medical gas supply, the transformer, and the standby generator in its acoustic enclosure, near the service court and the stores\' roller shutters in the back wall.',
       ['Liquid oxygen tank and vaporisers', 'Transformer and standby generator', 'Service court with loading shutters'], ['Medical oxygen', 'Standby power']),
   ]
   return {
@@ -476,14 +476,14 @@ function kalakalHospital(): Property {
     thumbnailUrl: placeholderImage('Kallakal Hospital', 205, 800, 500),
     stats: [{ label: 'Plot', value: '4,090 sq yd' }, { label: 'Floors', value: 'B2 + G + 3' }, { label: 'Facing', value: 'East' }],
     description:
-      'A hospital on Plot A-03 in Kallakal, the corner plot facing east onto the 250 ft HMDA master plan road with the 60 ft main avenue along its north side. From the road: a white tower with a grid of punched windows over the outpatient entrance; a lower glazed link; the main block, a blue-grey curtain wall held in a deep white frame whose top band carries the blue cross and the name, with a porte-cochère over the drop-off in front of the main entrance; and the end of the north wing in white bands and ribbon glazing, with the emergency entrance and the ambulance bay under their own canopy. The wards fill a deep block behind round a light court with a podium garden. Cars come in off the drive along the south boundary, along the drop-off lane and out at the north end; the drive carries on to the covered basement ramp, the parking and the utility yard behind.',
+      'A hospital on Plot A-03 in Kallakal, the corner plot facing east onto the 250 ft HMDA master plan road with the 60 ft main avenue along its north side. From the road: a white tower with a grid of punched windows over the outpatient entrance; a lower glazed link; the main block, a blue-grey curtain wall held in a deep white frame whose top band carries the blue cross and the name, with a porte-cochère over the drop-off in front of the main entrance; and the end of the north wing in white bands and ribbon glazing. The wards fill a deep block behind round a light court with a podium garden. Traffic runs one way round: in by the entry drive along the south boundary, either along the drop-off lane in front or on to the covered basement ramp, parking and utility yard behind, and out by the exit road down the north side, past the emergency entrance\'s drive-through ambulance bay. The back is walled off from the cross road.',
     highlights: {
       Plot: 'A-03 · 125′ × 294′6″ (4,090 sq yd)', Facing: 'East, onto the 250 ft HMDA road; 60 ft avenue to the north', Structure: '2 basements + ground + 3 floors',
-      Height: 'Parapet 18.75 m; name band 20.25 m', Plan: 'Ward block 28.6 × 41 m round a 12 × 12 m light court', 'Façade': 'White GRC cladding, blue-grey curtain wall, white composite bands',
-      Setbacks: 'South 7.25 m (drive) · north 2.25 m · rear 18.9 m · front 30 m', Access: 'One-way drop-off lane; separate ambulance bay',
+      Height: 'Parapet 18.75 m; name band 20.25 m', Plan: 'Ward block 25.7 × 41 m round a 12 × 12 m light court', 'Façade': 'White GRC cladding, blue-grey curtain wall, white composite bands',
+      Setbacks: 'South 7.25 m (entry drive) · north 5.15 m (exit road) · rear 18.9 m · front 30 m', Access: 'One way: in on the south side, out on the north; no access at the back',
     },
     model: { kind: 'furnished', design: 'kalakal-hospital' }, floors: [], rooms,
-    // Camera positions in scene metres: +z east (the HMDA road), +x north. The main doors are at (6.8, 13).
+    // Camera positions in scene metres: +z east (the HMDA road), +x north. The main doors are at (6.1, 13).
     // The controls keep the camera from looking upwards (polar angle ≤ 86°), so every view looks level or down.
     presets: [
       { id: 'reference', name: 'As in the reference', position: [-12, 10, 50], target: [4, 6.5, 6], fov: 50 },
@@ -496,8 +496,8 @@ function kalakalHospital(): Property {
       { id: 'south', name: 'South side (the drive)', position: [-56, 12, -4], target: [-8, 12, -4] },
       { id: 'rear', name: 'Rear, ramp and yard', position: [-4, 20, -82], target: [3, 8, -28] },
       { id: 'aerial', name: 'Aerial', position: [58, 78, 72], target: [2, 8, -6] },
-      { id: 'entrance', name: 'Main entrance, eye level', position: [6.8, 1.7, 34], target: [6.8, 0.2, 14], fov: 58 },
-      { id: 'emergency', name: 'Emergency entrance', position: [15.5, 1.7, 30], target: [15.3, 0.4, 14], fov: 52 },
+      { id: 'entrance', name: 'Main entrance, eye level', position: [6.1, 1.7, 34], target: [6.1, 0.2, 14], fov: 58 },
+      { id: 'emergency', name: 'Emergency entrance', position: [16.3, 1.7, 20], target: [16, 0.6, 1], fov: 55 },
       { id: 'outpatient', name: 'Outpatient entrance', position: [-5, 1.7, 24], target: [-7.1, 0.7, 12], fov: 58 },
       { id: 'court', name: 'Light court from above', position: [1.5, 36, 2], target: [1.5, 9, -12], fov: 50 },
       { id: 'top', name: 'Plan view', position: [0, 200, -0.01], target: [0, 0, 0] },

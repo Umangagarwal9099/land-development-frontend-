@@ -6,15 +6,17 @@ import { lawn, shrub, SPECIES, tree } from '../kalakalMall/foliage'
 import { metricBox, rect, slab } from '../kalakalMall/solids'
 import { signLine } from '../kalakalHotel/building'
 import { NAME, type A01Ctx } from './building'
-import { BLOCK, clipHalf, COURT_REAR, DRIVE, DRUM, FORE, FRONTAGE_Z, FT, GL, LAWNS, PLOT, polar, PORTALS, YARD } from './plan'
+import { BLOCK, clipHalf, COURT_REAR, DRIVE, DRUM, EXIT, FORE, FRONTAGE_Z, FT, GL, LAWNS, PLOT, polar, PORTALS, YARD } from './plan'
 
 /*
  * The grounds. The forecourt opens east to the road: granite paving along the shopfronts and
  * round the drum, with an entrance walk straight to the drum's doors between two lawns planted
- * with neem and rain trees. A 5.8 m drive runs the length of the south boundary from the HMDA
- * road to the cross road behind, past the vehicle portals in the block's south end; behind the
- * block are the service court, a lawn and the substation and generator yard. A paved fire walk
- * runs down the north side behind a screen of mast Ashoka.
+ * with neem and rain trees. Traffic runs one way round the block: in off the HMDA road down the
+ * 5.7 m entry drive along the south boundary, past the vehicle portals in the block's south end,
+ * across the 6.5 m connector behind the block (past the service doors) and out up the 4.2 m exit
+ * road along the north boundary to its give-way line at the road. Behind the connector are a lawn
+ * with rain trees and the substation and generator yard; the back wall runs unbroken the full
+ * width of the plot, so nothing opens onto the cross road.
  */
 
 type R = [number, number]
@@ -57,15 +59,17 @@ const WALK = { x0: LAWNS[0].x1, x1: LAWNS[1].x0 }
 
 export function buildSite(ctx: A01Ctx, p: Object3D) {
   const { c } = ctx
-  // The drive (asphalt) the length of the south boundary, and the service court behind the block.
-  ground(ctx, p, rect(DRIVE.x0, BX0, PLOT.z0 + WALL_T, BZ1), 0.02, c.asphalt)
+  // Asphalt, one way round: the entry drive down the south side, the connector behind the block,
+  // and the exit road up the north side.
+  ground(ctx, p, rect(DRIVE.x0, BX0, COURT_REAR.z1, BZ1), 0.02, c.asphalt)
   ground(ctx, p, rect(DRIVE.x0, DRIVE.x1, BZ1, PLOT.z1), 0.02, c.asphalt)
   ground(ctx, p, rect(COURT_REAR.x0, COURT_REAR.x1, COURT_REAR.z0, COURT_REAR.z1), 0.02, c.asphalt)
-  // A paved walk round the back and the north side of the block.
-  ground(ctx, p, rect(BX0, PLOT.x1 - WALL_T, COURT_REAR.z1, BZ0), GL, c.paving)
-  ground(ctx, p, rect(BX1, PLOT.x1 - WALL_T, BZ0, BZ1), GL, c.paving)
-  ground(ctx, p, rect(COURT_REAR.x1, YARD.x0, COURT_REAR.z0, COURT_REAR.z1), GL - 0.04, c.lawnGround)
-  ground(ctx, p, rect(YARD.x0, PLOT.x1 - WALL_T, YARD.z1, COURT_REAR.z1), GL - 0.04, c.lawnGround)
+  ground(ctx, p, rect(EXIT.x0, EXIT.x1, COURT_REAR.z1, PLOT.z1), 0.02, c.asphalt)
+  // A paved walk along the back of the block and a strip along its north end, kerbed from the roads.
+  ground(ctx, p, rect(BX0, EXIT.x0 - 0.15, COURT_REAR.z1, BZ0), GL, c.paving)
+  ground(ctx, p, rect(BX1, EXIT.x0 - 0.15, BZ0, BZ1), GL, c.paving)
+  // A lawn along the back wall, beside the yard.
+  ground(ctx, p, rect(DRIVE.x0, YARD.x0, PLOT.z0 + WALL_T, COURT_REAR.z0), GL - 0.04, c.lawnGround)
   // The forecourt: flamed granite at ground level, laid round the two lawns.
   const [ls, ln] = LAWNS
   for (const [x0, x1, z0, z1] of [
@@ -108,11 +112,40 @@ function buildEdges(ctx: A01Ctx, p: Object3D) {
         if (x1 > l.x0) bx(ctx, p, [l.x0, x1], [GL - 0.12, GL + 0.03], [z - 0.06, z + 0.06], c.granite)
       }
   }
-  // The drive's centre line, and a speed table at each gate.
+  // The exit road's kerb along the block, the walk's along the connector, the rear lawn's.
+  kerbZ(ctx, p, EXIT.x0 - 0.075, [COURT_REAR.z1, PLOT.z1], GL + 0.02)
+  for (const [x0, x1, z, h] of [[BX0, EXIT.x0 - 0.15, COURT_REAR.z1, GL + 0.02], [DRIVE.x0, YARD.x0, COURT_REAR.z0, GL]] as const) {
+    bx(ctx, p, [x0, x1], [0, h], [z - 0.075, z + 0.075], c.kerb(x1 - x0), true, true)
+    for (const side of [-1, 1] as const) shade.edge([[x0, z + side * 0.075], [x1, z + side * 0.075]], 0.035, 0.18, side, 0.35)
+  }
+  // One-way arrows: in down the drive, round behind the block, out up the exit road.
+  const arrow = (x: number, z: number, dir: 'in' | 'across' | 'out') => {
+    if (!within(ctx, x, z + 1.6)) return
+    const along = dir === 'across' ? 'x' : 'z'
+    const sgn = dir === 'in' ? -1 : 1
+    const shaft: [R, R] = along === 'x' ? [[x - 1.0, x + 1.0], [z - 0.08, z + 0.08]] : [[x - 0.08, x + 0.08], [z - 1.0, z + 1.0]]
+    bx(ctx, p, shaft[0], [0.02, 0.024], shaft[1], c.lane, false)
+    for (const s of [-1, 1]) {
+      const m = bx(ctx, p, [-0.38, 0.38], [0.02, 0.024], [-0.06, 0.06], c.lane, false)
+      if (along === 'x') {
+        m.position.set(x + 0.75, 0.022, z + s * 0.2)
+        m.rotation.y = s * 0.65
+      } else {
+        m.position.set(x + s * 0.2, 0.022, z + sgn * 0.75)
+        m.rotation.y = PI / 2 - sgn * s * 0.65
+      }
+    }
+  }
   const mid = (DRIVE.x0 + DRIVE.x1) / 2
-  for (let z = PLOT.z0 + 2; z < PLOT.z1 - 2; z += 4.5) bxIn(ctx, p, [mid - 0.06, mid + 0.06], [0.02, 0.024], [z, z + 2.5], c.lane, false)
+  for (const z of [19, 3, -12]) arrow(mid, z, 'in')
+  for (const x of [-10, 6]) arrow(x, (COURT_REAR.z0 + COURT_REAR.z1) / 2, 'across')
+  const exitMid = (EXIT.x0 + EXIT.x1) / 2
+  for (const z of [-11, 2, 12]) arrow(exitMid, z, 'out')
+  // A speed table inside each gate, and the exit's give-way line at the road.
   bxIn(ctx, p, [DRIVE.x0, DRIVE.x1], [0.02, 0.09], [PLOT.z1 - 4.2, PLOT.z1 - 2.6], c.interlock)
-  bx(ctx, p, [DRIVE.x0, DRIVE.x1], [0.02, 0.09], [PLOT.z0 + 2.4, PLOT.z0 + 4.0], c.interlock)
+  const giveWay = (ctx.onPlan ? Math.min(PLOT.z1, FRONTAGE_Z(EXIT.x1)) : PLOT.z1) - 2.2
+  bx(ctx, p, [EXIT.x0, EXIT.x1], [0.02, 0.09], [giveWay - 3.0, giveWay - 1.4], c.interlock)
+  for (let x = EXIT.x0 + 0.3; x < EXIT.x1 - 0.5; x += 0.9) bx(ctx, p, [x, x + 0.5], [0.02, 0.025], [giveWay - 0.15, giveWay + 0.15], c.lane, false)
   // Entry and exit arrows painted in front of the portals.
   for (const [i, pt] of PORTALS.entries()) {
     const z = (pt.z0 + pt.z1) / 2
@@ -135,16 +168,17 @@ function buildCars(ctx: A01Ctx, p: Object3D) {
   const ez = (entry.z0 + entry.z1) / 2
   parkedCar(p, 'crossover', '#e9eaea', BX0 - 3.0, ez, PI / 2 - 0.08, 0.02)
   shade.rect(BX0 - 3.0, 0.03, ez, 1.9, 4.5, PI / 2, 0.75)
-  const dx = (DRIVE.x0 + DRIVE.x1) / 2 - 1.2
+  const dx = (DRIVE.x0 + DRIVE.x1) / 2
   if (within(ctx, dx, 14 + 2.4)) {
-    parkedCar(p, 'sedan', '#2a2c30', dx, 14, 0, 0.02)
+    parkedCar(p, 'sedan', '#2a2c30', dx, 14, PI, 0.02)
     shade.rect(dx, 0.03, 14, 1.9, 4.6, 0, 0.75)
   }
-  parkedCar(p, 'hatch', '#8b1f22', COURT_REAR.x0 + 9, COURT_REAR.z0 + 3.2, PI / 2, 0.02)
-  shade.rect(COURT_REAR.x0 + 9, 0.03, COURT_REAR.z0 + 3.2, 1.8, 4.0, PI / 2, 0.75)
+  const xx = (EXIT.x0 + EXIT.x1) / 2
+  parkedCar(p, 'hatch', '#8b1f22', xx, -4, 0, 0.02)
+  shade.rect(xx, 0.03, -4, 1.8, 4.0, 0, 0.75)
 }
 
-/** Substation and generator yard in the north-west corner. */
+/** Substation and generator yard in the north-west corner, behind the connector against the back wall. */
 function buildYard(ctx: A01Ctx, p: Object3D) {
   const { c, shade } = ctx
   const { x0, x1, z0, z1 } = YARD
@@ -159,12 +193,13 @@ function buildYard(ctx: A01Ctx, p: Object3D) {
   for (let i = -3; i <= 3; i++) bx(ctx, p, [tx + i * 0.26 - 0.02, tx + i * 0.26 + 0.02], [0.3, 1.7], [tz + 0.7, tz + 1.05], c.plant)
   for (const dx of [-0.5, 0, 0.5]) ctx.k.cyl(p, 0.07, 0.09, 0.45, c.white, tx + dx, 2.15, tz, 10)
   shade.rect(tx, GL + 0.005, tz + 0.2, 2.2, 2.0, 0, 0.6)
-  const gx = x1 - 2.4
-  bx(ctx, p, [gx - 1.25, gx + 1.25], [GL, 2.55], [z0 + 0.6, z0 + 5.0], c.greigeMetric)
-  bx(ctx, p, [gx - 1.3, gx + 1.3], [2.55, 2.65], [z0 + 0.55, z0 + 5.05], c.coping)
-  for (let z = z0 + 1.0; z < z0 + 4.8; z += 0.25) bx(ctx, p, [gx - 1.27, gx - 1.25], [1.2, 2.2], [z, z + 0.12], c.plantDark, false)
-  ctx.k.cyl(p, 0.14, 0.14, 2.2, c.aluminium, gx + 0.7, 3.7, z0 + 1.2, 12)
-  shade.rect(gx, GL + 0.005, z0 + 2.8, 2.6, 4.5, 0, 0.6)
+  // The generator lies along the back wall, its louvres facing the connector.
+  const gx = x0 + 3.6
+  bx(ctx, p, [gx - 2.2, gx + 2.2], [GL, 2.55], [z0 + 0.5, z0 + 3.0], c.greigeMetric)
+  bx(ctx, p, [gx - 2.25, gx + 2.25], [2.55, 2.65], [z0 + 0.45, z0 + 3.05], c.coping)
+  for (let x = gx - 1.9; x < gx + 1.9; x += 0.25) bx(ctx, p, [x, x + 0.12], [1.2, 2.2], [z0 + 3.0, z0 + 3.02], c.plantDark, false)
+  ctx.k.cyl(p, 0.14, 0.14, 2.2, c.aluminium, gx + 1.6, 3.7, z0 + 1.2, 12)
+  shade.rect(gx, GL + 0.005, z0 + 1.75, 4.8, 2.9, 0, 0.6)
 }
 
 /** Compound walls on the south, west and north boundaries: rendered base, stone coping, bar railing. */
@@ -185,10 +220,10 @@ function buildWalls(ctx: A01Ctx, p: Object3D) {
   }
   wallZ([PLOT.x0, PLOT.x0 + WALL_T], [PLOT.z0, PLOT.z1])
   wallZ([PLOT.x1 - WALL_T, PLOT.x1], [PLOT.z0, PLOT.z1])
-  // The back wall, open where the drive runs through to the cross road.
-  wallX(DRIVE.x1 + 0.6, PLOT.x1 - WALL_T, PLOT.z0)
-  // Gate piers in granite at both ends of the drive.
-  for (const [x, z] of [[DRIVE.x1 + 0.3, PLOT.z1 - 0.4], [DRIVE.x1 + 0.3, PLOT.z0 + 0.35]] as const)
+  // The back wall, unbroken the full width of the plot: nothing opens onto the cross road.
+  wallX(PLOT.x0 + WALL_T, PLOT.x1 - WALL_T, PLOT.z0)
+  // Gate piers in granite at the way in and the way out.
+  for (const [x, z] of [[DRIVE.x1 + 0.3, PLOT.z1 - 0.4], [EXIT.x0 - 0.45, PLOT.z1 - 0.4]] as const)
     if (within(ctx, x, z)) {
       bx(ctx, p, [x - 0.3, x + 0.3], [0, 1.6], [z - 0.3, z + 0.3], c.granite)
       shade.rect(x, 0.03, z, 0.9, 0.9, 0, 0.55)
@@ -244,7 +279,7 @@ function buildPlanting(ctx: A01Ctx) {
   for (const [x, z, sp, seed, s] of [
     [8.2, 16.4, 'neem', 1801, 0.9],
     [15.4, 19.2, 'neem', 1802, 0.85],
-    [21.0, 14.8, 'neem', 1803, 0.8],
+    [18.4, 15.6, 'neem', 1803, 0.8],
     [(ls.x0 + ls.x1) / 2, 19.0, 'rain', 1804, 0.7],
   ] as const)
     if (within(ctx, x, z, 2)) tree(plant, SPECIES[sp], x, GL - 0.05, z, seed, s)
@@ -252,14 +287,15 @@ function buildPlanting(ctx: A01Ctx) {
   let seed = 2700
   for (let z = ls.z0 + 0.6; z < ls.z1 - 0.4; z += 0.7) if (within(ctx, ls.x1 - 0.5, z)) shrub(plant, ls.x1 - 0.5, GL - 0.05, z, 0.38, 0.55, seed++, 'hedge')
   for (let z = ln.z0 + 0.6; z < ln.z1 - 0.4; z += 0.7) if (within(ctx, ln.x0 + 0.5, z)) shrub(plant, ln.x0 + 0.5, GL - 0.05, z, 0.38, 0.55, seed++, 'hedge')
-  // A screen of mast Ashoka along the north fire walk, and rain trees behind the block.
-  for (let z = -21; z < BZ1 + 3; z += 4.2) if (within(ctx, PLOT.x1 - 1.2, z, 1)) tree(plant, SPECIES.ashoka, PLOT.x1 - 1.2, GL, z, 1720 + Math.round(z), 0.85)
-  tree(plant, SPECIES.rain, YARD.x0 - 2.2, GL - 0.04, COURT_REAR.z0 + 3.4, 1740, 0.75)
-  tree(plant, SPECIES.neem, YARD.x0 + 6, GL - 0.04, YARD.z1 + 2.2, 1741, 0.7)
+  // Rain trees and a neem on the lawn along the back wall.
+  const backZ = (PLOT.z0 + COURT_REAR.z0) / 2
+  tree(plant, SPECIES.rain, -17, GL - 0.04, backZ, 1740, 0.7)
+  tree(plant, SPECIES.neem, -5, GL - 0.04, backZ, 1741, 0.7)
+  tree(plant, SPECIES.rain, 6, GL - 0.04, backZ, 1742, 0.65)
   // Grass on the lawns, in the property's own view (the master plan is seen from too far for it).
   if (!ctx.onPlan) {
     for (const l of LAWNS) lawn(plant, l.x0 + 0.1, l.x1 - 0.1, l.z0 + 0.1, l.z1 - 0.1, GL - 0.05, 1850 + Math.round(l.x0), 160)
-    lawn(plant, COURT_REAR.x1 + 0.2, YARD.x0 - 0.2, COURT_REAR.z0 + 0.2, COURT_REAR.z1 - 0.2, GL - 0.04, 1870, 160)
+    lawn(plant, DRIVE.x0 + 0.2, YARD.x0 - 0.2, PLOT.z0 + WALL_T + 0.2, COURT_REAR.z0 - 0.2, GL - 0.04, 1870, 160)
   }
   for (const f of plant.footprints) ctx.shade.pool(f.x, f.y + 0.006, f.z, f.r, f.r, f.strength)
 }
@@ -267,14 +303,14 @@ function buildPlanting(ctx: A01Ctx) {
 /** Pole lights on the drive, bollards along the walk, and the forecourt's own glow. */
 function buildLighting(ctx: A01Ctx, p: Object3D) {
   const { c, k, shade } = ctx
-  const pole = (x: number, z: number, h: number) => {
+  const pole = (x: number, z: number, h: number, dir: 1 | -1 = 1) => {
     if (!within(ctx, x, z)) return
     k.cyl(p, 0.055, 0.1, h, c.galvanised, x, h / 2 + 0.03, z, 8)
     k.box(p, 0.36, 0.03, 0.36, c.galvanised, x, 0.045, z)
-    const arm = k.cyl(p, 0.035, 0.04, 1.2, c.galvanised, x + 0.55, h - 0.05, z, 8)
+    const arm = k.cyl(p, 0.035, 0.04, 1.2, c.galvanised, x + dir * 0.55, h - 0.05, z, 8)
     arm.rotation.z = PI / 2
-    k.box(p, 0.62, 0.07, 0.3, c.luminaire, x + 1.15, h - 0.08, z)
-    k.box(p, 0.5, 0.01, 0.24, c.lamp, x + 1.15, h - 0.12, z, false)
+    k.box(p, 0.62, 0.07, 0.3, c.luminaire, x + dir * 1.15, h - 0.08, z)
+    k.box(p, 0.5, 0.01, 0.24, c.lamp, x + dir * 1.15, h - 0.12, z, false)
     shade.pool(x, 0.03, z, 0.35, 0.35, 0.5)
   }
   for (const z of [-19, -5, 9, 20]) pole(DRIVE.x0 + 0.4, z, 7)
@@ -288,7 +324,7 @@ function buildLighting(ctx: A01Ctx, p: Object3D) {
     bollard(WALK.x0 + 0.25, z)
     bollard(WALK.x1 - 0.25, z)
   }
-  for (let z = -10; z < 4; z += 4.5) bollard(PLOT.x1 - 2.4, z)
+  for (const z of [-17, -2, 12]) pole(PLOT.x1 - 0.5, z, 7, -1)
   for (const [x, z] of [polar(-40, DRUM.r + 2.5), polar(40, DRUM.r + 2.5), [11, BZ1 + 4]] as Point2[]) {
     const l = ctx.lighting.light(new PointLight('#ffd9ad', 7, 14, 2), 0)
     l.position.set(x, 1.4, z)
@@ -318,7 +354,7 @@ function buildPylon(ctx: A01Ctx, p: Object3D) {
 /* ---------- surroundings ---------- */
 
 const CROSS = 33 * FT
-/** The plot and what is shown round it: the HMDA road in front, the cross road behind, Prime Mall's plot to the south. */
+/** The plot and what is shown round it: the HMDA road in front, the cross road behind, Kallakal Mall's plot to the south. */
 export const SITE = { minX: PLOT.x0 - 10, maxX: PLOT.x1 + 8, minZ: PLOT.z0 - CROSS - 2, maxZ: PLOT.z1 + 26 }
 
 /**
@@ -345,7 +381,7 @@ export function buildContext(ctx: A01Ctx, p: Object3D) {
   ground(ctx, p, rect(SITE.minX, SITE.maxX, PLOT.z0 - CROSS, PLOT.z0 - 1.5), 0.02, c.asphalt)
   ground(ctx, p, rect(SITE.minX, SITE.maxX, PLOT.z0 - 1.5, PLOT.z0), 0.15, c.interlock)
   ground(ctx, p, rect(SITE.minX, SITE.maxX, SITE.minZ, PLOT.z0 - CROSS), 0.02, c.fallow)
-  // Prime Mall's plot to the south and open ground to the north.
+  // Kallakal Mall's plot to the south and open ground to the north.
   ground(ctx, p, rect(SITE.minX, PLOT.x0, PLOT.z0, zf), 0.02, c.fallow)
   ground(ctx, p, rect(PLOT.x1, SITE.maxX, PLOT.z0, zf), 0.02, c.fallow)
 }

@@ -16,8 +16,9 @@ export { SITE }
  * G+2 ring of curved glass pavilions with white slab bands round a fountain plaza (the lobby and
  * restaurant below, guest rooms above), its white sweeping wall and black mesh capsules grown
  * over with creepers, fitted to the front of the 124′3″ × 340′7″ east-facing plot, with the
- * guests' car park, utility yard and service gate filling the depth behind. See plan.ts for how
- * the reference was fitted to the plot.
+ * guests' car park and utility yard filling the depth behind, walled off from the cross road;
+ * cars come in by the south side and leave by the north. See plan.ts for how the reference was
+ * fitted to the plot.
  */
 
 type Zone = [x0: number, x1: number, z0: number, z1: number]

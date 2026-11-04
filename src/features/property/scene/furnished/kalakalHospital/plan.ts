@@ -15,14 +15,17 @@ import type { Point2 } from '../../../../../api/types'
  *   and the outpatient entrance at its foot; a lower, fully glazed link, set back; the main block,
  *   a curtain wall held in a deep white frame whose top band carries the blue cross and the name,
  *   with a porte-cochère over the drop-off in front of the main entrance; and the end of the north
- *   wing, white bands and ribbon glazing, with the emergency entrance and the ambulance bay under
- *   its own canopy. The north wing's long side, the same white bands, runs back along the avenue,
- *   as the reference's right-hand wing recedes. Behind the fronts the wards are one deep block
+ *   wing, white bands and ribbon glazing. The north wing's long side, the same white bands, runs
+ *   back along the exit road, as the reference's right-hand wing recedes, with the emergency
+ *   entrance halfway along it: a drive-through ambulance bay under a canopy that spans the road. Behind the fronts the wards are one deep block
  *   round a light court that opens from the second floor up, over a podium garden.
  *
- *   body:     28.6 m along the road × 41 m deep; south setback 7.25 m (the drive), north 2.25 m
- *             (onto the avenue), rear 18.9 m (basement ramp, parking and the utility yard), front
- *             to the road 30 m at the main block (drop-off lane and the garden)
+ *   body:     25.7 m along the road × 41 m deep; south setback 7.25 m (the entry drive), north
+ *             5.15 m (the exit road), rear 18.9 m (basement ramp, parking and the utility yard),
+ *             front to the road 30 m at the main block (drop-off lane and the garden)
+ *   traffic:  one way round. In from the HMDA road by the drive down the south side, either along
+ *             the drop-off lane in front or on to the back; out by the exit road down the north side
+ *             to the road again. The back is walled off from the cross road: no gate, no way through.
  *   levels:   ground +0.15 (4.8 m: lobby, outpatients, emergency), three floors at 4.2 m from +4.95,
  *             roof +17.55, parapet +18.75, the main block's frame to +20.25
  */
@@ -53,7 +56,7 @@ export const PARAPET = ROOF + 1.2
 export const STOREYS: [number, number][] = [[GL, L1], ...UPPER.map((y): [number, number] => [y, y + FLOOR])]
 
 /** The ward block behind the fronts: its sides and back. */
-export const BODY = { x0: -11.8, x1: 16.8, z0: -26 }
+export const BODY = { x0: -11.8, x1: 13.9, z0: -26 }
 /** Where the fronts meet it: the link stands in front of this line, the body rising behind it. */
 export const BACK_Z = 4
 /** The south tower, punched windows, the outpatient entrance at its foot. */
@@ -64,34 +67,39 @@ export const LINK = { x0: TOWER.x1, x1: 0.6, z1: 9, roof: UPPER[2], top: UPPER[2
  * The main block: its frame's face, the curtain wall set back inside it, the lobby's glass set back
  * further under the canopy, the frame's piers, and the band across its top that carries the name.
  */
-export const MAIN = { x0: LINK.x1, x1: 13.0, z1: 15, glass: 14.3, lobby: 13.0, pier: 1.4, band: [ROOF - 0.6, PARAPET + 1.5] as [number, number] }
-/** The end of the north wing, ribbon glazing, the emergency entrance at its foot. */
+export const MAIN = { x0: LINK.x1, x1: 11.6, z1: 15, glass: 14.3, lobby: 13.0, pier: 1.4, band: [ROOF - 0.6, PARAPET + 1.5] as [number, number] }
+/** The end of the north wing, ribbon glazing, the red cross over its foot. */
 export const WING = { x0: MAIN.x1, x1: BODY.x1, z1: 11 }
 /** The light court, open from the second floor (its podium garden) to the sky. */
 export const COURT = { x0: -4.5, x1: 7.5, z0: -18, z1: -6, floor: UPPER[1] }
 
-/** The porte-cochère over the drop-off, and the emergency entrance's lower canopy beside it. */
-export const CANOPY = { x0: -1.2, x1: 12.8, z0: MAIN.lobby, z1: 26, y0: 4.25, y1: 4.9, columns: [0.0, 4.2, 9.4, 12.5], colZ: 25.3 }
-export const ER = { x0: 12.8, x1: 17.8, z0: WING.z1, z1: 18.4, y0: 3.55, y1: 4.15 }
-
-/** The drive along the south boundary, road to cross road; the drop-off lane off it; the way out. */
+/** The entry drive along the south boundary, one way in from the road; the drop-off lane off it. */
 export const DRIVE = { x0: PLOT.x0 + WALL_T, x1: -13.2 }
 export const LANE = { z0: 18, z1: 24.5 }
-export const EXIT = { x0: 12.4, x1: PLOT.x1 - WALL_T - 0.3 }
-/** The ambulance bay, under the emergency canopy, backed into from the lane. */
-export const BAY = { x0: 13.6, x1: 17.0, z0: WING.z1, z1: LANE.z0 }
-/** The garden between the lane and the road, and the entrance walk across it on the canopy's axis. */
+/** The exit road along the north side, one way out to the road, and the verge between it and the wall. */
+export const EXIT = { x0: BODY.x1 + 0.3, x1: PLOT.x1 - WALL_T - 0.4 }
+
+/** The porte-cochère over the drop-off. */
+export const CANOPY = { x0: -1.2, x1: 11.4, z0: MAIN.lobby, z1: 26, y0: 4.25, y1: 4.9, columns: [0.0, 4.2, 9.6], colZ: 25.3 }
+/**
+ * The emergency entrance, in the wing's north side: a canopy over the exit road from the building
+ * to the verge, the ambulance bay under it (ambulances drive through, nose to the road), the doors
+ * at `door` along the side.
+ */
+export const ER = { x0: BODY.x1, x1: PLOT.x1 - WALL_T - 0.02, z0: -4, z1: 6, y0: 4.1, y1: 4.7, door: 1 }
+/** The garden between the lane and the road, and the entrance walk across it on the main doors' axis. */
 export const GARDEN = { x0: DRIVE.x1, x1: EXIT.x0, z0: LANE.z1 }
-export const WALK = { x0: 5.6, x1: 8.0 }
+export const WALK = { x0: 4.9, x1: 7.3 }
 
 /**
  * Behind the body: the covered ramp down to the basements, from the drive northwards; a service
- * court beyond its mouth; a row of parking bays along the back wall on an aisle off the drive;
- * and the utility yard in the north-west corner (oxygen, transformer, generators).
+ * court beyond its mouth; a row of parking bays along the back wall; the utility yard beside them
+ * (oxygen, transformer, generator); and the aisle between them and the ramp, which carries the
+ * traffic round from the entry drive to the exit road.
  */
 export const RAMP = { x0: DRIVE.x1, x1: 4.8, z0: -34, z1: -28, h: 2.9 }
-export const PARK = { x0: -12.9, bays: 7, bay: 2.5, z0: PLOT.z0 + WALL_T, z1: PLOT.z0 + WALL_T + 5, aisle: RAMP.z0 - 0.3 }
-export const YARD = { x0: 6.2, x1: PLOT.x1 - WALL_T, z0: PLOT.z0 + WALL_T, z1: -35.5 }
+export const PARK = { x0: -12.9, bays: 7, bay: 2.5, z0: PLOT.z0 + WALL_T, z1: PLOT.z0 + WALL_T + 5 }
+export const YARD = { x0: 4.8, x1: EXIT.x0 - 0.3, z0: PLOT.z0 + WALL_T, z1: PARK.z1 }
 
 /** The body's outline at its full height (the link, lower, is left out), and grown by `grow`. */
 export function outline(grow = 0): Point2[] {

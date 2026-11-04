@@ -7,13 +7,15 @@ import { metricBox, rect, slab } from '../kalakalMall/solids'
 import { signLine } from '../kalakalHotel/building'
 import { ambulance } from './ambulance'
 import { NAME, NAVY, type HospitalCtx } from './building'
-import { BACK_Z, BAY, BODY, clipHalf, DRIVE, EXIT, FRONTAGE, FRONTAGE_Z, FT, GARDEN, GL, LANE, MAIN, PARK, PLOT, RAMP, TOWER, WALK, WALL_T, WING, YARD } from './plan'
+import { BACK_Z, BODY, clipHalf, DRIVE, ER, EXIT, FRONTAGE, FRONTAGE_Z, FT, GARDEN, GL, LANE, MAIN, PARK, PLOT, RAMP, TOWER, WALK, WALL_T, YARD } from './plan'
 
 /*
- * The grounds. Cars come in off the HMDA road by the drive along the south boundary, turn north
- * along the drop-off lane in front of the building, under the porte-cochère, past the ambulance
- * bay and out to the road again at the north end; the drive carries on to the basement ramp,
- * the parking and the service gate on the cross road behind. Between the lane and the road is
+ * The grounds, one way round. Cars come in off the HMDA road by the entry drive along the south
+ * boundary: some turn north along the drop-off lane in front of the building, under the
+ * porte-cochère, to the exit road; the rest carry on down the drive to the basement ramp, the
+ * parking and the service court behind, and round by the aisle to the exit road, which runs back
+ * up the north side past the emergency entrance's drive-through bay and out to the road. The back
+ * is walled off from the cross road with no gate. Between the lane and the road is
  * the garden: lawns with neem and rain trees, a seating court, and the entrance walk straight to
  * the main doors across a zebra. Behind the building, the covered ramp down to the basements,
  * a row of bays on an aisle off the drive, the service court and the fenced utility yard with
@@ -81,21 +83,21 @@ const LAWNS: [number, number, number, number][] = [
 
 export function buildSite(ctx: HospitalCtx, p: Object3D) {
   const { c } = ctx
-  // Asphalt: the drive, the lane and the way out, the ambulance bay.
+  // Asphalt: the entry drive, the drop-off lane, the exit road.
   ground(ctx, p, rect(DRIVE.x0, DRIVE.x1, PLOT.z0 + WALL_T, PLOT.z1), 0.02, c.asphalt)
-  ground(ctx, p, rect(DRIVE.x1, EXIT.x1, LANE.z0, LANE.z1), 0.02, c.asphalt)
-  ground(ctx, p, rect(EXIT.x0, EXIT.x1, LANE.z1, PLOT.z1), 0.02, c.asphalt)
-  ground(ctx, p, rect(MAIN.x1, EXIT.x1, WING.z1, LANE.z0), 0.02, c.asphalt)
-  // At the back: the bays and their aisle, the run past the yard, the ramp's floor and the service court.
-  ground(ctx, p, rect(DRIVE.x1, YARD.x0, PARK.z0, YARD.z1), 0.02, c.asphalt)
-  ground(ctx, p, rect(DRIVE.x1, BODY.x1, YARD.z1, RAMP.z0), 0.02, c.asphalt)
+  ground(ctx, p, rect(DRIVE.x1, EXIT.x0, LANE.z0, LANE.z1), 0.02, c.asphalt)
+  ground(ctx, p, rect(EXIT.x0, EXIT.x1, PLOT.z0 + WALL_T, PLOT.z1), 0.02, c.asphalt)
+  // At the back: the bays, the aisle round to the exit road, the ramp's floor and the service court.
+  ground(ctx, p, rect(DRIVE.x1, YARD.x0, PARK.z0, PARK.z1), 0.02, c.asphalt)
+  ground(ctx, p, rect(DRIVE.x1, EXIT.x0, PARK.z1, RAMP.z0), 0.02, c.asphalt)
   ground(ctx, p, rect(DRIVE.x1, RAMP.x1, RAMP.z0, RAMP.z1), 0.02, c.asphalt)
-  ground(ctx, p, rect(RAMP.x1, BODY.x1, RAMP.z0, BODY.z0), 0.02, c.asphalt)
-  // Paving: the terrace before the fronts, the walks round the building, the north fire path.
-  ground(ctx, p, rect(DRIVE.x1, MAIN.x1, BACK_Z, LANE.z0), GL, c.paving)
+  ground(ctx, p, rect(RAMP.x1, EXIT.x0, RAMP.z0, BODY.z0), 0.02, c.asphalt)
+  // Paving: the terrace before the fronts, the walks round the building, the verge by the north wall.
+  ground(ctx, p, rect(DRIVE.x1, EXIT.x0, BACK_Z, LANE.z0), GL, c.paving)
   ground(ctx, p, rect(DRIVE.x1, BODY.x0, RAMP.z1, BACK_Z), GL, c.paving)
   ground(ctx, p, rect(DRIVE.x1, RAMP.x1, RAMP.z1, BODY.z0), GL, c.paving)
-  ground(ctx, p, rect(BODY.x1, PLOT.x1 - WALL_T, YARD.z1, WING.z1), GL, c.paving)
+  ground(ctx, p, rect(BODY.x1, EXIT.x0, BODY.z0, BACK_Z), GL, c.paving)
+  ground(ctx, p, rect(EXIT.x1, PLOT.x1 - WALL_T, PLOT.z0 + WALL_T, PLOT.z1), GL, c.paving)
   // The garden.
   ground(ctx, p, rect(GARDEN.x0, GARDEN.x1, LANE.z1, STRIP), GL, c.paving)
   ground(ctx, p, rect(WALK.x0, WALK.x1, STRIP, FRONT_WALK), GL, c.paving)
@@ -121,17 +123,19 @@ function buildEdges(ctx: HospitalCtx, p: Object3D) {
   const { c, shade } = ctx
   // The lane's kerbs, dropped flush where the walk crosses it on the zebra.
   kerbX(ctx, p, LANE.z0, [DRIVE.x1, WALK.x0])
-  kerbX(ctx, p, LANE.z0, [WALK.x1, MAIN.x1])
+  kerbX(ctx, p, LANE.z0, [WALK.x1, EXIT.x0])
   kerbX(ctx, p, LANE.z1, [GARDEN.x0, WALK.x0])
   kerbX(ctx, p, LANE.z1, [WALK.x1, GARDEN.x1])
-  kerbZ(ctx, p, MAIN.x1, [MAIN.z1, LANE.z0])
-  kerbX(ctx, p, WING.z1, [BODY.x1, EXIT.x1])
-  // Along the drive, the exit and the service court.
+  // Along the drive, the exit road (flush at the emergency doors) and the service court.
   kerbZ(ctx, p, DRIVE.x1, [LANE.z1, PLOT.z1])
   kerbZ(ctx, p, DRIVE.x1, [RAMP.z1, LANE.z0])
   kerbZ(ctx, p, EXIT.x0, [LANE.z1, PLOT.z1])
+  kerbZ(ctx, p, EXIT.x0, [BODY.z0, ER.door - 1.5])
+  kerbZ(ctx, p, EXIT.x0, [ER.door + 1.5, LANE.z0])
+  bx(ctx, p, [EXIT.x0 - 0.075, EXIT.x0 + 0.075], [0, 0.04], [ER.door - 1.5, ER.door + 1.5], c.kerb(3), false, true)
+  bx(ctx, p, [EXIT.x0 - 0.6, EXIT.x0 - 0.075], [GL, GL + 0.006], [ER.door - 1.5, ER.door + 1.5], c.tactile, false)
+  kerbZ(ctx, p, EXIT.x1, [PLOT.z0 + WALL_T, PLOT.z1])
   kerbZ(ctx, p, RAMP.x1, [RAMP.z1, BODY.z0])
-  kerbZ(ctx, p, BODY.x1, [YARD.z1, BODY.z0])
   // Granite edging round the lawns, a hand's breadth above the grass.
   for (const [x0, x1, z0, z1] of LAWNS) {
     for (const x of [x0, x1]) bxIn(ctx, p, [x - 0.05, x + 0.05], [GL - 0.12, GL + 0.02], [z0, z1], c.granite)
@@ -142,7 +146,7 @@ function buildEdges(ctx: HospitalCtx, p: Object3D) {
   for (let z = LANE.z0 + 0.5; z < LANE.z1 - 0.4; z += 1.0) bx(ctx, p, [WALK.x0 + 0.1, WALK.x1 - 0.1], [0.02, 0.025], [z, z + 0.5], c.lane, false)
   for (const [z0, z1] of [[LANE.z0 - 0.6, LANE.z0], [LANE.z1, LANE.z1 + 0.6]] as R[]) bx(ctx, p, [WALK.x0, WALK.x1], [GL, GL + 0.006], [z0, z1], c.tactile, false)
   for (const z of [LANE.z0, LANE.z1]) bx(ctx, p, [WALK.x0, WALK.x1], [0, 0.04], [z - 0.075, z + 0.075], c.kerb(WALK.x1 - WALK.x0), false, true)
-  // The lane's arrows (one way, north), the way out's, and its give-way line at the road.
+  // The lane's arrows (one way, north), the exit road's (towards the road) and its give-way line.
   const arrow = (x: number, z: number, along: 'x' | 'z') => {
     const shaft: [R, R] = along === 'x' ? [[x - 1.6, x + 0.4], [z - 0.08, z + 0.08]] : [[x - 0.08, x + 0.08], [z - 1.6, z + 0.4]]
     bx(ctx, p, shaft[0], [0.02, 0.024], shaft[1], c.lane, false)
@@ -157,23 +161,32 @@ function buildEdges(ctx: HospitalCtx, p: Object3D) {
       }
     }
   }
+  // An arrow along the drive towards the back (−z).
+  const arrow2 = (x: number, z: number) => {
+    bx(ctx, p, [x - 0.08, x + 0.08], [0.02, 0.024], [z - 0.4, z + 1.6], c.lane, false)
+    for (const s of [-1, 1]) {
+      const m = bx(ctx, p, [-0.38, 0.38], [0.02, 0.024], [-0.06, 0.06], c.lane, false)
+      m.position.set(x + s * 0.2, 0.022, z - 0.15)
+      m.rotation.y = PI / 2 + s * 0.65
+    }
+  }
   arrow(-9, (LANE.z0 + LANE.z1) / 2, 'x')
   arrow(10.5, (LANE.z0 + LANE.z1) / 2 + 0.8, 'x')
-  if (within(ctx, (EXIT.x0 + EXIT.x1) / 2, 31)) arrow((EXIT.x0 + EXIT.x1) / 2, 30, 'z')
+  const ex = (EXIT.x0 + EXIT.x1) / 2
+  for (const z of [-30, -14, 12, 30]) if (within(ctx, ex, z + 1)) arrow(ex, z, 'z')
   bxIn(ctx, p, [EXIT.x0 + 0.2, EXIT.x1 - 0.2], [0.02, 0.025], [PLOT.z1 - 3.0, PLOT.z1 - 2.7], c.lane, false)
-  // The ambulance bay: a yellow box hatched across, KEEP CLEAR in spirit.
-  const bay = BAY
+  // The ambulance bay under the emergency canopy: a yellow box on the exit road.
   for (const [xs, zs] of [
-    [[bay.x0, bay.x0 + 0.12], [bay.z0 + 0.3, bay.z1]],
-    [[bay.x1 - 0.12, bay.x1], [bay.z0 + 0.3, bay.z1]],
-    [[bay.x0, bay.x1], [bay.z0 + 0.3, bay.z0 + 0.42]],
+    [[EXIT.x0 + 0.2, EXIT.x0 + 0.32], [ER.z0, ER.z1]],
+    [[EXIT.x1 - 0.32, EXIT.x1 - 0.2], [ER.z0, ER.z1]],
+    [[EXIT.x0 + 0.2, EXIT.x1 - 0.2], [ER.z0, ER.z0 + 0.12]],
+    [[EXIT.x0 + 0.2, EXIT.x1 - 0.2], [ER.z1 - 0.12, ER.z1]],
   ] as [R, R][])
     bx(ctx, p, xs, [0.02, 0.025], zs, c.hazard, false)
-  // The drive's centre line, a speed table at each gate.
+  // The entry drive: one way in, its arrows pointing to the back; a speed table at the gate.
   const mid = (DRIVE.x0 + DRIVE.x1) / 2
-  for (let z = PLOT.z0 + 2; z < PLOT.z1 - 2; z += 4.5) bxIn(ctx, p, [mid - 0.06, mid + 0.06], [0.02, 0.024], [z, z + 2.5], c.lane, false)
+  for (const z of [36, 8, -20]) if (within(ctx, mid, z + 0.5)) arrow2(mid, z)
   bxIn(ctx, p, [DRIVE.x0, DRIVE.x1], [0.02, 0.09], [PLOT.z1 - 4.2, PLOT.z1 - 2.6], c.interlock)
-  bx(ctx, p, [DRIVE.x0, DRIVE.x1], [0.02, 0.09], [PLOT.z0 + 2.4, PLOT.z0 + 4.0], c.interlock)
   // Bay lines and wheel stops along the back wall.
   for (let i = 0; i <= PARK.bays; i++) {
     const x = PARK.x0 + i * PARK.bay
@@ -187,8 +200,8 @@ function buildEdges(ctx: HospitalCtx, p: Object3D) {
 
 function buildVehicles(ctx: HospitalCtx, p: Object3D) {
   const { shade } = ctx
-  // The ambulance backed into its bay; a car setting down at the main doors; one coming in.
-  ambulance(ctx, p, (BAY.x0 + BAY.x1) / 2, 0.02, BAY.z0 + 3.9, 0)
+  // The ambulance at the emergency doors, nose to the road; a car setting down at the main doors; one coming in.
+  ambulance(ctx, p, (EXIT.x0 + EXIT.x1) / 2, 0.02, ER.door + 0.6, 0)
   const dropX = 3.2
   const dropZ = LANE.z0 + 1.25
   parkedCar(p, 'sedan', '#e9eaea', dropX, dropZ, PI / 2, 0.02)
@@ -247,50 +260,52 @@ function buildRamp(ctx: HospitalCtx, p: Object3D) {
 
 /* ---------- the utility yard ---------- */
 
-/** Liquid oxygen, the transformer and the generator, behind a chain-link fence in the north-west corner. */
+/**
+ * Liquid oxygen, the transformer and the generator, behind a chain-link fence between the parking
+ * bays and the exit road, its gate onto the aisle.
+ */
 function buildYard(ctx: HospitalCtx, p: Object3D) {
   const { c, k, shade } = ctx
   const { x0, x1, z0, z1 } = YARD
   bx(ctx, p, [x0, x1], [0, GL], [z0, z1], c.apron)
   const fence = (xs: R, zs: R) => bx(ctx, p, xs, [GL, 2.4], zs, c.fence(Math.max(xs[1] - xs[0], zs[1] - zs[0]), 2.25), false, true)
+  const gate: R = [x0 + 3.2, x0 + 6.2]
   fence([x0, x0 + 0.02], [z0, z1])
-  fence([x0, x1 - 4.2], [z1 - 0.02, z1])
-  for (const [x, z] of [[x0, z0], [x0, z1], [x0, (z0 + z1) / 2], [x1 - 4.2, z1], [x1 - 0.1, z1]] as const) bx(ctx, p, [x - 0.04, x + 0.04], [GL, 2.45], [z - 0.04, z + 0.04], c.mullion)
-  // The gate, swung open against the fence.
-  const gate = bx(ctx, p, [0, 3.9], [GL + 0.05, 2.3], [-0.01, 0.01], c.fence(3.9, 2.2), false, true)
-  gate.position.set(x1 - 4.2 + 0.1, (GL + 2.35) / 2, z1 - 1.95)
-  gate.rotation.y = PI / 2
+  fence([x1 - 0.02, x1], [z0, z1])
+  fence([x0, gate[0]], [z1 - 0.02, z1])
+  fence([gate[1], x1], [z1 - 0.02, z1])
+  for (const [x, z] of [[x0, z1], [x1, z1], [gate[0], z1], [gate[1], z1], [x0, (z0 + z1) / 2], [x1, (z0 + z1) / 2]] as const) bx(ctx, p, [x - 0.04, x + 0.04], [GL, 2.45], [z - 0.04, z + 0.04], c.mullion)
 
   // The liquid oxygen tank on its legs, with the vaporiser banks beside it.
-  const [ox, oz] = [x0 + 2.6, z0 + 3.0]
+  const [ox, oz] = [x0 + 1.4, (z0 + z1) / 2 - 0.3]
   for (const [dx, dz] of [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]]) bx(ctx, p, [ox + dx - 0.08, ox + dx + 0.08], [GL, 1.0], [oz + dz - 0.08, oz + dz + 0.08], c.galvanised)
   k.cyl(p, 1.15, 1.15, 6.2, c.tank, ox, 1.0 + 3.1, oz, 40)
   k.blob(p, 1.15, c.tank, ox, 7.2, oz, 0.35)
   k.blob(p, 1.15, c.tank, ox, 1.0, oz, 0.35)
   for (let i = 0; i < 6; i++) {
-    const vx = ox + 2.0 + (i % 3) * 0.55
-    const vz = oz - 0.6 + Math.floor(i / 3) * 1.2
-    k.box(p, 0.42, 3.4, 0.06, c.galvanised, vx, GL + 1.85, vz)
-    k.box(p, 0.06, 3.4, 0.42, c.galvanised, vx, GL + 1.85, vz)
+    const vx = ox + 1.75 + (i % 3) * 0.5
+    const vz = oz - 0.9 + Math.floor(i / 3) * 1.4
+    k.box(p, 0.4, 3.4, 0.06, c.galvanised, vx, GL + 1.85, vz)
+    k.box(p, 0.06, 3.4, 0.4, c.galvanised, vx, GL + 1.85, vz)
   }
-  bx(ctx, p, [ox + 0.3, ox + 3.6], [3.9, 4.0], [oz - 0.05, oz + 0.05], c.galvanised)
+  bx(ctx, p, [ox + 0.3, ox + 3.0], [3.9, 4.0], [oz - 0.05, oz + 0.05], c.galvanised)
   shade.pool(ox, GL + 0.005, oz, 1.8, 1.8, 0.6)
-  shade.rect(ox + 2.55, GL + 0.005, oz, 1.8, 2.2, 0, 0.5)
+  shade.rect(ox + 2.25, GL + 0.005, oz, 1.6, 2.6, 0, 0.5)
 
   // The transformer on its plinth, and the generator in its acoustic enclosure with the stack.
-  const tx = x1 - 2.4
-  const tz = z0 + 2.2
+  const tx = x0 + 5.5
+  const tz = z0 + 1.4
   bx(ctx, p, [tx - 1.0, tx + 1.0], [GL, 1.95], [tz - 0.7, tz + 0.7], c.plant)
   for (let i = -3; i <= 3; i++) bx(ctx, p, [tx + i * 0.26 - 0.02, tx + i * 0.26 + 0.02], [0.3, 1.7], [tz + 0.7, tz + 1.05], c.plant)
   for (const dx of [-0.5, 0, 0.5]) k.cyl(p, 0.07, 0.09, 0.45, c.white, tx + dx, 2.15, tz, 10)
   shade.rect(tx, GL + 0.005, tz + 0.2, 2.2, 2.0, 0, 0.6)
-  const gx = x1 - 2.1
-  const gz = z1 - 3.4
-  bx(ctx, p, [gx - 1.25, gx + 1.25], [GL, 2.55], [gz - 2.3, gz + 2.3], c.greigeMetric)
-  bx(ctx, p, [gx - 1.3, gx + 1.3], [2.55, 2.65], [gz - 2.35, gz + 2.35], c.coping)
-  for (let z = gz - 1.9; z < gz + 2; z += 0.25) bx(ctx, p, [gx - 1.27, gx - 1.25], [1.2, 2.2], [z, z + 0.12], c.plantDark, false)
-  k.cyl(p, 0.14, 0.14, 2.6, c.galvanised, gx + 0.7, 3.9, gz - 1.6, 12)
-  shade.rect(gx, GL + 0.005, gz, 2.6, 4.8, 0, 0.6)
+  const gx = x1 - 1.4
+  const gz = (z0 + z1) / 2
+  bx(ctx, p, [gx - 1.1, gx + 1.1], [GL, 2.55], [gz - 2.2, gz + 2.2], c.greigeMetric)
+  bx(ctx, p, [gx - 1.15, gx + 1.15], [2.55, 2.65], [gz - 2.25, gz + 2.25], c.coping)
+  for (let z = gz - 1.8; z < gz + 1.9; z += 0.25) bx(ctx, p, [gx - 1.12, gx - 1.1], [1.2, 2.2], [z, z + 0.12], c.plantDark, false)
+  k.cyl(p, 0.14, 0.14, 2.6, c.galvanised, gx + 0.6, 3.9, gz - 1.5, 12)
+  shade.rect(gx, GL + 0.005, gz, 2.4, 4.6, 0, 0.6)
 }
 
 /* ---------- boundaries ---------- */
@@ -307,15 +322,15 @@ function buildWalls(ctx: HospitalCtx, p: Object3D) {
   }
   wallZ([PLOT.x0, PLOT.x0 + WALL_T], [PLOT.z0, PLOT.z1])
   wallZ([PLOT.x1 - WALL_T, PLOT.x1], [PLOT.z0, PLOT.z1])
-  // The back wall, open where the drive runs through to the cross road.
-  const [x0, x1, z] = [DRIVE.x1 + 0.6, PLOT.x1 - WALL_T, PLOT.z0]
+  // The back wall, unbroken across the whole plot: nothing comes in or goes out from the cross road.
+  const [x0, x1, z] = [PLOT.x0 + WALL_T, PLOT.x1 - WALL_T, PLOT.z0]
   bx(ctx, p, [x0, x1], [0, 0.9], [z, z + WALL_T], white)
   bx(ctx, p, [x0, x1], [0.9, 0.96], [z - 0.03, z + WALL_T + 0.03], c.coping)
   bx(ctx, p, [x0, x1], [0.96, 1.8], [z + WALL_T / 2 - 0.01, z + WALL_T / 2 + 0.01], c.railing(x1 - x0), false, true)
   shade.edge([[x0, z + WALL_T], [x1, z + WALL_T]], 0.03, 0.4, 1, 0.5)
-  // Gate piers in granite either side of the way in, the way out, and the service gate.
+  // Gate piers in granite beside the way in and the way out.
   for (const [x, zz] of [
-    [DRIVE.x1 + 0.3, PLOT.z1 - 0.4], [EXIT.x0 - 0.3, PLOT.z1 - 0.4], [DRIVE.x1 + 0.3, PLOT.z0 + 0.35],
+    [DRIVE.x1 + 0.3, PLOT.z1 - 0.4], [EXIT.x0 - 0.3, PLOT.z1 - 0.4],
   ] as const)
     if (within(ctx, x, zz)) {
       bx(ctx, p, [x - 0.3, x + 0.3], [0, 1.8], [zz - 0.3, zz + 0.3], c.granite)
@@ -418,8 +433,6 @@ function buildPlanting(ctx: HospitalCtx) {
     if (within(ctx, WALK.x0 - 0.45, z)) shrub(plant, WALK.x0 - 0.45, GL - 0.05, z, 0.32, 0.5, seed++, 'hedge')
     if (within(ctx, WALK.x1 + 0.45, z)) shrub(plant, WALK.x1 + 0.45, GL - 0.05, z, 0.32, 0.5, seed++, 'hedge')
   }
-  // A screen of mast Ashoka along the avenue side, and behind the parking.
-  for (let z = -32; z < WING.z1 - 1; z += 4.2) tree(plant, SPECIES.ashoka, PLOT.x1 - 1.0, GL, z, 1720 + Math.round(z), 0.75)
   // Grass on the lawns, in the property's own view (the master plan is seen from too far for it).
   if (!ctx.onPlan) for (const [x0, x1, z0, z1] of LAWNS) lawn(plant, x0 + 0.1, x1 - 0.1, z0 + 0.1, z1 - 0.1, GL - 0.05, 1980 + Math.round(x0 * 7 + z0), 160)
   for (const f of plant.footprints) ctx.shade.pool(f.x, f.y + 0.006, f.z, f.r, f.r, f.strength)
@@ -441,8 +454,8 @@ function buildLighting(ctx: HospitalCtx, p: Object3D) {
     shade.pool(x, 0.03, z, 0.35, 0.35, 0.5)
   }
   for (const z of [-40, -24, -8, 8, 30]) pole(DRIVE.x0 + 0.4, z, 7)
-  pole(PLOT.x1 - 0.5, 30, 7, -1)
-  pole(6, PLOT.z0 + 0.6, 6, 1)
+  for (const z of [-40, -20, 14, 30]) pole(PLOT.x1 - WALL_T - 0.2, z, 7, -1)
+  pole(0, PLOT.z0 + 0.6, 6, 1)
   const bollard = (x: number, z: number) => {
     if (!within(ctx, x, z)) return
     k.cyl(p, 0.09, 0.09, 0.85, c.luminaire, x, GL + 0.425, z, 16)
@@ -455,7 +468,7 @@ function buildLighting(ctx: HospitalCtx, p: Object3D) {
   }
   bollard(COURT.x0 + 0.3, COURT.z0 + 0.3)
   bollard(COURT.x1 - 0.3, COURT.z1 - 0.3)
-  for (const [x, z] of [[-6.5, 33], [10, 31], [(BAY.x0 + BAY.x1) / 2, 22]] as const) {
+  for (const [x, z] of [[-6.5, 33], [10, 31], [(EXIT.x0 + EXIT.x1) / 2, 20]] as const) {
     const l = ctx.lighting.light(new PointLight('#ffd9ad', 6, 13, 2), 0)
     l.position.set(x, 1.6, z)
     p.add(l)

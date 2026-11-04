@@ -262,10 +262,10 @@ const SHOP_H = L1 - 1.05
 const SHOP_DEEP = -5
 
 /**
- * Shopfronts along s0..s1 of a face: charcoal piers and fascia, a lit lightbox name per shop,
- * clear glass in black frames with a door in each, and the shop itself behind.
+ * Shopfronts along s0..s1 of a face: charcoal piers and fascia, clear glass in black frames with a
+ * door in each, and the shop itself behind; with `firstSign`, a lit lightbox name over each shop.
  */
-function storefronts(parts: Parts, f: Face, s0: number, s1: number, shops: number, firstSign: number) {
+function storefronts(parts: Parts, f: Face, s0: number, s1: number, shops: number, firstSign: number | null) {
   const w = (s1 - s0) / shops
   fbox(parts.charcoal, f, [s0, s1], [SHOP_H, L1 - SLAB], [-0.05, 0.12])
   fplane(parts.shops, f, [s0, s1], [GL, SHOP_H], SHOP_DEEP, (s, y) => [(s + s0) / 16, (y - GL) / (SHOP_H - GL)])
@@ -281,12 +281,14 @@ function storefronts(parts: Parts, f: Face, s0: number, s1: number, shops: numbe
     const a = s0 + i * w + 0.22
     const b = s0 + (i + 1) * w - 0.22
     fplane(parts.glass, f, [a, b], [GL, SHOP_H], -0.25)
-    // The lightbox: a sixth of the painted names each.
-    const k = (firstSign + i) % SHOP_NAMES.length
+    // The lightbox: its share of the painted names.
     const mid = (a + b) / 2
     const half = Math.min(1.3, (b - a) * 0.42)
-    fbox(parts.charcoal, f, [mid - half - 0.03, mid + half + 0.03], [SHOP_H + 0.17, SHOP_H + 0.63], [0.12, 0.2])
-    fplane(parts.sign, f, [mid - half, mid + half], [SHOP_H + 0.2, SHOP_H + 0.6], 0.205, (s, y) => [(k + (s - (mid - half)) / (2 * half)) / SHOP_NAMES.length, (y - SHOP_H - 0.2) / 0.4])
+    if (firstSign !== null) {
+      const k = (firstSign + i) % SHOP_NAMES.length
+      fbox(parts.charcoal, f, [mid - half - 0.03, mid + half + 0.03], [SHOP_H + 0.17, SHOP_H + 0.63], [0.12, 0.2])
+      fplane(parts.sign, f, [mid - half, mid + half], [SHOP_H + 0.2, SHOP_H + 0.6], 0.205, (s, y) => [(k + (s - (mid - half)) / (2 * half)) / SHOP_NAMES.length, (y - SHOP_H - 0.2) / 0.4])
+    }
     // Frames: sill, head, a transom over the door, mullions; the door a pair of leaves.
     const fr = (ss: R, ys: R) => fbox(parts.frame, f, ss, ys, [-0.31, -0.19])
     fr([a, b], [GL, GL + 0.08])
@@ -328,17 +330,17 @@ function buildFaces(ctx: A01Ctx, parent: Object3D) {
   screen(parts, north, stairS, north.len - CORNER, 53)
 
   storefronts(parts, east, ...southRun, 1, 0)
-  storefronts(parts, east, ...northRun, 4, 1)
+  storefronts(parts, east, ...northRun, 4, null)
   // The ground floor's slab edge over the shops.
   for (const run of [southRun, northRun]) fbox(parts.slab, east, run, [L1 - SLAB, L1 + 0.05], [DECK_D, 0.12])
   serviceFront(parts, west, CORNER, west.len - CORNER, [22, 30], [8, 13])
   serviceFront(parts, north, stairS, north.len - CORNER, [], [12])
   fbox(parts.slab, west, [CORNER, west.len - CORNER], [L1 - SLAB, L1 + 0.05], [DECK_D, 0.02])
   fbox(parts.slab, north, [stairS, north.len - CORNER], [L1 - SLAB, L1 + 0.05], [DECK_D, 0.02])
-  // The fire exit in the north end, under a small canopy.
+  // The fire exit in the north end onto the exit road's kerb, under a shallow canopy.
   fplane(parts.grey, north, [7.4, 8.6], [GL, GL + 2.2], 0.005)
   fbox(parts.frame, north, [7.3, 8.7], [GL + 2.2, GL + 2.28], [0, 0.08])
-  fbox(parts.black, north, [6.9, 9.1], [GL + 2.6, GL + 2.72], [0, 1.1])
+  fbox(parts.black, north, [6.9, 9.1], [GL + 2.6, GL + 2.72], [0, 0.5])
   buildPortals(ctx, parts, south, parent)
 
   // Corner fins, full height, closing the screen at each corner (the stair tower closes the fourth).
@@ -605,7 +607,7 @@ function buildStair(ctx: A01Ctx, parent: Object3D) {
   const { x0, x1, z0, z1, top } = STAIR
   const wall = new Tris()
   const T = 0.25
-  const slit: R = [19.35, 20.15]
+  const slit: R = [x0 + 0.95, x0 + 1.75]
   // East face, either side of the slit and over it.
   box(wall, [x0, slit[0]], [GL, top], [z1 - T, z1])
   box(wall, [slit[1], x1], [GL, top], [z1 - T, z1])

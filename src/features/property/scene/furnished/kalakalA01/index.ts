@@ -6,7 +6,7 @@ import { Contact } from '../kalakalMall/contact'
 import { Planting } from '../kalakalMall/foliage'
 import { buildBuilding } from './building'
 import { a01Materials } from './materials'
-import { BLOCK, COURT_REAR, DRIVE, DRUM, GL, LAWNS, LIFT, MEET_X, PLAN_CENTRE_Z, PLOT, PORTALS, RETURN } from './plan'
+import { BLOCK, COURT_REAR, DRIVE, DRUM, EXIT, GL, LAWNS, LIFT, MEET_X, PLAN_CENTRE_Z, PLOT, PORTALS, RETURN } from './plan'
 import { buildContext, buildSite, SITE } from './site'
 
 export { SITE }
@@ -17,8 +17,9 @@ export { SITE }
  * in staggered timber slat panels, with a glazed drum holding the helical ramp standing proud of
  * the front under a deep black crown, the main entrance at its foot; a cream stair tower and a
  * dark lift core close the north end. It sits on the 166′1″ × 165′5″ east-facing plot with the
- * landscaped forecourt in front, the drive and vehicle portals to the south and the service
- * court and yard behind. See plan.ts for how the reference was fitted to the plot.
+ * landscaped forecourt in front. Traffic runs one way round it: in by the drive and the vehicle
+ * portals to the south, across the connector behind, out by the exit road to the north; the
+ * back wall is unbroken. See plan.ts for how the reference was fitted to the plot.
  */
 
 type Zone = [x0: number, x1: number, z0: number, z1: number]
@@ -28,7 +29,14 @@ const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[] }> = {
   amenity_entrance: { y: GL, height: 5, zones: [[DRUM.x - 3, DRUM.x + 3, DRUM.z + DRUM.r - 0.6, DRUM.z + DRUM.r + 3]] },
   amenity_shops: { y: GL, height: 4.5, zones: [[MEET_X.north + RETURN, LIFT.x0, BLOCK.z1, BLOCK.z1 + 4]] },
   amenity_forecourt: { y: GL, height: 2.5, zones: [[LAWNS[0].x0, LAWNS[1].x1, LAWNS[1].z0, PLOT.z1 - 0.5]] },
-  amenity_parking: { y: 0.03, height: 3.2, zones: [[DRIVE.x0 + 0.3, BLOCK.x0, PORTALS[0].z0 - 1, PORTALS[1].z1 + 1]] },
+  amenity_parking: {
+    y: 0.03,
+    height: 3.2,
+    zones: [
+      [DRIVE.x0 + 0.3, BLOCK.x0, PORTALS[0].z0 - 1, PORTALS[1].z1 + 1],
+      [EXIT.x0, EXIT.x1, BLOCK.z0, BLOCK.z1],
+    ],
+  },
   amenity_service: { y: 0.03, height: 3, zones: [[BLOCK.x0, PLOT.x1 - 0.3, PLOT.z0 + 0.3, COURT_REAR.z1]] },
 }
 

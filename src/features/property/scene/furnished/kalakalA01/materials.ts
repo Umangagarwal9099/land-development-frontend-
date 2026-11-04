@@ -47,11 +47,10 @@ const thermowood: Paint = (g, w, h) => {
 
 /**
  * One 7.5 m bay of a parking deck seen through the screen, one storey high: the soffit with its
- * battens of light, a column at each end, three cars nose-in along the far side, the floor's painted
- * bay lines, all falling into shadow towards the back.
+ * battens of light, a column at each end, the floor's painted bay lines, all falling into shadow
+ * towards the back.
  */
 const deck: Paint = (g, w, h) => {
-  const r = rng(913)
   const bg = g.createLinearGradient(0, 0, 0, h)
   bg.addColorStop(0, '#5d5e5f')
   bg.addColorStop(0.18, '#3a3b3c')
@@ -74,37 +73,7 @@ const deck: Paint = (g, w, h) => {
     g.fillStyle = gl
     g.fillRect(x - h * 0.3, 0, m * 0.55 + h * 0.6, h * 0.45)
   }
-  // Cars nose-in in 2.5 m bays at the far side, seen from behind and a little smaller with
-  // distance: the body, the glasshouse over it, tail lamps, plate and tyres. One metre up is mH.
-  const hues = ['#d8d9da', '#1e2023', '#8b9096', '#6d1f1f', '#e9e8e4', '#30435c', '#9a9a92']
-  const mH = (h / 2.9) * 0.85
-  const floor = h * 0.86
-  for (let bay = 0; bay < 3; bay++) {
-    if (r() < 0.25) continue
-    const cw = m * 1.75 * 0.85
-    const x = bay * m * 2.5 + m * 0.2 + (m * 2.5 - cw) / 2 + (r() - 0.5) * m * 0.2
-    g.fillStyle = 'rgba(8,8,8,.9)'
-    for (const tx of [x + cw * 0.08, x + cw * 0.76]) g.fillRect(tx, floor - mH * 0.32, cw * 0.16, mH * 0.32)
-    g.fillStyle = hues[Math.floor(r() * hues.length)]
-    g.beginPath()
-    g.roundRect(x, floor - mH * 0.95, cw, mH * 0.68, cw * 0.06)
-    g.fill()
-    g.beginPath()
-    g.roundRect(x + cw * 0.1, floor - mH * 1.45, cw * 0.8, mH * 0.55, [cw * 0.12, cw * 0.12, 4, 4])
-    g.fill()
-    g.fillStyle = 'rgba(25,30,36,.92)'
-    g.beginPath()
-    g.roundRect(x + cw * 0.15, floor - mH * 1.38, cw * 0.7, mH * 0.4, cw * 0.08)
-    g.fill()
-    g.fillStyle = 'rgba(190,24,24,.95)'
-    g.fillRect(x + cw * 0.03, floor - mH * 0.86, cw * 0.2, mH * 0.12)
-    g.fillRect(x + cw * 0.77, floor - mH * 0.86, cw * 0.2, mH * 0.12)
-    g.fillStyle = '#e9e7df'
-    g.fillRect(x + cw * 0.4, floor - mH * 0.6, cw * 0.2, mH * 0.1)
-    g.fillStyle = 'rgba(0,0,0,.35)'
-    g.fillRect(x, floor - mH * 0.38, cw, mH * 0.08)
-  }
-  // Columns in front of them at 7.5 m, three bays apart, lit on one side.
+  // Columns at 7.5 m, three bays apart, lit on one side.
   for (let x = m * 0.0; x < w; x += m * 7.5) {
     const cg = g.createLinearGradient(x, 0, x + m * 0.45, 0)
     cg.addColorStop(0, '#8d8d8a')
@@ -122,8 +91,8 @@ const deck: Paint = (g, w, h) => {
   for (let x = m * 0.2; x < w; x += m * 2.5) g.fillRect(x, h * 0.86, 3, h * 0.14)
 }
 
-/** Shop fascia lightboxes: white names on charcoal, one shop per sixth of the canvas. */
-export const SHOP_NAMES = ['CAFÉ BREW', 'PHARMACY', 'BANK · ATM', 'OPTICALS', 'BAKERY', 'SALON'] as const
+/** Shop fascia lightboxes: white names on charcoal, one shop per part of the canvas. */
+export const SHOP_NAMES = ['CAFÉ BREW'] as const
 const fascia: Paint = (g, w, h) => {
   g.fillStyle = '#1d1f22'
   g.fillRect(0, 0, w, h)

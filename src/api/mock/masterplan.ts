@@ -228,7 +228,7 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
   // D-65, the corner plot at the head of block D, carries the first fully modelled home.
   plots.find((p) => p.id === 'plot_65')!.unit = { kind: 'villa', name: 'Residence D-65', propertySlug: 'kalakal-d65', design: 'kalakal-d65' }
   // A-02, the commercial plot north of the avenue's mouth, carries the mall.
-  plots.find((p) => p.id === 'plot_2')!.unit = { kind: 'commercial', name: 'Prime Mall', propertySlug: 'kalakal-mall', design: 'kalakal-mall' }
+  plots.find((p) => p.id === 'plot_2')!.unit = { kind: 'commercial', name: 'Kallakal Mall', propertySlug: 'kalakal-mall', design: 'kalakal-mall' }
   // A-04, the deep commercial plot at the south end of the frontage, carries Kallakal Hotel.
   plots.find((p) => p.id === 'plot_4')!.unit = { kind: 'commercial', name: 'Kallakal Hotel', propertySlug: 'kalakal-hotel', design: 'kalakal-hotel' }
   // A-01, the commercial plot at the north end of the frontage, carries Kallakal Square, the car park with shops.

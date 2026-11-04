@@ -391,6 +391,7 @@ const GLYPHS: Record<string, Glyph> = {
       return bowl(s, Math.atan2(0.405 - 0.69, 0.572 - 0.45))
     },
   },
+  K: { width: 0.78, shape: () => poly([[0, 0], [0.2, 0], [0.2, 0.36], [0.3, 0.47], [0.55, 0], [0.78, 0], [0.44, 0.61], [0.76, 1], [0.52, 1], [0.2, 0.6], [0.2, 1], [0, 1]]) },
   I: { width: 0.2, shape: () => poly([[0, 0], [0.2, 0], [0.2, 1], [0, 1]]) },
   M: { width: 0.9, shape: () => poly([[0, 0], [0.19, 0], [0.19, 0.64], [0.4, 0.3], [0.5, 0.3], [0.71, 0.64], [0.71, 0], [0.9, 0], [0.9, 1], [0.72, 1], [0.45, 0.56], [0.18, 1], [0, 1]]) },
   E: { width: 0.64, shape: () => poly([[0, 0], [0.64, 0], [0.64, 0.19], [0.2, 0.19], [0.2, 0.41], [0.58, 0.41], [0.58, 0.59], [0.2, 0.59], [0.2, 0.81], [0.64, 0.81], [0.64, 1], [0, 1]]) },
@@ -407,7 +408,7 @@ const GLYPHS: Record<string, Glyph> = {
 const TRACK = 0.13
 const SPACE = 0.38
 
-export const MALL_NAME = 'PRIME MALL'
+export const MALL_NAME = 'KALLAKAL MALL'
 
 /** Width of a line of channel letters at cap height 1. */
 export const textWidth = (text: string) =>
@@ -439,11 +440,14 @@ export function channelLetters(c: MallMaterials, text: string, cap: number, dept
 
 function buildSignage(ctx: MallCtx, parent: Object3D) {
   const { c } = ctx
-  // The name across the south block's crown, as in the reference, standing off the facets.
-  const cap = 0.95
+  // The name across the south block's crown, as in the reference, standing off the facets: centred
+  // on the block, clear of where the crown dips towards the link.
+  const x0 = BX0 + 0.8
+  const x1 = LINK.x0 - 2.4
+  const cap = Math.min(0.95, (x1 - x0) / textWidth(MALL_NAME))
   const y = 13.75
   const letters = channelLetters(c, MALL_NAME, cap, 0.16)
-  letters.position.set(-10.5, y, FRONT_Z + lean(y + cap / 2) + 0.42)
+  letters.position.set((x0 + x1) / 2, y, FRONT_Z + lean(y + cap / 2) + 0.42)
   letters.rotation.x = Math.atan(0.05)
   letters.name = 'sign_name'
   parent.add(letters)
@@ -488,10 +492,24 @@ function buildMediaScreen(ctx: MallCtx, parent: Object3D) {
 
 /* ---------- the rear ---------- */
 
-/** Loading bay shutters and service doors on the rear wall. */
+/** The basement car park's portals in the rear wall: the way down at `in`, the way up at `out` (see site.ts). */
+export const PORTALS = { in: 2.0, out: 13.5, w: 3.6, h: 2.6 }
+
+/** Loading bay shutters, service doors and the basement portals on the rear wall. */
 function buildService(ctx: MallCtx, parent: Object3D) {
   const { c, k } = ctx
   const z = REAR_Z - SHOPFRONT
+  // Each portal: the dark of the ramp falling away behind a framed opening, a striped height bar
+  // hung under the overhang, and the parking sign over the way in.
+  for (const x of [PORTALS.in, PORTALS.out]) {
+    const { w, h } = PORTALS
+    k.box(parent, w, h, 0.04, c.void, x, GL + h / 2, z - 0.03, false)
+    k.box(parent, w + 0.3, 0.35, 0.3, c.mullion, x, GL + h + 0.175, z - 0.15)
+    for (const dx of [-w / 2 - 0.08, w / 2 + 0.08]) k.box(parent, 0.16, h, 0.3, c.mullion, x + dx, GL + h / 2, z - 0.15)
+    for (let i = 0; i < 6; i++) k.box(parent, w / 6, 0.15, 0.08, i % 2 ? c.plantDark : c.hazard, x - w / 2 + (i + 0.5) * (w / 6), GL + 2.45, REAR_Z - 0.9, false)
+    for (const dx of [-w / 2 + 0.1, w / 2 - 0.1]) k.box(parent, 0.03, 5.6 - GL - 2.45, 0.03, c.mullion, x + dx, (5.6 + GL + 2.45) / 2, REAR_Z - 0.9, false)
+  }
+  k.box(parent, 0.9, 0.9, 0.04, c.pSign, PORTALS.in, GL + PORTALS.h + 0.9, z - 0.06, false)
   for (const x of [-12.5, -7]) {
     k.box(parent, 4.0, 4.2, 0.08, c.shutter, x, 0.1 + 2.1, z - 0.05)
     k.box(parent, 4.3, 0.45, 0.5, c.mullion, x, 4.45, z - 0.25)

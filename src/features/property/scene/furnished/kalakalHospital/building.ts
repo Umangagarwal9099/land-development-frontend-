@@ -176,10 +176,11 @@ function ribbon(p: Parts, f: Face, storeys: R[], top: number, seed: number, wrap
       fplane(p.ward, f, [b0, b1], [y, next], -0.8, (s, yy) => [(s - b0) / bw, (yy - y) / (next - y)])
     }
   }
+  // The last band rises to `top` as the parapet; a run of ground floor alone stops under the next band.
   const last = storeys[storeys.length - 1][1]
-  fbox(p.band, f, [-wrap, f.len + wrap], [last - 0.35, top], [-WALL_D, BAND_OUT])
+  if (top > last - 0.35) fbox(p.band, f, [-wrap, f.len + wrap], [last - 0.35, top], [-WALL_D, BAND_OUT])
   if (storeys[0][0] === GL) fbox(p.skirt, f, [-wrap, f.len + wrap], [0, GL + 0.45], [BAND_OUT, BAND_OUT + 0.02])
-  coping(p, f, top, wrap)
+  if (top >= PARAPET - 1e-6) coping(p, f, top, wrap)
 }
 
 /**
@@ -295,14 +296,16 @@ function buildFaces(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   punched(p, southFace(MAIN.x0, LINK.z1, MAIN.glass - 0.3), STOREYS, PARAPET, 23, 1)
   punched(p, southFace(MAIN.x0, BACK_Z, LINK.z1), above(LINK.top), PARAPET, 29, 1)
   punched(p, northFace(MAIN.x1, WING.z1, MAIN.glass - 0.3), STOREYS, PARAPET, 31, 1)
-  // The wing's end, its long north side down the avenue, and the back.
-  const wing = eastFace(WING.z1, WING.x0, WING.x1)
-  ribbon(p, wing, STOREYS.slice(1), PARAPET, 37)
-  lobbyFront(p, wing, L1 - 0.35, 6, [wing.len / 2], 9)
-  ribbon(p, northFace(BODY.x1, BODY.z0, WING.z1), STOREYS, PARAPET, 41)
+  // The wing's end; its long north side down the exit road, the emergency entrance's glazed front
+  // halfway along at the ground; and the back.
+  ribbon(p, eastFace(WING.z1, WING.x0, WING.x1), STOREYS, PARAPET, 37)
+  ribbon(p, northFace(BODY.x1, BODY.z0, WING.z1), STOREYS.slice(1), PARAPET, 41)
+  ribbon(p, northFace(BODY.x1, BODY.z0, ER.z0), STOREYS.slice(0, 1), L1 - 0.35, 42, 0)
+  ribbon(p, northFace(BODY.x1, ER.z1, WING.z1), STOREYS.slice(0, 1), L1 - 0.35, 44, 0)
+  lobbyFront(p, northFace(BODY.x1, ER.z0, ER.z1), L1 - 0.35, 6, [ER.z1 - ER.door], 9)
   const back = westFace(BODY.z0, BODY.x0, BODY.x1)
   ribbon(p, back, STOREYS.slice(1), PARAPET, 43)
-  serviceFront(p, back, [5.5, 10.5], [15.5, 19.5], 24)
+  serviceFront(p, back, [3.0, 7.0], [12, 16], 21)
   // Behind the link's roof, the body's face between the returns.
   ribbon(p, eastFace(BACK_Z, LINK.x0, LINK.x1), STOREYS.filter(([y]) => y >= LINK.roof - 1e-6), PARAPET, 47, 0)
   // The light court, from its podium garden up.
@@ -370,7 +373,7 @@ function fittedLine(ctx: HospitalCtx, parent: Object3D, text: string, cap: numbe
   g.scale.setScalar(s)
   g.position.set(x, y - s / 2, z)
   parent.add(g)
-  return (g.userData.width as number) * s
+  return g
 }
 
 /** The blue cross and the name across the main block's top band, as in the reference. */
@@ -419,24 +422,30 @@ function buildCanopies(ctx: HospitalCtx, p: Parts, parent: Object3D) {
     parent.add(l)
   }
 
+  // The emergency entrance's canopy, spanning the exit road from the wing to the verge and open at
+  // both ends for ambulances driving through; EMERGENCY on both fascias and on the wing over it.
   const er = ER
-  canopySlab(p, er.x0, er.x1, er.z0, er.z1, er.y0, er.y1)
-  box(p.soffit, [er.x0 + 0.2, er.x1 - 0.2], [er.y0 - 0.012, er.y0], [er.z0 + 0.1, er.z1 - 0.2])
-  k.box(parent, er.x1 - er.x0, 0.1, 0.03, c.redPanel, (er.x0 + er.x1) / 2, er.y0 + 0.05, er.z1 + 0.015)
-  for (const x of [er.x0 + 0.45, er.x1 - 0.35]) {
-    k.cyl(parent, 0.13, 0.13, er.y0 - 0.02, c.band, x, er.y0 / 2, er.z1 - 0.4, 20)
-    shade.pool(x, 0.035, er.z1 - 0.4, 0.4, 0.4, 0.5)
+  canopySlab(p, er.x0, er.x1, er.z0, er.z1, er.y0, er.y1, true)
+  box(p.soffit, [er.x0 + 0.15, er.x1 - 0.15], [er.y0 - 0.012, er.y0], [er.z0 + 0.15, er.z1 - 0.15])
+  const xm = (er.x0 + er.x1) / 2
+  for (const [z, s] of [[er.z1, 1], [er.z0, -1]] as const) {
+    k.box(parent, er.x1 - er.x0, 0.1, 0.03, c.redPanel, xm, er.y0 + 0.05, z + s * 0.015)
+    const g = fittedLine(ctx, parent, 'EMERGENCY', 0.34, er.x1 - er.x0 - 0.8, 0.06, RED, xm, (er.y0 + er.y1) / 2 + 0.05, z + s * 0.03)
+    if (s < 0) g.rotation.y = Math.PI
   }
-  for (const z of [13, 16]) k.cyl(parent, 0.09, 0.09, 0.02, c.downlight, (er.x0 + er.x1) / 2, er.y0 - 0.02, z, 16).castShadow = false
-  fittedLine(ctx, parent, 'EMERGENCY', 0.34, er.x1 - er.x0 - 0.8, 0.06, RED, (er.x0 + er.x1) / 2, (er.y0 + er.y1) / 2 + 0.05, er.z1 + 0.03)
-  // The name again on the wing's first-floor band, seen over the main canopy, and the red cross
-  // lightbox on the band above.
+  for (const z of [er.z0 + 0.4, er.z1 - 0.4]) {
+    k.cyl(parent, 0.13, 0.13, er.y0 - 0.02, c.band, er.x1 - 0.2, er.y0 / 2, z, 20)
+    shade.pool(er.x1 - 0.2, 0.035, z, 0.4, 0.4, 0.5)
+  }
+  for (let z = er.z0 + 1.5; z < er.z1 - 1; z += 2.5) k.cyl(parent, 0.09, 0.09, 0.02, c.downlight, xm, er.y0 - 0.02, z, 16).castShadow = false
+  const side = fittedLine(ctx, parent, 'EMERGENCY', 0.55, er.z1 - er.z0 - 1, 0.08, RED, BODY.x1 + BAND_OUT + 0.01, L1 + 0.3, er.door)
+  side.rotation.y = Math.PI / 2
+  // The red cross lightbox on the wing's end, seen from the road.
   const wx = (WING.x0 + WING.x1) / 2
-  fittedLine(ctx, parent, 'EMERGENCY', 0.46, WING.x1 - WING.x0 - 0.5, 0.08, RED, wx, L1 + 0.3, WING.z1 + 0.13)
   k.box(parent, 1.15, 1.15, 0.14, c.redPanel, wx, UPPER[1] + 0.3, WING.z1 + 0.19)
   k.box(parent, 1.0, 1.0, 0.02, c.redCross, wx, UPPER[1] + 0.3, WING.z1 + 0.27, false)
   const l = lighting.light(new PointLight('#ffe9d0', 5, 9, 2), 0)
-  l.position.set(wx, er.y0 - 0.5, 15)
+  l.position.set(xm, er.y0 - 0.5, er.door)
   parent.add(l)
 
   // The outpatient entrance: a flat white canopy on tension rods, the name on the fascia above it.
@@ -454,10 +463,15 @@ function buildCanopies(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   parent.add(lo)
 }
 
-/** A canopy's slab: a grey membrane roof inside a white fascia that stands a little above it. */
-function canopySlab(p: Parts, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number) {
+/**
+ * A canopy's slab: a grey membrane roof inside a white fascia that stands a little above it, on
+ * its front and sides (and its back too, when it stands free of the building there).
+ */
+function canopySlab(p: Parts, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, back = false) {
   const T = 0.12
-  box(p.roof, [x0 + T, x1 - T], [y0 + 0.1, y1 - 0.06], [z0, z1 - T])
+  const zb = back ? z0 + T : z0
+  if (back) box(p.band, [x0, x1], [y0, y1], [z0, zb])
+  box(p.roof, [x0 + T, x1 - T], [y0 + 0.1, y1 - 0.06], [zb, z1 - T])
   box(p.band, [x0, x1], [y0, y1], [z1 - T, z1])
   box(p.band, [x0, x0 + T], [y0, y1], [z0, z1 - T])
   box(p.band, [x1 - T, x1], [y0, y1], [z0, z1 - T])
@@ -474,7 +488,7 @@ function buildRoof(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   // Stair and lift overruns, rendered like the walls.
   for (const [ox0, ox1, oz0, oz1, h] of [
     [-10.8, -5.6, -24.6, -19.4, 4.2],
-    [10.2, 15.6, -4.0, 1.2, 4.6],
+    [8.2, 13.2, -4.0, 1.2, 4.6],
     [2.6, 7.8, 5.2, 9.8, 3.6],
   ] as const) {
     box(p.wall, [ox0, ox1], [ROOF, ROOF + h], [oz0, oz1])
