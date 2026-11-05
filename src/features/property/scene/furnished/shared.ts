@@ -1,4 +1,5 @@
-import { Group, MeshStandardMaterial, PointLight, Vector3, type Camera, type MeshBasicMaterial, type MeshStandardMaterialParameters, type Texture } from 'three'
+import { Group, MeshStandardMaterial, PointLight, Vector3, type Camera, type Object3D, type MeshBasicMaterial, type MeshStandardMaterialParameters, type Texture } from 'three'
+import type { Basement } from './basement'
 import { Kit } from './kit'
 import type { Paint } from './textures'
 
@@ -30,6 +31,8 @@ export interface FurnishedModel {
    * view, so the on-demand stage keeps drawing then and idles otherwise.
    */
   animate?: (elapsed: number, camera: Camera) => boolean
+  /** Basement parking levels under the building, built the first time one is visited. */
+  basement?: Basement
 }
 
 /**
@@ -111,8 +114,10 @@ export class LightPool {
   private pool: PointLight[] = []
   private active: { light: PointLight; at: Vector3 }[] = []
   private zones = new Map<string, { light: PointLight; at: Vector3 }[]>()
+  private root: Group
 
   constructor(root: Group, zoneOf: (light: PointLight) => string, size = 8) {
+    this.root = root
     root.updateMatrixWorld(true)
     const toRoot = root.matrixWorld.clone().invert()
     const lights: PointLight[] = []
@@ -134,6 +139,22 @@ export class LightPool {
       this.pool.push(l)
     }
     this.setZone('exterior')
+  }
+
+  /** Takes the point lights under `part` (added to the model after the pool was made) as a zone of their own. */
+  adopt(zone: string, part: Object3D) {
+    this.root.updateMatrixWorld(true)
+    const toRoot = this.root.matrixWorld.clone().invert()
+    const lights: PointLight[] = []
+    part.traverse((o) => {
+      if ((o as PointLight).isPointLight) lights.push(o as PointLight)
+    })
+    const list = this.zones.get(zone) ?? []
+    for (const light of lights) {
+      list.push({ light, at: light.getWorldPosition(new Vector3()).applyMatrix4(toRoot) })
+      light.removeFromParent()
+    }
+    this.zones.set(zone, list)
   }
 
   /** Lights the zone (a room's hotspot name, or 'exterior'), strongest lamps first. */

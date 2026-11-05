@@ -259,11 +259,34 @@ function kalakalD65(): Property {
 }
 
 /**
+ * The ground and the two basement parking levels of a commercial building with basements (see
+ * features/property/scene/furnished/basement). The model shows them itself; the group names only
+ * keep the floor contract.
+ */
+function basementFloors() {
+  const G: Floor = { id: id('floor'), name: 'Ground Floor', level: 0, groupName: 'floor_G' }
+  const B1: Floor = { id: id('floor'), name: 'Basement 1 · Parking', level: -1, groupName: 'floor_B1' }
+  const B2: Floor = { id: id('floor'), name: 'Basement 2 · Parking', level: -2, groupName: 'floor_B2' }
+  return { G, B1, B2, floors: [G, B1, B2] }
+}
+
+/** A basement level as a tappable area: its parking floor, described as built. */
+function basementArea(floor: Floor, level: -1 | -2, [lengthFt, widthFt]: [number, number], bays: number, description: string, specs: string[]): Room {
+  return {
+    id: id('room'), name: level === -1 ? 'Basement B1 Parking' : 'Basement B2 Parking', kind: 'outdoor', meshName: `amenity_b${-level}`, floorId: floor.id,
+    dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description,
+    specs: [`${bays} bays, 2.5 × 5.0 m on 6 m aisles`, '3.0 m to the soffit, about 2.4 m under the beams', ...specs],
+    amenities: ['Lifts and fire stairs', 'Sprinklers and hose reels', 'Jet-fan ventilation', 'CCTV', level === -1 ? 'EV charging bays' : 'Fire pump room'], media: [],
+  }
+}
+
+/**
  * Kallakal Mall on commercial Plot A-02, Kallakal: the G+2 mall of the client's reference design,
  * modelled in 3D (features/property/scene/furnished/kalakalMall) as an exterior with its grounds.
  * Areas map to the model's amenity_* hotspots.
  */
 function kalakalMall(): Property {
+  const mallLevels = basementFloors()
   const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
     id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
     dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
@@ -282,20 +305,26 @@ function kalakalMall(): Property {
     area('Service Yard & Basement Ramp', 'amenity_service', [150, 26],
       'Behind the mall, closed off from the cross road by an unbroken compound wall: a one-way service road from the entry road on the south side to the exit road on the north, past two loading bays with roller shutters and dock bumpers, the basement car park\'s IN and OUT portals in the rear wall, and the fenced substation and generator enclosure against the back wall. Traffic runs one way round the building: in at the south gate, out at the north.',
       ['Two loading bays with roller shutters', 'Basement IN and OUT portals, 3.6 m wide, 2.6 m clear', 'Transformer and DG set in a fenced enclosure', 'One-way entry road (south) and exit road (north), 3.9 m clear', 'Rear service road, 7.2 m; no access from the cross road'], ['Loading bays', 'Basement parking', 'Substation']),
+    basementArea(mallLevels.B1, -1, [144, 170], 33,
+      'The upper basement under the whole mall and its service road. The one-way IN and OUT ramps come down from the portals in the rear wall at 1:6, landing at the front of the level; between them the two-way ramp to B2 starts from the back cross aisle. Bays line the west aisle and the side walls, parallel bays the one-way lanes, all on a power-trowelled concrete floor with painted bays, numbers and arrows, rubber wheel stops, the level\'s blue band on walls and columns, LED battens on drop rods, jet fans and a red sprinkler grid under the beams. The shoppers\' lifts open onto the west aisle through a glazed lobby, with fire stairs at two corners.',
+      ['One-way IN and OUT ramps from the rear portals, 3.6 m, 1:6', 'Two-way ramp to B2, 5.4 m', 'Lift lobby and two fire stairs', 'Three EV charging bays; two accessible bays by the lifts']),
+    basementArea(mallLevels.B2, -2, [144, 170], 32,
+      'The lower basement, reached by the two-way ramp from B1, laid out like the level above with its own green band and level markings. Lanes run where the ramps from the ground stand on B1; the fire pump room and the sump are here.',
+      ['Two-way ramp up to B1', 'Fire pump room', 'Lift lobby and two fire stairs']),
   ]
   return {
     id: 'p_kalakal_mall', slug: 'kalakal-mall', name: 'Kallakal Mall', type: 'commercial', location: 'Kallakal, NH-44',
     tagline: 'A G+2 shopping mall in a faceted skin, on the HMDA road frontage',
     thumbnailUrl: placeholderImage('Kallakal Mall', 210, 800, 500),
-    stats: [{ label: 'Plot', value: '3,704 sq yd' }, { label: 'Floors', value: 'B + G + 2' }, { label: 'Facing', value: 'East' }],
+    stats: [{ label: 'Plot', value: '3,704 sq yd' }, { label: 'Floors', value: 'B2 + G + 2' }, { label: 'Facing', value: 'East' }],
     description:
       'A shopping mall on commercial Plot A-02 in Kallakal, facing east onto the 250 ft HMDA master plan road. Two blocks wrapped in a skin of faceted aluminium and dark glass meet at a lower, double-height glazed entrance under a white canopy; the taller south block carries the name and the north block a curved media screen. A raised forecourt, drop-off and visitor parking lie in front, with a basement car park, loading bays and fire-access drives behind and to either side.',
     highlights: {
-      Plot: 'A-02 · 222′3″ × 150′ (3,704 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Basement + ground + 2 upper floors',
+      Plot: 'A-02 · 222′3″ × 150′ (3,704 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: '2 basements + ground + 2 upper floors',
       Height: 'Roof at 15.45 m; skin crown to 18.4 m', Envelope: '36.7 m frontage × 39.5 m deep', 'Façade': 'Faceted perforated aluminium and solar-control glass',
-      Setbacks: 'Front 20.4 m · sides 4.5 m · rear 7.9 m', Parking: 'Basement car park + 11 visitor bays',
+      Setbacks: 'Front 20.4 m · sides 4.5 m · rear 7.9 m', Parking: '65 bays on B1 and B2 + 11 visitor bays',
     },
-    model: { kind: 'furnished', design: 'kalakal-mall' }, floors: [], rooms,
+    model: { kind: 'furnished', design: 'kalakal-mall' }, floors: mallLevels.floors, rooms,
     // Camera positions in scene metres: +z east (the HMDA road), +x north.
     presets: [
       { id: 'street', name: 'From the road', position: [-17, 2.2, 57], target: [-1, 9.5, 12], fov: 50 },
@@ -310,6 +339,13 @@ function kalakalMall(): Property {
       { id: 'entrance', name: 'Entrance, eye level', position: [-3, 1.7, 31], target: [-1, 6, 10], fov: 55 },
       { id: 'parking', name: 'Visitor parking, eye level', position: [11, 1.6, 39], target: [5, 2.2, 27], fov: 50 },
       { id: 'top', name: 'Plan view', position: [0, 150, -0.01], target: [0, 0, 0] },
+      { id: 'b1', name: 'B1 · overview', position: [36, 24, 30], target: [0, -3.3, -7], level: -1 },
+      { id: 'b1-ramp', name: 'B1 · down the IN ramp', position: [2, 1.9, -23.6], target: [2, -2.6, -4], fov: 60, level: -1 },
+      { id: 'b1-aisle', name: 'B1 · west aisle, eye level', position: [-13.9, -1.75, -24], target: [-13.9, -2.2, 10], fov: 60, level: -1 },
+      { id: 'b1-lifts', name: 'B1 · lift lobby', position: [-15.6, -1.75, -7], target: [-10.9, -2.1, 2], fov: 58, level: -1 },
+      { id: 'b2', name: 'B2 · overview', position: [36, 21, 30], target: [0, -6.6, -7], level: -2 },
+      { id: 'b2-aisle', name: 'B2 · west aisle, eye level', position: [-13.9, -5.05, 10], target: [-13.9, -5.5, -24], fov: 60, level: -2 },
+      { id: 'b2-ramp', name: 'B2 · up the ramp to B1', position: [7.75, -4.9, 7], target: [7.75, -5.2, -20], fov: 60, level: -2 },
     ],
     media: [],
   }
@@ -382,6 +418,7 @@ function kalakalHotel(): Property {
  * the model's amenity_* hotspots.
  */
 function kalakalA01(): Property {
+  const a01Levels = basementFloors()
   const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
     id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
     dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
@@ -403,20 +440,26 @@ function kalakalA01(): Property {
     area('Service Court & Utility Yard', 'amenity_service', [143, 37],
       'Behind the block: a 6.5 m connector from the entry drive to the exit road, past the roller-shuttered service rooms in the rear wall; beyond it a lawn with rain trees and the fenced substation and generator yard in the north-west corner, all closed off from the cross road by an unbroken boundary wall.',
       ['Service connector, one way, drive to exit road', 'Transformer and DG set in a fenced yard', 'Roller-shuttered stores at the rear', 'Unbroken rear boundary wall'], ['Substation', 'Service access']),
+    basementArea(a01Levels.B1, -1, [159, 119], 28,
+      'The upper basement under the block, the connector and the forecourt. 3.5 m inside the portals in the block\'s south end, behind the height bars, the one-way IN and OUT ramps fall north at 1:6 and land in a turning area by the east cross aisle; the two-way ramp to B2 runs along the back wall from the west cross aisle. Bays face the east wall and the north aisle, parallel bays line the rest, all on trowelled concrete with painted bays, numbers and arrows, the blue level band on walls and columns, LED battens, jet fans and sprinklers overhead. The lifts and stair under the north tower open onto the east aisle.',
+      ['One-way IN and OUT ramps from the south portals, 3.2 m, 1:6', 'Two-way ramp to B2 along the back wall, 5.5 m', 'Lifts and stair under the north tower; fire stair at the south-west', 'EV charging and accessible bays']),
+    basementArea(a01Levels.B2, -2, [159, 119], 31,
+      'The lower basement, reached by the ramp along the back wall and laid out like B1, with its green level band; where the ramps from the ground stand on B1, B2 has a lane and a row of parallel bays. The fire pump room is in the north-west corner.',
+      ['Two-way ramp up to B1', 'Fire pump room', 'Lifts and two stairs']),
   ]
   return {
     id: 'p_kalakal_a01', slug: 'kalakal-a01', name: 'Kallakal Square', type: 'commercial', location: 'Kallakal, NH-44',
     tagline: 'Shops and a multi-storey car park behind a timber screen, with a glazed ramp drum, on the HMDA road frontage',
     thumbnailUrl: placeholderImage('Kallakal Square', 160, 800, 500),
-    stats: [{ label: 'Plot', value: '3,022 sq yd' }, { label: 'Floors', value: 'G + 3' }, { label: 'Facing', value: 'East' }],
+    stats: [{ label: 'Plot', value: '3,022 sq yd' }, { label: 'Floors', value: 'B2 + G + 3' }, { label: 'Facing', value: 'East' }],
     description:
       'A commercial building on Plot A-01 in Kallakal, facing east onto the 250 ft HMDA master plan road: shops on the ground floor and three parking decks above. The long block runs parallel to the road, its decks screened in vertical thermowood slats hung in staggered panels, some flush, some forward, with mid-grey infill panels and open bays among them between exposed concrete slab edges. A fully glazed drum holding the helical ramp stands proud of the front under a deep black crown with black returns either side, the main entrance at its foot. A cream stair tower with a tall glazed slit and a dark grey lift core close the north end. Traffic runs one way round the block: cars come in off the HMDA road down a drive along the south boundary to the portals in the block\'s south end, cross behind the block on a connector and leave by an exit road along the north boundary. The back of the plot is walled the full width, with no gate onto the cross road.',
     highlights: {
-      Plot: 'A-01 · 166′1″ × 165′5″ (3,022 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Ground (shops) + 3 parking decks',
+      Plot: 'A-01 · 166′1″ × 165′5″ (3,022 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: '2 basements + ground (shops) + 3 parking decks',
       Height: 'Parapet 15.15 m; drum crown 16.75 m', Plan: 'Block 38.8 × 17.2 m; ramp drum 14.8 m across', 'Façade': 'Thermowood slat screen, charcoal and grey composite, clear glass',
-      Setbacks: 'South 6.7 m (entry drive) · north 5.1 m (exit road) · rear 12.8 m · front 20.4 m', Parking: 'About 80 cars on three decks',
+      Setbacks: 'South 6.7 m (entry drive) · north 5.1 m (exit road) · rear 12.8 m · front 20.4 m', Parking: 'About 80 cars on three decks, 59 on B1 and B2',
     },
-    model: { kind: 'furnished', design: 'kalakal-a01' }, floors: [], rooms,
+    model: { kind: 'furnished', design: 'kalakal-a01' }, floors: a01Levels.floors, rooms,
     // Camera positions in scene metres: +z east (the HMDA road), +x north. The drum is centred at (-5.6, 6.6).
     presets: [
       { id: 'reference', name: 'As in the reference', position: [-13, 1.7, 40], target: [2, 7, 3], fov: 52 },
@@ -433,6 +476,13 @@ function kalakalA01(): Property {
       { id: 'drum', name: 'Ramp drum, close-up', position: [3, 2, 22], target: [-5.6, 8.5, 6], fov: 45 },
       { id: 'screen', name: 'Timber screen, close-up', position: [14, 3, 14], target: [10, 8.5, 5], fov: 45 },
       { id: 'top', name: 'Plan view', position: [0, 130, -0.01], target: [0, 0, 0] },
+      { id: 'b1', name: 'B1 · overview', position: [38, 22, 26], target: [0, -3.3, -6], level: -1 },
+      { id: 'b1-ramp', name: 'B1 · down the IN ramp', position: [-14.4, 1.7, -7.7], target: [5, -3.0, -7.7], fov: 60, level: -1 },
+      { id: 'b1-aisle', name: 'B1 · north aisle, eye level', position: [-14, -1.75, 6.3], target: [12, -2.2, 6.3], fov: 60, level: -1 },
+      { id: 'b1-lifts', name: 'B1 · lift lobby', position: [14.2, -1.75, -5.5], target: [19.3, -2.1, 2], fov: 58, level: -1 },
+      { id: 'b2', name: 'B2 · overview', position: [38, 19, 26], target: [0, -6.6, -6], level: -2 },
+      { id: 'b2-aisle', name: 'B2 · south aisle, eye level', position: [-14, -5.05, -15.3], target: [12, -5.5, -15.3], fov: 60, level: -2 },
+      { id: 'b2-ramp', name: 'B2 · up the ramp to B1', position: [12.6, -4.9, -21.25], target: [-8, -5.2, -21.25], fov: 60, level: -2 },
     ],
     media: [],
   }
@@ -445,6 +495,7 @@ function kalakalA01(): Property {
  * to the model's amenity_* hotspots.
  */
 function kalakalHospital(): Property {
+  const hospitalLevels = basementFloors()
   const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
     id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
     dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
@@ -465,10 +516,16 @@ function kalakalHospital(): Property {
       ['Granite-edged lawns and shade trees', 'Seating court with teak benches', 'Bollard lighting along the walk', 'Wayfinding monolith at the gate'], ['Healing garden', 'Seating']),
     area('Parking & Basement Ramp', 'amenity_parking', [64, 55],
       'Behind the building: the covered ramp down to the two basement parking levels, its mouth on the entry drive under a lit sign and a height bar, its roof planted; a row of bays along the back wall; and the aisle that carries the traffic round from the entry drive to the exit road. The back is walled off from the cross road, with no gate.',
-      ['Covered ramp to two basement levels, 2.4 m headroom', 'Seven surface bays with wheel stops', 'One-way loop: entry drive, aisle, exit road', 'Continuous boundary wall at the back'], ['Basement parking', 'Staff parking']),
+      ['Covered ramp to two basement levels, 2.2 m headroom', 'Seven surface bays with wheel stops', 'One-way loop: entry drive, aisle, exit road', 'Continuous boundary wall at the back'], ['Basement parking', 'Staff parking']),
     area('Utility Yard', 'amenity_service', [41, 30],
       'The fenced utility yard at the back, between the parking bays and the exit road: the liquid oxygen tank on its legs with its banks of vaporisers for the medical gas supply, the transformer, and the standby generator in its acoustic enclosure, near the service court and the stores\' roller shutters in the back wall.',
       ['Liquid oxygen tank and vaporisers', 'Transformer and standby generator', 'Service court with loading shutters'], ['Medical oxygen', 'Standby power']),
+    basementArea(hospitalLevels.B1, -1, [122, 215], 52,
+      'The upper basement, under the ward block, the rear yard and the drop-off lane. The covered ramp from the drive falls east at 1:6, two-way, and lands in the east cross aisle; from there the ramp to B2 starts under the front of the block. Bays run in bands across the plot between the west and east cross aisles, with parallel bays along the east wall, all on power-trowelled concrete with painted bays, numbers and arrows, rubber wheel stops, and the level\'s blue band on walls and columns; LED battens hang on drop rods under deep beams, with jet fans, an exhaust duct, a cable tray and the red sprinkler grid. The main lifts open onto the middle aisle through a glazed lobby, two accessible bays beside it; fire stairs at the front and the back.',
+      ['Two-way ramp from the drive, 5.5 m, 1:6, under cover for 18 m', 'Two-way ramp to B2, 5.5 m', 'Main lifts and two fire stairs', 'LT electrical room']),
+    basementArea(hospitalLevels.B2, -2, [122, 215], 59,
+      'The lower basement, reached by the ramp from the front of B1 and laid out like the level above with its own green band; where the entry ramp stands on B1 there is another row of bays. The fire pump room is at the back by the stair.',
+      ['Two-way ramp up to B1', 'Fire pump room', 'Main lifts and two fire stairs']),
   ]
   return {
     id: 'p_kalakal_hospital', slug: 'kalakal-hospital', name: 'Kallakal Hospital', type: 'commercial', location: 'Kallakal, NH-44',
@@ -481,8 +538,9 @@ function kalakalHospital(): Property {
       Plot: 'A-03 · 125′ × 294′6″ (4,090 sq yd)', Facing: 'East, onto the 250 ft HMDA road; 60 ft avenue to the north', Structure: '2 basements + ground + 3 floors',
       Height: 'Parapet 18.75 m; name band 20.25 m', Plan: 'Ward block 25.7 × 41 m round a 12 × 12 m light court', 'Façade': 'White GRC cladding, blue-grey curtain wall, white composite bands',
       Setbacks: 'South 7.25 m (entry drive) · north 5.15 m (exit road) · rear 18.9 m · front 30 m', Access: 'One way: in on the south side, out on the north; no access at the back',
+      Parking: '111 bays on B1 and B2 + 7 surface bays',
     },
-    model: { kind: 'furnished', design: 'kalakal-hospital' }, floors: [], rooms,
+    model: { kind: 'furnished', design: 'kalakal-hospital' }, floors: hospitalLevels.floors, rooms,
     // Camera positions in scene metres: +z east (the HMDA road), +x north. The main doors are at (6.1, 13).
     // The controls keep the camera from looking upwards (polar angle ≤ 86°), so every view looks level or down.
     presets: [
@@ -501,6 +559,13 @@ function kalakalHospital(): Property {
       { id: 'outpatient', name: 'Outpatient entrance', position: [-5, 1.7, 24], target: [-7.1, 0.7, 12], fov: 58 },
       { id: 'court', name: 'Light court from above', position: [1.5, 36, 2], target: [1.5, 9, -12], fov: 50 },
       { id: 'top', name: 'Plan view', position: [0, 200, -0.01], target: [0, 0, 0] },
+      { id: 'b1', name: 'B1 · overview', position: [36, 26, 24], target: [0, -3.3, -12], level: -1 },
+      { id: 'b1-ramp', name: 'B1 · down the entry ramp', position: [-12.4, 1.7, -31], target: [6, -3.0, -31], fov: 60, level: -1 },
+      { id: 'b1-aisle', name: 'B1 · driving aisle, eye level', position: [-11.5, -1.75, -20.05], target: [8, -2.2, -20.05], fov: 60, level: -1 },
+      { id: 'b1-lifts', name: 'B1 · lift lobby', position: [5, -1.75, -5.2], target: [-1.5, -2.1, -1.05], fov: 58, level: -1 },
+      { id: 'b2', name: 'B2 · overview', position: [36, 23, 24], target: [0, -6.6, -12], level: -2 },
+      { id: 'b2-aisle', name: 'B2 · driving aisle, eye level', position: [8, -5.05, -4.05], target: [-12, -5.5, -4.05], fov: 60, level: -2 },
+      { id: 'b2-ramp', name: 'B2 · up the ramp to B1', position: [-16.2, -4.9, 6.9], target: [2, -5.2, 6.9], fov: 60, level: -2 },
     ],
     media: [],
   }

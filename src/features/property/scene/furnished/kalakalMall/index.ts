@@ -1,7 +1,9 @@
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial } from 'three'
 import { GOLD } from '../../../../../lib/palette'
+import { Basement } from '../basement'
 import { Kit } from '../kit'
 import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shared'
+import { MALL_BASEMENT } from './basement'
 import { buildBuilding } from './building'
 import { Contact } from './contact'
 import { Planting } from './foliage'
@@ -73,6 +75,8 @@ export function buildKalakalMall(context = true): FurnishedModel {
   }
 
   const pool = new LightPool(root, () => 'exterior', 6)
+  // Two basement parking levels, built the first time a visitor goes below ground (not on the master plan).
+  const basement = context ? new Basement(root, k, lighting, pool, MALL_BASEMENT, SITE, highlights) : undefined
   // On foot from the road: up the walk, across the drop-off and onto the forecourt.
   const walk: WalkArea = {
     start: [ENTRY_X, 0.15, PLOT.z1 - 2.5],
@@ -96,5 +100,5 @@ export function buildKalakalMall(context = true): FurnishedModel {
     c.shopGlass.opacity = day ? 0.58 : 0.3
   }
   setSky(false)
-  return { root, highlights, walk, setDaylight: (day) => (lighting.set(day), setSky(day)), setZone: (z) => pool.setZone(z), syncLights: () => pool.sync() }
+  return { root, highlights, walk, setDaylight: (day) => (lighting.set(day), setSky(day)), setZone: (z) => pool.setZone(basement?.zone(z) ?? z), syncLights: () => pool.sync(), basement }
 }

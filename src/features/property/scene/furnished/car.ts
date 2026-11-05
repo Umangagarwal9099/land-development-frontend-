@@ -13,11 +13,12 @@ import {
  * moulded to the nose and tail; wheels are turned tyres with tread and sidewall over multi-spoke
  * alloys, discs and calipers; behind the tinted glass there are seats, a dashboard and a wheel.
  *
- * Three generic Indian-market cars, at real sizes: a compact SUV, a sedan and a hatchback.
- * Front is +z, the origin on the ground under the middle of the car, as for every piece here.
+ * Five generic Indian-market cars, at real sizes: a compact SUV, a sedan, a hatchback, a full-size
+ * ladder-frame SUV and a seven-seat MPV. Front is +z, the origin on the ground under the middle of
+ * the car, as for every piece here.
  */
 
-export type Body = 'crossover' | 'sedan' | 'hatch'
+export type Body = 'crossover' | 'sedan' | 'hatch' | 'suv' | 'mpv'
 
 type Key = [z: number, y: number][]
 
@@ -44,6 +45,8 @@ interface Spec {
   /** Black plastic cladding round the arches and sills (an SUV's), and roof rails. */
   cladding: boolean
   rails: boolean
+  /** How far ahead of the rear glass's end the rear door's shut line falls. */
+  rearDoor: number
 }
 
 const SPECS: Record<Body, Spec> = {
@@ -54,7 +57,7 @@ const SPECS: Record<Body, Spec> = {
     bottom: [[-2.16, 0.5], [-2.05, 0.4], [-1.85, 0.3], [-1.5, 0.24], [1.5, 0.24], [1.9, 0.3], [2.08, 0.38], [2.16, 0.48]],
     screen: [0.66, 0.08], back: [-2.1, -1.84], side: [-1.85, 0.6], bPillar: -0.25,
     head: [0.42, 0.84, 0.76, 0.88], tail: [0.5, 0.85, 0.98, 1.1], grille: [0.4, 0.5, 0.78], plate: [0.46, 0.62],
-    cladding: true, rails: true,
+    cladding: true, rails: true, rearDoor: 0.48,
   },
   sedan: {
     length: 4.55, width: 1.75, axles: [-1.265, 1.355], tyre: { r: 0.31, w: 0.185 },
@@ -63,7 +66,7 @@ const SPECS: Record<Body, Spec> = {
     bottom: [[-2.275, 0.45], [-2.15, 0.36], [-1.9, 0.26], [-1.5, 0.19], [1.6, 0.19], [2.0, 0.25], [2.2, 0.33], [2.275, 0.42]],
     screen: [0.82, 0.38], back: [-1.52, -1.0], side: [-1.33, 0.78], bPillar: -0.2,
     head: [0.4, 0.82, 0.68, 0.78], tail: [0.48, 0.84, 0.84, 0.95], grille: [0.38, 0.5, 0.68], plate: [0.42, 0.66],
-    cladding: false, rails: false,
+    cladding: false, rails: false, rearDoor: 0.33,
   },
   hatch: {
     length: 3.85, width: 1.735, axles: [-1.275, 1.175], tyre: { r: 0.3, w: 0.185 },
@@ -72,7 +75,27 @@ const SPECS: Record<Body, Spec> = {
     bottom: [[-1.925, 0.45], [-1.8, 0.34], [-1.55, 0.22], [1.4, 0.2], [1.7, 0.27], [1.88, 0.36], [1.925, 0.44]],
     screen: [0.78, 0.38], back: [-1.88, -1.66], side: [-1.62, 0.76], bPillar: -0.15,
     head: [0.4, 0.8, 0.72, 0.84], tail: [0.62, 0.85, 0.82, 1.12], grille: [0.36, 0.5, 0.66], plate: [0.44, 0.64],
-    cladding: false, rails: false,
+    cladding: false, rails: false, rearDoor: 0.33,
+  },
+  // A tall, upright body-on-frame SUV: square tail, near-flat roof, a long bonnet over big tyres.
+  suv: {
+    length: 4.75, width: 1.855, axles: [-1.35, 1.4], tyre: { r: 0.38, w: 0.265 },
+    top: [[-2.375, 0.7], [-2.37, 1.12], [-2.355, 1.45], [-2.31, 1.68], [-2.18, 1.79], [-1.7, 1.83], [-0.4, 1.84], [0.3, 1.82], [0.5, 1.75], [0.98, 1.36], [1.65, 1.27], [2.18, 1.19], [2.33, 1.07], [2.375, 0.78]],
+    belt: [[-2.375, 1.12], [-2.2, 1.3], [-1.0, 1.3], [0.95, 1.26], [1.8, 1.19], [2.375, 1.02]],
+    bottom: [[-2.375, 0.62], [-2.27, 0.48], [-2.02, 0.38], [-1.65, 0.32], [1.65, 0.32], [2.02, 0.38], [2.27, 0.48], [2.375, 0.6]],
+    screen: [0.95, 0.45], back: [-2.35, -2.2], side: [-2.12, 0.9], bPillar: -0.32,
+    head: [0.46, 0.86, 0.88, 1.02], tail: [0.62, 0.9, 1.0, 1.32], grille: [0.44, 0.62, 0.98], plate: [0.52, 0.74],
+    cladding: true, rails: true, rearDoor: 0.5,
+  },
+  // A seven-seat MPV: a long, high roof over three rows, a short sloping nose.
+  mpv: {
+    length: 4.4, width: 1.735, axles: [-1.3, 1.44], tyre: { r: 0.32, w: 0.185 },
+    top: [[-2.2, 0.62], [-2.19, 0.96], [-2.16, 1.26], [-2.09, 1.5], [-1.94, 1.64], [-1.5, 1.69], [-0.2, 1.69], [0.25, 1.64], [0.45, 1.55], [1.02, 1.08], [1.62, 0.98], [2.06, 0.9], [2.17, 0.78], [2.2, 0.6]],
+    belt: [[-2.2, 0.96], [-2.0, 1.1], [-1.0, 1.08], [0.92, 1.0], [1.7, 0.92], [2.2, 0.76]],
+    bottom: [[-2.2, 0.48], [-2.08, 0.38], [-1.85, 0.27], [-1.55, 0.21], [1.6, 0.21], [1.95, 0.27], [2.12, 0.36], [2.2, 0.46]],
+    screen: [0.98, 0.32], back: [-2.15, -1.97], side: [-2.0, 0.94], bPillar: -0.05,
+    head: [0.42, 0.82, 0.74, 0.86], tail: [0.56, 0.84, 1.0, 1.3], grille: [0.38, 0.5, 0.7], plate: [0.46, 0.64],
+    cladding: false, rails: true, rearDoor: 0.62,
   },
 }
 
@@ -503,31 +526,32 @@ const grilleMap = paint.bind(null, 256, 128, (g, w, h) => {
   g.strokeRect(0, 0, w, h)
 })
 
-/** An Indian high-security number plate: white, black letters, the IND strip and hologram. */
-const plateMap = (text: string) =>
-  paint(512, 112, (g, w, h) => {
-    g.fillStyle = '#f4f3ee'
-    g.fillRect(0, 0, w, h)
-    g.strokeStyle = '#111'
-    g.lineWidth = 6
-    g.strokeRect(5, 5, w - 10, h - 10)
-    g.fillStyle = '#1d4fa3'
-    g.fillRect(16, 16, 46, h - 32)
-    g.fillStyle = '#fff'
-    g.font = '700 17px Helvetica, Arial, sans-serif'
-    g.textAlign = 'center'
-    g.fillText('IND', 39, h - 26)
-    g.strokeStyle = '#9fb7d8'
-    g.lineWidth = 2
-    g.beginPath()
-    g.arc(39, 38, 11, 0, 7)
-    g.stroke()
-    g.fillStyle = '#111'
-    g.font = '700 64px "Arial Narrow", Helvetica, Arial, sans-serif'
-    g.textAlign = 'center'
-    g.textBaseline = 'middle'
-    g.fillText(text, w / 2 + 26, h / 2 + 3)
-  })
+/** Draws an Indian high-security number plate, white with black letters, the IND strip and hologram, in a w × h cell. */
+export function drawPlate(g: CanvasRenderingContext2D, text: string, w = 512, h = 112) {
+  g.fillStyle = '#f4f3ee'
+  g.fillRect(0, 0, w, h)
+  g.strokeStyle = '#111'
+  g.lineWidth = 6
+  g.strokeRect(5, 5, w - 10, h - 10)
+  g.fillStyle = '#1d4fa3'
+  g.fillRect(16, 16, 46, h - 32)
+  g.fillStyle = '#fff'
+  g.font = '700 17px Helvetica, Arial, sans-serif'
+  g.textAlign = 'center'
+  g.fillText('IND', 39, h - 26)
+  g.strokeStyle = '#9fb7d8'
+  g.lineWidth = 2
+  g.beginPath()
+  g.arc(39, 38, 11, 0, 7)
+  g.stroke()
+  g.fillStyle = '#111'
+  g.font = '700 64px "Arial Narrow", Helvetica, Arial, sans-serif'
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  g.fillText(text, w / 2 + 26, h / 2 + 3)
+  }
+
+const plateMap = (text: string) => paint(512, 112, (g, w, h) => drawPlate(g, text, w, h))
 
 /* ---------- materials ---------- */
 
@@ -558,12 +582,19 @@ function materials() {
   }
 }
 
+/** Whites and blacks are solid pigment; every other colour is a metallic. */
+export const isSolidPaint = (colour: string) => {
+  const l = new Color(colour).getHSL({ h: 0, s: 0, l: 0 }).l
+  return l > 0.85 || l < 0.12
+}
+
 /** Car paint: clearcoat over solid pigment (whites, blacks) or over metallic flake (the rest). */
 function paintMaterial(colour: string) {
   return mat(`paint:${colour}`, () => {
-    const l = new Color(colour).getHSL({ h: 0, s: 0, l: 0 }).l
-    const solid = l > 0.85 || l < 0.12
-    return new MeshPhysicalMaterial({ color: colour, vertexColors: true, metalness: solid ? 0.0 : 0.55, roughness: solid ? 0.32 : 0.4, clearcoat: 1, clearcoatRoughness: 0.035 })
+    const solid = isSolidPaint(colour)
+    const m = new MeshPhysicalMaterial({ color: colour, vertexColors: true, metalness: solid ? 0.0 : 0.55, roughness: solid ? 0.32 : 0.4, clearcoat: 1, clearcoatRoughness: 0.035 })
+    m.userData.paint = 'body'
+    return m
   })
 }
 
@@ -573,6 +604,7 @@ function partPaint(colour: string) {
     const base = paintMaterial(colour)
     const m = base.clone()
     m.vertexColors = false
+    m.userData.paint = 'part'
     return m
   })
 }
@@ -589,7 +621,7 @@ const cached = <T>(key: string, make: () => T) => {
 
 const STATES = ['TS 08', 'TS 09', 'TS 07', 'TS 10', 'AP 39']
 let plates = 0
-const plateNumber = () => {
+export const plateNumber = () => {
   const n = plates++
   const letters = 'ABCDEFGHJKLMNPRSTUVWXYZ'
   return `${STATES[n % STATES.length]} ${letters[(n * 7) % 23]}${letters[(n * 11 + 3) % 23]} ${String(1000 + ((n * 7919) % 9000)).padStart(4, '0')}`
@@ -635,9 +667,9 @@ export function parkedCar(parent: Object3D, body: Body, colour: string, x: numbe
   const [gh, gy0, gy1] = s.grille
   add(cached(`${body}:grille`, () => endPatch(shape, 1, -gh, gh, gy0, gy1, 0.003, 20, 6)), m.grille, false)
   add(cached(`${body}:chromebar`, () => endPatch(shape, 1, -gh * 0.95, gh * 0.95, gy1 + 0.005, gy1 + 0.022, 0.005, 20, 1)), m.chrome, false)
-  if (body !== 'crossover') add(cached(`${body}:lowergrille`, () => endPatch(shape, 1, -gh * 0.9, gh * 0.9, 0.3, 0.42, 0.003, 18, 3)), m.grille, false)
+  if (!s.cladding) add(cached(`${body}:lowergrille`, () => endPatch(shape, 1, -gh * 0.9, gh * 0.9, 0.3, 0.42, 0.003, 18, 3)), m.grille, false)
   const number = plateNumber()
-  const plate = mat(`plate:${number}`, () => new MeshStandardMaterial({ map: plateMap(number), roughness: 0.45 }))
+  const plate = mat(`plate:${number}`, () => new MeshStandardMaterial({ map: plateMap(number), roughness: 0.45, userData: { plate: number } }))
   const plateGeo = cached('plate', () => {
     // 520 × 112 mm, facing +z.
     const q = new BufferGeometry()
@@ -657,7 +689,7 @@ export function parkedCar(parent: Object3D, body: Body, colour: string, x: numbe
   }
 
   // Shut lines: bonnet-to-wing is in the shell's shape; doors are drawn as fine dark lines.
-  const doors = [s.side[1] + 0.12, s.bPillar - 0.04, body === 'crossover' ? s.side[0] + 0.48 : s.side[0] + 0.33]
+  const doors = [s.side[1] + 0.12, s.bPillar - 0.04, s.side[0] + s.rearDoor]
   for (const side of [-1, 1] as const)
     for (const dz of doors) add(cached(`${body}:door${side}:${dz}`, () => sideLine(shape, dz, 0.42, shape.section(dz).yB - 0.01, 0.004, side)), m.seam, false)
 

@@ -65,7 +65,8 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
   const walkable = property.model.kind === 'furnished' && WALKABLE.has(property.model.design)
   const walk = useCallback(() => {
     closeRoomView()
-    selectRoom(null)
+    // Walks start on the ground, at the way in from the road.
+    selectRoom(null, null)
     setAboutOpen(false)
     startWalking()
   }, [closeRoomView, selectRoom, setAboutOpen, startWalking])
@@ -161,17 +162,19 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
 
 /**
  * Cut-away floor selector, styled like an elevator panel. Choosing a level hides everything
- * above it so the buyer looks straight into those rooms.
+ * above it so the buyer looks straight into those rooms. A building with basements but no upper
+ * floors shows G for the whole building above ground, then B1 and B2 below it.
  */
 function FloorRail({ property }: { property: Property }) {
   const activeLevel = useViewerStore((s) => s.activeLevel)
   const setActiveLevel = useViewerStore((s) => s.setActiveLevel)
   if (property.floors.length < 2) return null
   const floors = [...property.floors].sort((a, b) => b.level - a.level)
-  const short = (name: string, level: number) => (level === 0 ? 'G' : /\d+/.exec(name)?.[0] ?? String(level))
+  const upper = floors.some((f) => f.level > 0)
+  const short = (name: string, level: number) => (level === 0 ? 'G' : level < 0 ? `B${-level}` : /\d+/.exec(name)?.[0] ?? String(level))
 
-  const options = [{ key: 'all', label: 'All', title: 'Whole home', level: null as number | null }].concat(
-    floors.map((f) => ({ key: f.id, label: short(f.name, f.level), title: f.name, level: f.level })),
+  const options = (upper ? [{ key: 'all', label: 'All', title: 'Whole home', level: null as number | null }] : []).concat(
+    floors.map((f) => ({ key: f.id, label: short(f.name, f.level), title: f.name, level: f.level === 0 && !upper ? null : f.level })),
   )
 
   return (
@@ -183,22 +186,26 @@ function FloorRail({ property }: { property: Property }) {
     >
       <p className="eyebrow mb-3 pl-1 text-ivory/40">Levels</p>
       <div className="glass pointer-events-auto flex flex-col gap-1 rounded-[1.75rem] p-1.5">
-        {options.map((o) => {
+        {options.map((o, i) => {
           const on = activeLevel === o.level
+          // A hairline between the ground and the levels below it.
+          const below = o.level !== null && o.level < 0 && (i === 0 || (options[i - 1].level ?? 0) >= 0)
           return (
-            <button
-              key={o.key}
-              onClick={() => setActiveLevel(o.level)}
-              title={o.title}
-              aria-pressed={on}
-              className={clsx(
-                'relative flex h-14 w-14 items-center justify-center rounded-full font-display text-xl transition-colors duration-300',
-                on ? 'text-ink' : 'text-ivory/70 hover:text-ivory',
-              )}
-            >
-              {on && <motion.span layoutId="floor-active" className="absolute inset-0 rounded-full bg-gold" transition={{ type: 'spring', stiffness: 320, damping: 30 }} />}
-              <span className={clsx('relative', o.key === 'all' && 'font-sans text-[0.65rem] font-bold uppercase tracking-[0.15em]')}>{o.label}</span>
-            </button>
+            <div key={o.key} className="flex flex-col gap-1">
+              {below && <span className="mx-3 my-0.5 h-px bg-ivory/15" aria-hidden />}
+              <button
+                onClick={() => setActiveLevel(o.level)}
+                title={o.title}
+                aria-pressed={on}
+                className={clsx(
+                  'relative flex h-14 w-14 items-center justify-center rounded-full font-display text-xl transition-colors duration-300',
+                  on ? 'text-ink' : 'text-ivory/70 hover:text-ivory',
+                )}
+              >
+                {on && <motion.span layoutId="floor-active" className="absolute inset-0 rounded-full bg-gold" transition={{ type: 'spring', stiffness: 320, damping: 30 }} />}
+                <span className={clsx('relative', o.key === 'all' && 'font-sans text-[0.65rem] font-bold uppercase tracking-[0.15em]')}>{o.label}</span>
+              </button>
+            </div>
           )
         })}
       </div>

@@ -1,9 +1,11 @@
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial } from 'three'
 import { GOLD } from '../../../../../lib/palette'
+import { Basement } from '../basement'
 import { Kit } from '../kit'
 import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shared'
 import { Contact } from '../kalakalMall/contact'
 import { Planting } from '../kalakalMall/foliage'
+import { HOSPITAL_BASEMENT } from './basement'
 import { buildBuilding } from './building'
 import { hospitalMaterials } from './materials'
 import { CANOPY, DRIVE, ER, GARDEN, GL, LANE, MAIN, PARK, PLAN_CENTRE_Z, PLOT, RAMP, TOWER, WALK, YARD } from './plan'
@@ -77,6 +79,8 @@ export function buildKalakalHospital(context = true): FurnishedModel {
   }
 
   const pool = new LightPool(root, () => 'exterior', 6)
+  // Two basement parking levels, built the first time a visitor goes below ground (not on the master plan).
+  const basement = context ? new Basement(root, k, lighting, pool, HOSPITAL_BASEMENT, SITE, highlights) : undefined
   // On foot from the road: up the entrance walk towards the main doors.
   const walk: WalkArea = {
     start: [(WALK.x0 + WALK.x1) / 2, GL, PLOT.z1 - 2.5],
@@ -106,7 +110,8 @@ export function buildKalakalHospital(context = true): FurnishedModel {
     highlights,
     walk,
     setDaylight: (day) => (lighting.set(day), setSky(day)),
-    setZone: (z) => pool.setZone(z),
+    setZone: (z) => pool.setZone(basement?.zone(z) ?? z),
     syncLights: () => pool.sync(),
+    basement,
   }
 }

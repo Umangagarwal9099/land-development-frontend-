@@ -1,9 +1,10 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Object3D } from 'three'
 import type { FurnishedDesign, Room } from '../../../api/types'
 import { disposeObject, prepareOnGpu } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
+import { useViewerStore } from '../../../store/viewer'
 import { useWalkStore } from '../../../store/walk'
 import { furnishedModel, isBuilt, isCached, type FurnishedModel as Model } from './furnished'
 import { stepCircuits } from './furnished/kalakalD65/fixtures'
@@ -98,6 +99,8 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
     model.syncLights?.()
     // Running water keeps frames coming while it is in view.
     if (model.animate?.(state.clock.elapsedTime, state.camera)) state.invalidate()
+    // Below ground, the services overhead come and go as the camera enters the level or rises out of it.
+    if (model.basement?.frame(state.camera)) state.invalidate()
   })
 
   const daylight = useStageStore((s) => s.daylight)
@@ -105,6 +108,8 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
     model.setDaylight?.(daylight)
     invalidate()
   }, [model, daylight, invalidate])
+
+  useBasement(model, onReady)
 
   // Leaving the property releases a one-off model from GPU memory. A kept model stays for the next
   // visit, with its doors, drawers and fittings put back as they were found.
@@ -142,6 +147,65 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
       {walkingNow && model.walk && <WalkController root={model.root} area={model.walk} setZone={setWalkZone} rooms={roomNames} />}
     </>
   )
+}
+
+/**
+ * Shows the level chosen on the level rail. The basements are built the first time one is
+ * chosen, behind the stage loader (building, uploading, compiling, as for the model itself), so
+ * the building above opens no slower for having them. Ready, the model reports in again, so
+ * hotspots and the room viewer find the new levels.
+ */
+function useBasement(model: Model, onReady: () => void) {
+  const activeLevel = useViewerStore((s) => s.activeLevel)
+  const gl = useThree((s) => s.gl)
+  const camera = useThree((s) => s.camera)
+  const scene = useThree((s) => s.scene)
+  const invalidate = useThree((s) => s.invalidate)
+  const setLoading = useStageStore((s) => s.setLoading)
+  const setSceneReady = useStageStore((s) => s.setSceneReady)
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const basement = model.basement
+    if (!basement) return
+    const below = activeLevel !== null && activeLevel < 0
+    if (!below || basement.ready) {
+      basement.show(activeLevel)
+      // The sun's shadows change with what is shown (see PropertyScene).
+      // oxlint-disable-next-line react/immutability -- the renderer is configured imperatively
+      gl.shadowMap.needsUpdate = true
+      invalidate()
+      return
+    }
+    let live = true
+    let started = false
+    setSceneReady(false)
+    setLoading({ label: 'Building the basement', progress: 0.05 })
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        started = true
+        basement.build()
+        basement.show(activeLevel)
+        setLoading({ label: 'Uploading finishes', progress: 0.35 })
+        void prepareOnGpu(basement.root, gl, camera, scene, {
+          live: () => live,
+          onProgress: (f) => setLoading(f < 1 ? { label: 'Uploading finishes', progress: 0.35 + 0.5 * f } : { label: 'Compiling materials', progress: 0.9 }),
+        }).then(() => mounted.current && onReady())
+      })
+    })
+    return () => {
+      live = false
+      cancelAnimationFrame(frame)
+      // Left before building began: nothing to wait for.
+      if (!started && mounted.current) setSceneReady(true)
+    }
+  }, [model, activeLevel, gl, camera, scene, invalidate, setLoading, setSceneReady, onReady])
 }
 
 /** Closes every door and drawer and stops every spinner, instantly. */

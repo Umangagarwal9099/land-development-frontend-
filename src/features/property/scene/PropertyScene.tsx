@@ -11,6 +11,7 @@ import { useStageStore } from '../../../store/stage'
 import { useViewerStore } from '../../../store/viewer'
 import { Floor, Plinth, SceneLighting, Trees, useFog } from '../../../stage/environment'
 import { FURNISHED_DESIGNS } from './furnished'
+import { LEVEL_Y, type BasementSpec } from './furnished/basement'
 import { ModelRoot } from './ModelRoot'
 
 const PLINTH_HEIGHT = 0.8
@@ -61,6 +62,11 @@ export default function PropertyScene({ slug }: { slug: string }) {
   const radius = Math.hypot(site.maxX - site.minX, site.maxZ - site.minZ) / 2
   useFog(radius * 3, radius * 9)
 
+  // Below ground the plinth gives way to the section of earth the basement level is cut from.
+  const basement = property.model.kind === 'furnished' ? FURNISHED_DESIGNS[property.model.design].basement : undefined
+  const activeLevel = useViewerStore((st) => st.activeLevel)
+  const levelY = basement && activeLevel !== null && activeLevel < 0 ? LEVEL_Y[activeLevel] : null
+
   const gl = useThree((st) => st.gl)
   const invalidate = useThree((st) => st.invalidate)
   const daylight = useStageStore((st) => st.daylight)
@@ -69,7 +75,7 @@ export default function PropertyScene({ slug }: { slug: string }) {
     gl.shadowMap.needsUpdate = true
     setSceneReady(true)
   }, [gl, setSceneReady])
-  usePropertyCamera(property, site, radius)
+  usePropertyCamera(property, site, radius, basement)
 
   // The property's shadows only change when the sun moves or something in the model does, so the
   // shadow maps aren't re-rendered on every frame the camera moves: only when asked (needsUpdate).
@@ -89,16 +95,16 @@ export default function PropertyScene({ slug }: { slug: string }) {
 
   return (
     <group>
-      <SceneLighting radius={radius} center={[(site.minX + site.maxX) / 2, 0, (site.minZ + site.maxZ) / 2]} />
-      <Floor y={-PLINTH_HEIGHT} size={radius * 30} />
-      <Plinth {...site} height={PLINTH_HEIGHT} color="#1d2320" />
+      <SceneLighting radius={radius} center={[(site.minX + site.maxX) / 2, 0, (site.minZ + site.maxZ) / 2]} underground={levelY !== null} />
+      <Floor y={levelY === null ? -PLINTH_HEIGHT : levelY - PLINTH_HEIGHT - 0.02} size={radius * 30} />
+      {levelY === null && <Plinth {...site} height={PLINTH_HEIGHT} color="#1d2320" />}
       <Trees points={trees} scale={0.8} />
       <ModelRoot property={property} site={siteBox} interactive={mode === 'explore'} onReady={onReady} />
     </group>
   )
 }
 
-function usePropertyCamera(property: Property, site: Site, radius: number) {
+function usePropertyCamera(property: Property, site: Site, radius: number, basement?: BasementSpec) {
   const controls = useStageStore((s) => s.controls)
   const mode = useStageStore((s) => s.mode)
   const setHome = useStageStore((s) => s.setHome)
@@ -155,11 +161,23 @@ function usePropertyCamera(property: Property, site: Site, radius: number) {
     [camera, invalidate],
   )
 
+  // Set while a preset changes the level itself, so the level's own flight (below) stands aside.
+  const presetLevel = useRef(false)
   const goToPreset = useCallback(
     async (id: string | undefined, smoothTime = 0.9) => {
       if (!controls) return
       const p = property.presets.find((x) => x.id === id) ?? property.presets[0]
       if (!p) return
+      // A view below ground takes the visitor to its level; any other view comes back up.
+      const viewer = useViewerStore.getState()
+      const level = p.level ?? null
+      const current = viewer.activeLevel !== null && viewer.activeLevel < 0 ? viewer.activeLevel : null
+      if (basement && level !== current) {
+        presetLevel.current = true
+        viewer.setActiveLevel(level)
+      }
+      // The pivot is held inside the boundary as the flight sets off, so lower it first.
+      if (basement) controls.setBoundary(new Box3(new Vector3(site.minX, level === null ? 0 : LEVEL_Y[level], site.minZ), new Vector3(site.maxX, 14, site.maxZ)))
       setLens(p.fov ?? baseFov.current)
       controls.smoothTime = smoothTime
       void controls.setFocalOffset(0, 0, 0, true)
@@ -167,7 +185,7 @@ function usePropertyCamera(property: Property, site: Site, radius: number) {
       controls.smoothTime = BASE_SMOOTH_TIME
       if (useViewerStore.getState().aboutOpen) applyInset(controls, panelInset())
     },
-    [controls, property.presets, setLens],
+    [controls, property.presets, setLens, basement, site],
   )
 
   useEffect(() => {
@@ -208,4 +226,27 @@ function usePropertyCamera(property: Property, site: Site, radius: number) {
   useEffect(() => {
     if (preset) void goToPreset(preset.id)
   }, [preset, goToPreset])
+
+  // Changing level: the camera's pivot may go down to the level's floor, and the camera descends
+  // to look into it from above, or returns to the building.
+  const activeLevel = useViewerStore((s) => s.activeLevel)
+  const lastLevel = useRef<number | null>(null)
+  useEffect(() => {
+    if (!controls || !basement) return
+    const below = activeLevel !== null && activeLevel < 0
+    const was = lastLevel.current
+    lastLevel.current = below ? activeLevel : null
+    const y = below ? LEVEL_Y[activeLevel] : 0
+    controls.setBoundary(new Box3(new Vector3(site.minX, y, site.minZ), new Vector3(site.maxX, 14, site.maxZ)))
+    if (presetLevel.current) {
+      presetLevel.current = false
+      return
+    }
+    if (useViewerStore.getState().roomViewId) return
+    if (below) {
+      const b = basement.box
+      const sphere = new Sphere(new Vector3((b.x0 + b.x1) / 2, y, (b.z0 + b.z1) / 2), Math.hypot(b.x1 - b.x0, b.z1 - b.z0) * 0.42)
+      void frameSphere(controls, sphere, { polar: 46, smoothTime: 1.1 })
+    } else if (was !== null) void goToPreset(undefined, 1.1)
+  }, [controls, basement, activeLevel, site, goToPreset])
 }

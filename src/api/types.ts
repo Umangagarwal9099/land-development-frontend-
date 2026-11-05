@@ -44,6 +44,8 @@ export interface CameraPreset {
   target: Vec3
   /** Vertical field of view in degrees, for a view matched to a photograph's lens. */
   fov?: number
+  /** A view of a basement level (−1, −2): choosing it takes the visitor down to that level. */
+  level?: number
 }
 
 export interface Floor {

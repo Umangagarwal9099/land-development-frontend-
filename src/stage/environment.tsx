@@ -37,18 +37,26 @@ export function useFog(near: number, far: number) {
  * fill, and a locally generated environment for reflections. drei's <Environment preset> fetches
  * HDRIs from a CDN, which would break the offline kiosk; Lightformers render on the GPU instead.
  */
-export function SceneLighting({ radius, center = [0, 0, 0] }: { radius: number; center?: [number, number, number] }) {
+export function SceneLighting({ radius, center = [0, 0, 0], underground = false }: { radius: number; center?: [number, number, number]; underground?: boolean }) {
   const [cx, , cz] = center
   const r = radius * 1.15
   // Daylight: a higher, whiter sun and a bright sky fill in place of the warm low evening key.
   const day = useStageStore((s) => s.daylight)
+  // Below ground the day doesn't reach: an even, cool wash from overhead stands for the car park's
+  // rows of LED battens (which glow themselves), at the same strength day and night.
+  const hemi: [string, string, number] = underground ? ['#e8eef7', '#8a8780', 1.2] : day ? ['#e6f0fb', '#5d5648', 1.6] : ['#d9e2f2', '#1a1712', 0.75]
+  const key: [number, number, number] = underground
+    ? [cx + radius * 0.12, radius * 1.8, cz + radius * 0.08]
+    : day
+      ? [cx + radius * 0.5, radius * 1.8, cz + radius * 0.4]
+      : [cx + radius * 0.8, radius * 1.3, cz + radius * 0.55]
   return (
     <>
-      <hemisphereLight args={day ? ['#e6f0fb', '#5d5648', 1.6] : ['#d9e2f2', '#1a1712', 0.75]} />
+      <hemisphereLight args={hemi} />
       <directionalLight
-        position={day ? [cx + radius * 0.5, radius * 1.8, cz + radius * 0.4] : [cx + radius * 0.8, radius * 1.3, cz + radius * 0.55]}
-        intensity={day ? 3.4 : 2.4}
-        color={day ? '#fff6e8' : '#ffe6c2'}
+        position={key}
+        intensity={underground ? 1.5 : day ? 3.4 : 2.4}
+        color={underground ? '#f1f5ff' : day ? '#fff6e8' : '#ffe6c2'}
         castShadow
         shadow-mapSize={[4096, 4096]}
         shadow-bias={-0.0004}
@@ -62,7 +70,13 @@ export function SceneLighting({ radius, center = [0, 0, 0] }: { radius: number; 
       >
         <object3D attach="target" position={[cx, 0, cz]} />
       </directionalLight>
-      <directionalLight position={[cx - radius, radius * 0.5, cz - radius]} intensity={day ? 0.8 : 0.45} color="#8fa6c9" />
+      <directionalLight position={[cx - radius, radius * 0.5, cz - radius]} intensity={underground ? 0.25 : day ? 0.8 : 0.45} color="#8fa6c9" />
+      {/* Light thrown back up off the floor and walls onto the soffit, beams and services. */}
+      {underground && (
+        <directionalLight position={[cx + radius * 0.2, -radius, cz - radius * 0.1]} intensity={0.7} color="#e4e9f0">
+          <object3D attach="target" position={[cx, 0, cz]} />
+        </directionalLight>
+      )}
     </>
   )
 }

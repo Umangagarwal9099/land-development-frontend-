@@ -1,10 +1,14 @@
 import type { FurnishedDesign } from '../../../../api/types'
 import { whenIdle } from '../../../../lib/idle'
+import type { BasementSpec } from './basement'
 import { buildKalakalA01, SITE as KALAKAL_A01_SITE } from './kalakalA01'
+import { A01_BASEMENT } from './kalakalA01/basement'
 import { buildKalakalHotel, SITE as KALAKAL_HOTEL_SITE } from './kalakalHotel'
 import { buildKalakalHospital, SITE as KALAKAL_HOSPITAL_SITE } from './kalakalHospital'
+import { HOSPITAL_BASEMENT } from './kalakalHospital/basement'
 import { buildKalakalD65, SITE as KALAKAL_D65_SITE } from './kalakalD65'
 import { buildKalakalMall, SITE as KALAKAL_MALL_SITE } from './kalakalMall'
+import { MALL_BASEMENT } from './kalakalMall/basement'
 import { buildNyshasHaven, SITE as NYSHAS_HAVEN_SITE } from './nyshasHaven'
 import { DETAIL_RADIUS, LIVE_ON_PLAN, mergeStatic, prepareRaycast } from './optimize'
 import type { FurnishedModel } from './shared'
@@ -24,16 +28,18 @@ interface FurnishedDesignEntry {
    * then kept: re-entering the property is instant. For designs with thousands of small parts.
    */
   optimized?: boolean
+  /** Basement parking levels under the building (see basement/), for the camera and the section view. */
+  basement?: BasementSpec
 }
 
 /** Every furnished design: how to build it, and the extent of its landscaped grounds. */
 export const FURNISHED_DESIGNS: Record<FurnishedDesign, FurnishedDesignEntry> = {
   'nyshas-haven': { build: buildNyshasHaven, site: NYSHAS_HAVEN_SITE, landscaped: true },
   'kalakal-d65': { build: () => buildKalakalD65(), buildOnPlot: () => buildKalakalD65(false), site: KALAKAL_D65_SITE, landscaped: true, optimized: true },
-  'kalakal-mall': { build: () => buildKalakalMall(), buildOnPlot: () => buildKalakalMall(false), site: KALAKAL_MALL_SITE, landscaped: true, optimized: true },
+  'kalakal-mall': { build: () => buildKalakalMall(), buildOnPlot: () => buildKalakalMall(false), site: KALAKAL_MALL_SITE, landscaped: true, optimized: true, basement: MALL_BASEMENT },
   'kalakal-hotel': { build: () => buildKalakalHotel(), buildOnPlot: () => buildKalakalHotel(false), site: KALAKAL_HOTEL_SITE, landscaped: true, optimized: true },
-  'kalakal-a01': { build: () => buildKalakalA01(), buildOnPlot: () => buildKalakalA01(false), site: KALAKAL_A01_SITE, landscaped: true, optimized: true },
-  'kalakal-hospital': { build: () => buildKalakalHospital(), buildOnPlot: () => buildKalakalHospital(false), site: KALAKAL_HOSPITAL_SITE, landscaped: true, optimized: true },
+  'kalakal-a01': { build: () => buildKalakalA01(), buildOnPlot: () => buildKalakalA01(false), site: KALAKAL_A01_SITE, landscaped: true, optimized: true, basement: A01_BASEMENT },
+  'kalakal-hospital': { build: () => buildKalakalHospital(), buildOnPlot: () => buildKalakalHospital(false), site: KALAKAL_HOSPITAL_SITE, landscaped: true, optimized: true, basement: HOSPITAL_BASEMENT },
 }
 
 const built = new Map<string, FurnishedModel>()
