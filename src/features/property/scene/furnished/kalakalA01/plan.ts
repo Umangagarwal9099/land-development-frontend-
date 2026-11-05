@@ -72,9 +72,13 @@ export const LIFT = { x0: 16.6, x1: STAIR.x0, z0: 1.4, z1: BLOCK.z1 + 0.3, top: 
 
 /** The entry drive along the south boundary, one way in, and the vehicle portals in the block's south end. */
 export const DRIVE = { x0: PLOT.x0 + 0.23, x1: -19.3 }
+/**
+ * In order along the block's south end (by z). Cars come down the drive from the road (+z), so they
+ * pass the entry first and leave by the exit beyond it, carrying on the way they were going.
+ */
 export const PORTALS = [
-  { z0: -9.5, z1: -5.9, label: 'in' },
-  { z0: -5.3, z1: -1.7, label: 'out' },
+  { z0: -9.5, z1: -5.9, label: 'out' },
+  { z0: -5.3, z1: -1.7, label: 'in' },
 ] as const
 export const PORTAL_H = 2.75
 /**

@@ -1019,7 +1019,8 @@ export function buildRamp(ctx: Ctx, r: RampSpec): Group {
   const pitch = Math.atan(r.slope)
   const downYaw = yawOf(r.down)
   for (let s = 4; s < L - 3; s += 7) {
-    const lanes: [number, number][] = r.traffic === 'two-way' ? [[0.27, downYaw], [0.73, downYaw + PI]] : [[0.5, r.traffic === 'in' ? downYaw : downYaw + PI]]
+    const down = r.downSide ? 0.73 : 0.27
+    const lanes: [number, number][] = r.traffic === 'two-way' ? [[down, downYaw], [1 - down, downYaw + PI]] : [[0.5, r.traffic === 'in' ? downYaw : downYaw + PI]]
     for (const [t, yaw] of lanes) {
       const [x, z] = rampPoint(r, s, t)
       const o = floorMark(g, arrowGeo, arrowMat, x, rampY(r, s) + 0.012, z, yaw)

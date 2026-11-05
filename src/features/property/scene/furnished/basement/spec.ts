@@ -43,6 +43,11 @@ export interface RampSpec {
   slope: number
   traffic: 'two-way' | 'in' | 'out'
   /**
+   * On a two-way ramp, which side (0 the low edge of `across`, 1 the high) carries the cars going
+   * down: the side the drive reaches first, so cars coming in never cross those going out.
+   */
+  downSide?: 0 | 1
+  /**
    * How far down the ramp the opening to the sky runs (under the ground-level cover or building,
    * which the basement view cuts away); beyond it the ramp is roofed by the slab above.
    */

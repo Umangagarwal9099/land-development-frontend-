@@ -6,7 +6,8 @@ import { BLOCK, GL, L1, PORTAL_H, PORTALS, SLAB } from './plan'
  * it and the forecourt in front: 48.6 × 36.2 m inside the retaining walls, 1 m inside the plot.
  * Aisles run south–north (along x), parallel to the block, with cross aisles at both ends.
  *
- *   ramps:  the vehicle portals in the block's south end now lead down as well as up: 3.5 m in,
+ *   ramps:  the vehicle portals in the block's south end (the entry first from the road, the exit
+ *           beyond it) now lead down as well as up: 3.5 m in,
  *           behind the height bars, the one-way IN and OUT ramps fall north at 1:6 to B1, landing
  *           in a turning area that opens onto the east cross aisle. A two-way ramp along the back
  *           wall falls north from the west cross aisle to B2.
@@ -26,7 +27,10 @@ const START = BLOCK.x0 + 3.5
 const RAMP_FOOT = 7.8
 const B2_TOP = -14.0
 const B2_FOOT = 8.8
-const [IN, OUT] = PORTALS
+const IN = PORTALS.find((p) => p.label === 'in')!
+const OUT = PORTALS.find((p) => p.label === 'out')!
+/** The band the two ramps take across the block's south end, the exit's side and the entry's. */
+const BAND = { z0: PORTALS[0].z0, z1: PORTALS[1].z1 }
 /** The drum lobby's back wall, its face on the lobby (see building.ts). */
 const LOBBY_WALL = BLOCK.z1 + 0.15
 
@@ -53,15 +57,15 @@ export const A01_BASEMENT: BasementSpec = {
     { rect: { x0: E[0], x1: E[1], z0: Z0, z1: Z1 } },
     { rect: { x0: B2_FOOT, x1: E[0], z0: Z0, z1: Z0 + 5.9 }, flow: '+x' },
     { rect: { x0: W[1], x1: E[0], z0: -18.3, z1: -12.3 } },
-    { rect: { x0: RAMP_FOOT, x1: E[0], z0: IN.z0, z1: OUT.z1 } },
+    { rect: { x0: RAMP_FOOT, x1: E[0], z0: BAND.z0, z1: BAND.z1 } },
     { rect: { x0: W[1], x1: E[0], z0: 4.95, z1: 10.8 } },
-    { rect: { x0: W[1], x1: RAMP_FOOT, z0: -7.0, z1: OUT.z1 }, flow: '+x', levels: [-2] },
+    { rect: { x0: W[1], x1: RAMP_FOOT, z0: -7.0, z1: BAND.z1 }, flow: '+x', levels: [-2] },
   ],
   rows: [
     { rect: { x0: X0 + 0.3, x1: W[0], z0: Z0 + 6, z1: Z1 }, face: '+z', parallel: true },
     { rect: { x0: E[1], x1: X1, z0: Z0, z1: Z1 }, face: '+x' },
     { rect: { x0: W[1], x1: E[0], z0: -12.3, z1: -9.8 }, face: '+x', parallel: true },
-    { rect: { x0: W[1], x1: RAMP_FOOT, z0: IN.z0, z1: -7.0 }, face: '+x', parallel: true, levels: [-2] },
+    { rect: { x0: W[1], x1: RAMP_FOOT, z0: BAND.z0, z1: -7.0 }, face: '+x', parallel: true, levels: [-2] },
     { rect: { x0: W[1], x1: E[0], z0: -0.05, z1: 4.95 }, face: '-z' },
   ],
   access: {

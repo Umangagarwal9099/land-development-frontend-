@@ -147,15 +147,16 @@ function buildEdges(ctx: A01Ctx, p: Object3D) {
   bx(ctx, p, [EXIT.x0, EXIT.x1], [0.02, 0.09], [giveWay - 3.0, giveWay - 1.4], c.interlock)
   for (let x = EXIT.x0 + 0.3; x < EXIT.x1 - 0.5; x += 0.9) bx(ctx, p, [x, x + 0.5], [0.02, 0.025], [giveWay - 0.15, giveWay + 0.15], c.lane, false)
   // Entry and exit arrows painted in front of the portals.
-  for (const [i, pt] of PORTALS.entries()) {
+  for (const pt of PORTALS) {
+    const into = pt.label === 'in'
     const z = (pt.z0 + pt.z1) / 2
     const x = BX0 - 2.4
     bx(ctx, p, [x - 1.1, x + 0.4], [0.02, 0.024], [z - 0.08, z + 0.08], c.lane, false)
-    const head = i === 0 ? x + 0.4 : x - 1.1
+    const head = into ? x + 0.4 : x - 1.1
     for (const s of [-1, 1]) {
       const m = bx(ctx, p, [head - 0.35, head + 0.35], [0.02, 0.024], [z - 0.06, z + 0.06], c.lane, false)
-      m.rotation.y = s * (i === 0 ? 0.6 : -0.6)
-      m.position.x += i === 0 ? -0.25 : 0.25
+      m.rotation.y = s * (into ? 0.6 : -0.6)
+      m.position.x += into ? -0.25 : 0.25
       m.position.z += s * 0.18
     }
   }
@@ -164,7 +165,7 @@ function buildEdges(ctx: A01Ctx, p: Object3D) {
 function buildCars(ctx: A01Ctx, p: Object3D) {
   const { shade } = ctx
   // One turning in at the entry portal, one on its way out to the road, one at the back.
-  const [entry] = PORTALS
+  const entry = PORTALS.find((pt) => pt.label === 'in')!
   const ez = (entry.z0 + entry.z1) / 2
   parkedCar(p, 'crossover', '#e9eaea', BX0 - 3.0, ez, PI / 2 - 0.08, 0.02)
   shade.rect(BX0 - 3.0, 0.03, ez, 1.9, 4.5, PI / 2, 0.75)

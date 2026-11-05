@@ -31,7 +31,9 @@ export const HOSPITAL_BASEMENT: BasementSpec = {
   ramps: [
     {
       id: 'drive', from: 0, to: -1, down: '+x', s0: RAMP.x0, across: [RAMP.z0 + 0.25, RAMP.z1 - 0.25], top: 0.02, slope: 1 / 6,
-      traffic: 'two-way', open: RAMP.x1 - RAMP.x0, headroom: 2.2,
+      // The drive comes from the road (+z): the way in is the ramp's near (north) lane, reached first;
+      // cars coming up leave by the far lane, onwards along the drive the way it runs.
+      traffic: 'two-way', downSide: 1, open: RAMP.x1 - RAMP.x0, headroom: 2.2,
     },
     { id: 'b2', from: -1, to: -2, down: '-x', s0: XE, across: [15.15, 20.65], top: -3.3, slope: 1 / 6, traffic: 'two-way', headroom: 2.4 },
   ],
