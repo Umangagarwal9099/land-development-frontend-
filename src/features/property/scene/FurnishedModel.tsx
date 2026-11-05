@@ -101,6 +101,8 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
     if (model.animate?.(state.clock.elapsedTime, state.camera)) state.invalidate()
     // Below ground, the services overhead come and go as the camera enters the level or rises out of it.
     if (model.basement?.frame(state.camera)) state.invalidate()
+    // Lifts finish what they were doing (walking, the walk controller runs them with the walker).
+    if (model.basement && !useWalkStore.getState().active && model.basement.tick(delta, null)) state.invalidate()
   })
 
   const daylight = useStageStore((s) => s.daylight)
@@ -109,7 +111,7 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
     invalidate()
   }, [model, daylight, invalidate])
 
-  useBasement(model, onReady)
+  const basementReady = useBasement(model, onReady)
 
   // Leaving the property releases a one-off model from GPU memory. A kept model stays for the next
   // visit, with its doors, drawers and fittings put back as they were found.
@@ -144,7 +146,9 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
   return (
     <>
       <primitive object={model.root} />
-      {walkingNow && model.walk && <WalkController root={model.root} area={model.walk} setZone={setWalkZone} rooms={roomNames} />}
+      {walkingNow && model.walk && (!model.basement || basementReady) && (
+        <WalkController root={model.root} area={model.walk} setZone={setWalkZone} rooms={roomNames} basement={model.basement} />
+      )}
     </>
   )
 }
@@ -157,6 +161,9 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
  */
 function useBasement(model: Model, onReady: () => void) {
   const activeLevel = useViewerStore((s) => s.activeLevel)
+  // Walking, the basements stand with the building, all of a piece, and are built before the walk begins.
+  const walking = useWalkStore((s) => s.active)
+  const view = walking ? 'walk' : activeLevel
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera)
   const scene = useThree((s) => s.scene)
@@ -174,9 +181,9 @@ function useBasement(model: Model, onReady: () => void) {
   useEffect(() => {
     const basement = model.basement
     if (!basement) return
-    const below = activeLevel !== null && activeLevel < 0
+    const below = walking || (activeLevel !== null && activeLevel < 0)
     if (!below || basement.ready) {
-      basement.show(activeLevel)
+      basement.show(view)
       // The sun's shadows change with what is shown (see PropertyScene).
       // oxlint-disable-next-line react/immutability -- the renderer is configured imperatively
       gl.shadowMap.needsUpdate = true
@@ -186,12 +193,12 @@ function useBasement(model: Model, onReady: () => void) {
     let live = true
     let started = false
     setSceneReady(false)
-    setLoading({ label: 'Building the basement', progress: 0.05 })
+    setLoading({ label: walking ? 'Preparing the walk' : 'Building the basement', progress: 0.05 })
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {
         started = true
         basement.build()
-        basement.show(activeLevel)
+        basement.show(view)
         setLoading({ label: 'Uploading finishes', progress: 0.35 })
         void prepareOnGpu(basement.root, gl, camera, scene, {
           live: () => live,
@@ -205,7 +212,9 @@ function useBasement(model: Model, onReady: () => void) {
       // Left before building began: nothing to wait for.
       if (!started && mounted.current) setSceneReady(true)
     }
-  }, [model, activeLevel, gl, camera, scene, invalidate, setLoading, setSceneReady, onReady])
+  }, [model, activeLevel, walking, view, gl, camera, scene, invalidate, setLoading, setSceneReady, onReady])
+  // Built, the model reports in (onReady), so this renders again and reads it.
+  return !!model.basement?.ready
 }
 
 /** Closes every door and drawer and stops every spinner, instantly. */

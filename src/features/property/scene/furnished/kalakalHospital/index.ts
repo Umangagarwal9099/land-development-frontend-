@@ -1,6 +1,6 @@
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial } from 'three'
 import { GOLD } from '../../../../../lib/palette'
-import { Basement } from '../basement'
+import { Basement, openingsOf } from '../basement'
 import { Kit } from '../kit'
 import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shared'
 import { Contact } from '../kalakalMall/contact'
@@ -53,7 +53,7 @@ export function buildKalakalHospital(context = true): FurnishedModel {
   const lighting = new Lighting()
   const k = new Kit(root)
   const c = hospitalMaterials(k, lighting)
-  const ctx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact() }
+  const ctx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact(), openings: context ? openingsOf(HOSPITAL_BASEMENT) : undefined }
 
   buildBuilding(ctx, building)
   buildSite(ctx, site)
@@ -86,7 +86,7 @@ export function buildKalakalHospital(context = true): FurnishedModel {
     start: [(WALK.x0 + WALK.x1) / 2, GL, PLOT.z1 - 2.5],
     yaw: 0,
     bounds: { x0: PLOT.x0, x1: PLOT.x1, z0: PLOT.z0, z1: PLOT.z1 },
-    zoneAt: () => 'exterior',
+    zoneAt: (_x, y) => basement?.zoneAt(y) ?? 'exterior',
   }
   // Glass, metal and stone reflect the design's own sky (see kalakalMall/surfaces.ts).
   const reflective: MeshStandardMaterial[] = []

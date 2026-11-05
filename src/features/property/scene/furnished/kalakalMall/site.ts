@@ -263,12 +263,15 @@ function buildRearAccess(ctx: SiteCtx, p: Object3D) {
   // A kerb along the enclosure's front, between it and the service road.
   kerbX(ctx, p, [YARD.x0, YARD.x1], YARD.z1 + 0.075, 0.15, 1)
   // Ramped aprons up the podium's edge to the portals, and the shade of their mouths.
+  // In the property view they run on to the podium's edge, so a walker can go up them and in.
+  const top = ctx.openings ? REAR_Z + 0.05 : REAR_EDGE
   for (const x of [PORTALS.in, PORTALS.out]) {
     const w = PORTALS.w
     const shape = new Shape()
     shape.moveTo(REAR_EDGE - 2.2, 0.02)
     shape.lineTo(REAR_EDGE, GL)
-    shape.lineTo(REAR_EDGE, 0)
+    shape.lineTo(top, GL)
+    shape.lineTo(top, 0)
     shape.lineTo(REAR_EDGE - 2.2, 0)
     shape.closePath()
     const geo = new ExtrudeGeometry(shape, { depth: w, bevelEnabled: false })

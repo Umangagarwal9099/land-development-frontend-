@@ -1,6 +1,6 @@
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial } from 'three'
 import { GOLD } from '../../../../../lib/palette'
-import { Basement } from '../basement'
+import { Basement, openingsOf } from '../basement'
 import { Kit } from '../kit'
 import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shared'
 import { MALL_BASEMENT } from './basement'
@@ -48,7 +48,7 @@ export function buildKalakalMall(context = true): FurnishedModel {
   const lighting = new Lighting()
   const k = new Kit(root)
   const c = mallMaterials(k, lighting)
-  const ctx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact() }
+  const ctx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact(), openings: context ? openingsOf(MALL_BASEMENT) : undefined }
 
   buildSkin(building, c)
   buildBuilding(ctx, building)
@@ -82,7 +82,7 @@ export function buildKalakalMall(context = true): FurnishedModel {
     start: [ENTRY_X, 0.15, PLOT.z1 - 2.5],
     yaw: 0,
     bounds: { ...PLOT },
-    zoneAt: () => 'exterior',
+    zoneAt: (_x, y) => basement?.zoneAt(y) ?? 'exterior',
   }
   // Every surface reflects the mall's own sky (see surfaces.ts): glass and metal pick up a sky and
   // skyline rather than the studio, and the dusk sky after sunset.

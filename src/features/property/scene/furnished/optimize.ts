@@ -11,7 +11,7 @@ import { computeBoundsTree } from 'three-mesh-bvh'
  */
 
 /** Nodes the viewer finds by name: kept whole, with everything beneath them. */
-const LIVE = /^(door_|drawer_|switch_|spin_|room_|amenity_|floor_|roof$)/
+const LIVE = /^(door_|drawer_|switch_|spin_|room_|amenity_|floor_|roof$|void_|autoleaf_)/
 
 const KEEP = ['position', 'normal', 'uv', 'color'] as const
 

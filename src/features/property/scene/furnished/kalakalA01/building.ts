@@ -1,5 +1,6 @@
-import { PointLight, Vector3, type Material, type Object3D } from 'three'
+import { Group, PointLight, Vector3, type Material, type Object3D } from 'three'
 import type { Point2 } from '../../../../../api/types'
+import type { Openings } from '../basement'
 import type { Kit } from '../kit'
 import type { Lighting } from '../shared'
 import { rng } from '../textures'
@@ -23,6 +24,8 @@ export interface A01Ctx {
   shade: Contact
   /** On the master plan: trim the forecourt to the layout's skewed road edge. */
   onPlan: boolean
+  /** In the property view: what to leave open for the way down to the basements (see basement/). */
+  openings?: Openings
 }
 
 type R = [number, number]
@@ -169,7 +172,7 @@ class Parts {
       [this.partition, c.interior, 'shop_partitions', false],
       [this.sign, c.fascia, 'shop_signs', false],
       [this.shutter, c.shutter, 'service_shutters', false],
-      [this.void, c.void, 'portal_dark', false],
+      [this.void, c.void, 'void_portal_dark', false],
       [this.asphalt, c.asphalt, 'portal_floor', false],
       [this.granite, c.granite, 'portal_island', true],
       [this.hazard, c.hazard, 'height_bars', true],
@@ -486,10 +489,17 @@ function buildEntrance(ctx: A01Ctx, parent: Object3D) {
   for (const s of [-1, 1]) {
     const fixed = xm + s * (half - leafW / 2)
     k.box(parent, leafW - 0.02, 2.9 - GL - 0.04, 0.012, c.shopGlass, fixed, (2.9 + GL) / 2, z - 0.04, false)
-    const leaf = xm + s * (leafW / 2 + 0.35)
-    k.box(parent, leafW - 0.02, 2.9 - GL - 0.04, 0.012, c.shopGlass, leaf, (2.9 + GL) / 2, z + 0.04, false)
-    for (const e of [-1, 1]) k.box(parent, 0.04, 2.9 - GL - 0.04, 0.05, c.aluminium, leaf + (e * (leafW - 0.02)) / 2, (2.9 + GL) / 2, z + 0.04)
-    for (const e of [-1, 1]) k.box(parent, leafW, 0.04, 0.05, c.aluminium, leaf, e > 0 ? 2.88 : GL + 0.04, z + 0.04)
+    // In the property view the leaves meet in the middle and slide apart for a walker (see walk/).
+    const p = ctx.openings ? new Group() : parent
+    if (p !== parent) {
+      p.name = `autoleaf_drum_${s}`
+      p.userData.slide = [s * (leafW - 0.06), 0, 0]
+      parent.add(p)
+    }
+    const leaf = xm + s * (leafW / 2 + (ctx.openings ? 0 : 0.35))
+    k.box(p, leafW - 0.02, 2.9 - GL - 0.04, 0.012, c.shopGlass, leaf, (2.9 + GL) / 2, z + 0.04, false)
+    for (const e of [-1, 1]) k.box(p, 0.04, 2.9 - GL - 0.04, 0.05, c.aluminium, leaf + (e * (leafW - 0.02)) / 2, (2.9 + GL) / 2, z + 0.04)
+    for (const e of [-1, 1]) k.box(p, leafW, 0.04, 0.05, c.aluminium, leaf, e > 0 ? 2.88 : GL + 0.04, z + 0.04)
   }
   // The operator's housing behind the head, and a recessed mat at the door.
   k.box(parent, bx - ax, 0.18, 0.25, c.aluminium, xm, 2.81, z - 0.2)
@@ -504,15 +514,35 @@ function buildLobby(ctx: A01Ctx, parent: Object3D) {
   slab(parent, disc, L1 - SLAB, L1 - 0.02, [c.ceiling, c.slabEdge], [], false, 'lobby_ceiling')
   // The back wall on the block's face, in granite, with two lifts and the directory between.
   const [x0, x1] = [MEET_X.south, MEET_X.north]
-  k.box(parent, x1 - x0, L1 - SLAB - GL, 0.3, c.granite, (x0 + x1) / 2, (L1 - SLAB + GL) / 2, BZ1 - 0.15)
-  for (const dx of [-2.1, 2.1]) {
-    const x = DRUM.x + dx
-    k.box(parent, 1.5, 2.55, 0.04, c.aluminium, x, GL + 1.275, BZ1 + 0.02)
-    k.box(parent, 1.2, 2.3, 0.04, c.chromeRail, x, GL + 1.15, BZ1 + 0.04)
-    k.box(parent, 0.01, 2.3, 0.045, c.void, x, GL + 1.15, BZ1 + 0.045, false)
-    k.box(parent, 0.1, 0.16, 0.03, c.directory, x + 0.95, GL + 1.2, BZ1 + 0.03, false)
+  const top = L1 - SLAB
+  const doors = ctx.openings?.doors
+  if (!doors) {
+    k.box(parent, x1 - x0, top - GL, 0.3, c.granite, (x0 + x1) / 2, (top + GL) / 2, BZ1 - 0.15)
+    for (const dx of [-2.1, 2.1]) {
+      const x = DRUM.x + dx
+      k.box(parent, 1.5, 2.55, 0.04, c.aluminium, x, GL + 1.275, BZ1 + 0.02)
+      k.box(parent, 1.2, 2.3, 0.04, c.chromeRail, x, GL + 1.15, BZ1 + 0.04)
+      k.box(parent, 0.01, 2.3, 0.045, c.void, x, GL + 1.15, BZ1 + 0.045, false)
+      k.box(parent, 0.1, 0.16, 0.03, c.directory, x + 0.95, GL + 1.2, BZ1 + 0.03, false)
+    }
+    k.box(parent, 0.9, 1.8, 0.05, c.directory, DRUM.x, GL + 1.6, BZ1 + 0.03, false)
+  } else {
+    // In the property view the wall is open where the working lifts and the stair door to the
+    // basements stand (see basement/); granite fills the openings until those are built.
+    const H = 2.43
+    let at = x0
+    for (const d of [...doors].sort((a, b) => a.x - b.x)) {
+      const [a, b] = [d.x - d.w / 2, d.x + d.w / 2]
+      k.box(parent, a - at, top - GL, 0.3, c.granite, (at + a) / 2, (top + GL) / 2, BZ1 - 0.15)
+      k.box(parent, b - a, top - GL - H, 0.3, c.granite, (a + b) / 2, (top + GL + H) / 2, BZ1 - 0.15)
+      k.box(parent, b - a, H, 0.3, c.granite, (a + b) / 2, GL + H / 2, BZ1 - 0.15).name = `void_lobby_door_${d.x.toFixed(1)}`
+      at = b
+    }
+    k.box(parent, x1 - at, top - GL, 0.3, c.granite, (at + x1) / 2, (top + GL) / 2, BZ1 - 0.15)
+    // The directory, on the wall between the first lift and the stair.
+    const [l0, st] = [...doors].sort((a, b) => a.x - b.x)
+    k.box(parent, 0.9, 1.8, 0.05, c.directory, (l0.x + l0.w / 2 + st.x - st.w / 2) / 2, GL + 1.6, BZ1 + 0.03, false)
   }
-  k.box(parent, 0.9, 1.8, 0.05, c.directory, DRUM.x, GL + 1.6, BZ1 + 0.03, false)
   // Slim white columns under the ramp's first turn.
   for (const t of [-115, -40, 40, 115]) {
     const [x, z] = polar(t, 3.3)
@@ -526,7 +556,8 @@ function buildLobby(ctx: A01Ctx, parent: Object3D) {
     k.box(g, 1.8, 0.08, 0.5, c.bench, 0, 0.44, 0)
     for (const e of [-0.75, 0.75]) k.box(g, 0.06, 0.42, 0.45, c.aluminium, e, 0.21, 0)
   }
-  for (const dx of [-4.3, 4.3]) {
+  // (In the property view they stand further out, clear of the working lifts' doors.)
+  for (const dx of ctx.openings ? [-6.2, 6.2] : [-4.3, 4.3]) {
     k.cyl(parent, 0.45, 0.4, 0.55, c.black, DRUM.x + dx, GL + 0.29, BZ1 + 0.9, 28)
     shrub(ctx.plant, DRUM.x + dx, GL + 0.56, BZ1 + 0.9, 0.36, 0.75, dx > 0 ? 2911 : 2912, 'hedge')
   }

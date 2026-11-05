@@ -1,7 +1,8 @@
 import {
-  BufferAttribute, Color, Euler, Group, InstancedMesh, Matrix4, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Quaternion, Vector3,
+  BoxGeometry, BufferAttribute, Color, Euler, Group, InstancedMesh, Matrix4, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Quaternion, Vector3,
   type BufferGeometry, type Material, type Object3D, type Texture,
 } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { drawPlate, isSolidPaint, parkedCar, plateNumber, type Body } from '../car'
 import type { Kit } from '../kit'
 import { underground } from './materials'
@@ -31,6 +32,15 @@ interface Part {
   cast: boolean
   paint?: 'body' | 'part'
   plate?: boolean
+}
+
+/** Length, width and height of each body, for its collision box. */
+const SIZE: Record<Body, [number, number, number]> = {
+  crossover: [4.32, 1.79, 1.5],
+  sedan: [4.55, 1.75, 1.3],
+  hatch: [3.85, 1.73, 1.4],
+  suv: [4.75, 1.86, 1.7],
+  mpv: [4.4, 1.74, 1.55],
 }
 
 const templates = new Map<Body, Part[]>()
@@ -144,6 +154,21 @@ export function parkFleet(k: Kit, parent: Object3D, cars: Parked[], env: Texture
         fleet.add(inst)
       }
     }
+  }
+  // What a walker bumps into: one unseen box per car, merged (instanced parts aren't collided).
+  const boxes: BufferGeometry[] = []
+  for (const c of cars) {
+    const [l, w, h] = SIZE[c.body]
+    const b = new BoxGeometry(w, h, l)
+    b.applyMatrix4(new Matrix4().compose(new Vector3(c.x, c.y + h / 2 + 0.12, c.z), new Quaternion().setFromEuler(new Euler(0, c.yaw, 0)), new Vector3(1, 1, 1)))
+    b.deleteAttribute('uv')
+    boxes.push(b)
+  }
+  if (boxes.length) {
+    const proxy = new Mesh(mergeGeometries(boxes), new MeshStandardMaterial())
+    proxy.name = 'proxy_cars'
+    proxy.visible = false
+    parent.add(proxy)
   }
   return fleet
 }

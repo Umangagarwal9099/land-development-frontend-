@@ -5,12 +5,15 @@ export const isDrawer = (name: string) => name.startsWith('drawer_')
 /** Light switches toggle their circuit; spinners (a ceiling fan) start and stop. */
 export const isSwitch = (name: string) => name.startsWith('switch_')
 export const isSpinner = (name: string) => name.startsWith('spin_')
-/** Everything a tap operates: doors swing, drawers and sliders run, switches and fans toggle. */
-export const isOpenable = (name: string) => isDoor(name) || isDrawer(name) || isSwitch(name) || isSpinner(name)
+/** Push buttons (a lift's call and car buttons): pressing runs their `userData.press`. */
+export const isButton = (name: string) => name.startsWith('button_')
+/** Everything a tap operates: doors swing, drawers and sliders run, switches and fans toggle, buttons press. */
+export const isOpenable = (name: string) => isDoor(name) || isDrawer(name) || isSwitch(name) || isSpinner(name) || isButton(name)
 
 /** Operates a door, drawer, switch or fan: OpenableAnimator then moves it to its new state. */
 export function operate(o: Object3D) {
-  if (isSwitch(o.name)) {
+  if (isButton(o.name)) (o.userData.press as (() => void) | undefined)?.()
+  else if (isSwitch(o.name)) {
     o.userData.on = !(o.userData.on ?? true)
     ;(o.userData.toggle as ((on: boolean) => void) | undefined)?.(o.userData.on)
   } else if (isSpinner(o.name)) o.userData.on = !o.userData.on

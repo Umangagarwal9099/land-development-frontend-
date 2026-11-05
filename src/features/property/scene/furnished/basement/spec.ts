@@ -49,6 +49,11 @@ export interface RampSpec {
   open?: number
   /** Headroom posted at the ramp's top. */
   headroom: number
+  /**
+   * For a ramp from the ground that starts inside the building: the height of the tunnel's roof
+   * over its first stretch (to `open`), where the slab overhead is still too high to roof it.
+   */
+  roof?: number
 }
 
 export interface CoreSpec {
@@ -84,6 +89,42 @@ export interface RoomSpec {
   door: Dir
 }
 
+/** A lift: the car's centre in plan, its inside width (across the doors) and depth, the way its doors face. */
+export interface LiftSpec {
+  x: number
+  z: number
+  w: number
+  d: number
+  door: Dir
+  /** Which side of the doors (across them) the call buttons are on; +1 unless something stands there. */
+  call?: 1 | -1
+}
+
+/**
+ * A dog-leg stair in `zone`: at each level a floor landing across the `entry` end, two flights side
+ * by side running away from it and back via a half landing at the far end. Its door is in the
+ * core's `door` face at `at` along that face.
+ */
+export interface StairSpec {
+  zone: Rect
+  entry: Dir
+  door: Dir
+  at: number
+}
+
+/**
+ * The core that joins the basements to the building above: lifts and a stair, from B2 to the
+ * ground-floor lobby. In the basements its walls stand on `rect` with their doors in the `face`;
+ * at the ground it opens into the lobby at `ground.y`, under a ceiling at `ground.top`.
+ */
+export interface AccessSpec {
+  rect: Rect
+  face: Dir
+  ground: { y: number; top: number; label: string; frontWall: boolean }
+  lifts: LiftSpec[]
+  stair: StairSpec
+}
+
 export interface BasementSpec {
   name: string
   /** Inner faces of the retaining walls. */
@@ -96,6 +137,7 @@ export interface BasementSpec {
   rows: RowSpec[]
   aisles: AisleSpec[]
   rooms: RoomSpec[]
+  access: AccessSpec
   /** Share of bays with a car in them. */
   occupancy: number
   seed: number
@@ -166,7 +208,12 @@ export interface Column {
 
 /** What stands in a level's floor plan, that bays and columns keep clear of. */
 export function obstacles(spec: BasementSpec, level: Level): Rect[] {
-  return [...rampsIn(spec, level).map((r) => rampRect(r)), ...spec.cores.map((c) => c.rect), ...spec.rooms.filter((r) => r.levels.includes(level)).map((r) => r.rect)]
+  return [
+    ...rampsIn(spec, level).map((r) => rampRect(r)),
+    ...spec.cores.map((c) => c.rect),
+    spec.access.rect,
+    ...spec.rooms.filter((r) => r.levels.includes(level)).map((r) => r.rect),
+  ]
 }
 
 /** The aisles of a level. */

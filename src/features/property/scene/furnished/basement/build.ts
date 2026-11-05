@@ -13,7 +13,7 @@ import {
   board, COLUMN_ATLAS, columnAtlas, exitSign, floorArrow, floorWord, levelMark, lightWash, NUMBER_ATLAS, numberAtlas, redLabel, roundSign, stain, tyreArc,
 } from './paints'
 import {
-  aislesOn, axisOf, B1, bays, centre, COLUMN, columns, inside, LEVEL_Y, overlaps, rampLength, rampPoint, rampRect, rampY, signOf, SLAB, WALL,
+  aislesOn, axisOf, B1, bays, obstacles, centre, COLUMN, columns, inside, LEVEL_Y, overlaps, rampLength, rampPoint, rampRect, rampY, signOf, SLAB, WALL,
   type BasementSpec, type Bay, type Column, type Dir, type Level, type RampSpec, type Rect,
 } from './spec'
 
@@ -241,19 +241,24 @@ export function buildStorey(ctx: Ctx, level: Level, site: Site): Storey {
   const below = spec.ramps.filter((r) => r.from === level)
   const above = spec.ramps.filter((r) => r.from === level + 1)
 
-  // The cut-away earth round the level, like the base of a section model, and the raft under it.
+  // The cut-away earth round the level, like the base of a section model, and the raft under it:
+  // for the views from above only (it is neither shown nor solid to a walker).
+  const earth = new Group()
+  earth.name = 'earth'
+  group.add(earth)
   const eb = y - 0.8
   const outer = { x0: box.x0 - WALL, x1: box.x1 + WALL, z0: box.z0 - WALL, z1: box.z1 + WALL }
-  bx(ctx, group, [site.minX, site.maxX], [eb, top], [site.minZ, outer.z0], m.earth, false)
-  bx(ctx, group, [site.minX, site.maxX], [eb, top], [outer.z1, site.maxZ], m.earth, false)
-  bx(ctx, group, [site.minX, outer.x0], [eb, top], [outer.z0, outer.z1], m.earth, false)
-  bx(ctx, group, [outer.x1, site.maxX], [eb, top], [outer.z0, outer.z1], m.earth, false)
-  bx(ctx, group, [outer.x0, outer.x1], [eb, y - SLAB], [outer.z0, outer.z1], m.earth, false)
-  bx(ctx, group, [outer.x0, outer.x1], [y - SLAB, y - 0.01], [outer.z0, outer.z1], m.cut, false)
+  bx(ctx, earth, [site.minX, site.maxX], [eb, top], [site.minZ, outer.z0], m.earth, false)
+  bx(ctx, earth, [site.minX, site.maxX], [eb, top], [outer.z1, site.maxZ], m.earth, false)
+  bx(ctx, earth, [site.minX, outer.x0], [eb, top], [outer.z0, outer.z1], m.earth, false)
+  bx(ctx, earth, [outer.x1, site.maxX], [eb, top], [outer.z0, outer.z1], m.earth, false)
+  bx(ctx, earth, [outer.x0, outer.x1], [eb, y - SLAB], [outer.z0, outer.z1], m.earth, false)
+  bx(ctx, earth, [outer.x0, outer.x1], [y - SLAB, y - 0.01], [outer.z0, outer.z1], m.cut, false)
 
-  // Floor and soffit, open where ramps pass through.
-  group.add(slabSurface(box, below.map((r) => rampRect(r)), y, m.floor, false))
-  const ceiling = slabSurface(box, above.map((r) => rampRect(r)), soffit, m.soffit, true)
+  // Floor and soffit, open where ramps pass through and over the lift and stair core.
+  const core = spec.access.rect
+  group.add(slabSurface(box, [...below.map((r) => rampRect(r)), core], y, m.floor, false))
+  const ceiling = slabSurface(box, [...above.map((r) => rampRect(r)), core], soffit, m.soffit, true)
   ceiling.name = 'ceiling'
   overhead.add(ceiling)
 
@@ -272,7 +277,7 @@ export function buildStorey(ctx: Ctx, level: Level, site: Site): Storey {
   // Columns, beams on the grid lines under the slab.
   const cols = columns(spec, level)
   buildColumns(ctx, group, level, cols, y, H)
-  const holes = above.map((r) => rampRect(r))
+  const holes = [...above.map((r) => rampRect(r)), core]
   const BW = 0.4
   const BD = 0.6
   for (const z of spec.colZ) {
@@ -376,7 +381,10 @@ export function buildStorey(ctx: Ctx, level: Level, site: Site): Storey {
     if (len > 12) hangingSigns(ctx, overhead, a.rect, ax, soffit)
   }
 
-  // Over the rows: battens, sprinkler branches with pendant heads.
+  // Over the rows: battens, sprinkler branches with pendant heads, kept out of the cores, plant
+  // rooms and ramp wells (nothing may run through a lift shaft or over a stair).
+  const keepOut = obstacles(spec, level)
+  const clear = (...pts: R[]) => pts.every(([x, z]) => !keepOut.some((o) => inside(o, x, z, 0.35)))
   for (const row of spec.rows) {
     if (row.levels && !row.levels.includes(level)) continue
     if (obstacleHit(spec, level, row.rect)) continue
@@ -385,12 +393,13 @@ export function buildStorey(ctx: Ctx, level: Level, site: Site): Storey {
     const [a0, a1] = along === 'x' ? [row.rect.x0, row.rect.x1] : [row.rect.z0, row.rect.z1]
     for (let s = a0 + 2.5; s < a1 - 1; s += 5) {
       const [x, z] = along === 'x' ? [s, cz] : [cx, s]
-      if (!nearBeam(x, z)) batten(ctx, overhead, x, soffit, z, along === 'x' ? PI / 2 : 0)
+      if (!nearBeam(x, z) && clear([x, z])) batten(ctx, overhead, x, soffit, z, along === 'x' ? PI / 2 : 0)
     }
     for (let s = a0 + 1.5; s < a1 - 0.5; s += 3) {
       const [x, z] = along === 'x' ? [s, cz] : [cx, s]
       const half = 2.2
       const [p0, p1]: [R, R] = along === 'x' ? [[x, z - half], [x, z + half]] : [[x - half, z], [x + half, z]]
+      if (!clear(p0, p1, [x, z])) continue
       pipe(ctx, overhead, p0[0], soffit - 0.12, p0[1], p1[0], soffit - 0.12, p1[1], 0.022, m.sprinklerRed)
       for (const t of [0.25, 0.75]) {
         const hx = p0[0] + (p1[0] - p0[0]) * t
@@ -462,9 +471,13 @@ export function buildStorey(ctx: Ctx, level: Level, site: Site): Storey {
     ctx.lighting.light(l, 1)
     group.add(l)
   }
-  for (const core of spec.cores) {
-    const d = doorAt(core.rect, core.door)
-    lamp(d.x + d.out[0] * 3, d.z + d.out[1] * 3, 9)
+  for (const c of spec.cores) {
+    const d = doorAt(c.rect, c.door)
+    lamp(d.x + d.out[0] * 3, d.z + d.out[1] * 3, 8)
+  }
+  {
+    const d = doorAt(core, spec.access.face)
+    lamp(d.x + d.out[0] * 2.5, d.z + d.out[1] * 2.5, 10)
   }
   for (const r of spec.ramps.filter((rp) => rp.to === level)) {
     const [x, z] = rampPoint(r, rampLength(r) + 2.5, 0.5)
@@ -635,7 +648,7 @@ function hangingSigns(ctx: Ctx, p: Object3D, rect: Rect, ax: 'x' | 'z', soffit: 
   const { m, k, spec } = ctx
   const [cx, cz] = centre(rect)
   const len = ax === 'x' ? rect.x1 - rect.x0 : rect.z1 - rect.z0
-  const lifts = spec.cores.find((c) => c.kind === 'lifts')
+  const lifts = spec.access
   for (const [t, kind] of [[0.33, 'exit'], [0.67, 'way']] as const) {
     const s = len * t
     const x = ax === 'x' ? rect.x0 + s : cx
@@ -774,7 +787,7 @@ function buildBays(ctx: Ctx, p: Object3D, level: Level, list: Bay[], y: number) 
   const { m, k, r, spec, shade, decals } = ctx
   const n = NUMBER_ATLAS.cols * NUMBER_ATLAS.rows
   const numMat = m.painted(`numbers${level}`, 2048, 1024, numberAtlas(list.slice(0, n).map((b) => b.label)), { alphaTest: 0.4, roughness: 0.7 })
-  const lifts = spec.cores.find((c) => c.kind === 'lifts')
+  const lifts = spec.access
   // The two bays nearest the lifts are for wheelchair users; three in a row on B1 have EV chargers.
   const byLift = lifts
     ? [...list.filter((b) => !b.parallel)].sort((a, b) => Math.hypot(a.x - centre(lifts.rect)[0], a.z - centre(lifts.rect)[1]) - Math.hypot(b.x - centre(lifts.rect)[0], b.z - centre(lifts.rect)[1])).slice(0, 2)
@@ -958,7 +971,8 @@ export function buildRamp(ctx: Ctx, r: RampSpec): Group {
   const rr = rampRect(r)
   const alongX = axisOf(r.down) === 'x'
   for (const side of [0, 1]) {
-    const mats = Array.from({ length: 6 }, (_, i) => (i === (alongX ? (side ? 5 : 4) : side ? 1 : 0) ? m.wall(r.to, L) : m.cut))
+    // Painted on both faces: the ramp's side and the car park's.
+    const mats = Array.from({ length: 6 }, (_, i) => ((alongX ? i >= 4 : i <= 1) ? m.wall(r.to, L) : m.cut))
     if (alongX) bx(ctx, g, [rr.x0, rr.x1], [bottom, storeyTop], side ? [r.across[1], rr.z1] : [rr.z0, r.across[0]], mats)
     else bx(ctx, g, side ? [r.across[1], rr.x1] : [rr.x0, r.across[0]], [bottom, storeyTop], [rr.z0, rr.z1], mats)
   }
@@ -969,8 +983,30 @@ export function buildRamp(ctx: Ctx, r: RampSpec): Group {
   const endT = -signOf(r.down) * 0.2
   if (alongX) bx(ctx, g, [Math.min(ex0, ex0 + endT), Math.max(ex0, ex0 + endT)], [bottom, under], [Math.min(ez0, ez1), Math.max(ez0, ez1)], m.blockwork)
   else bx(ctx, g, [Math.min(ex0, ex1), Math.max(ex0, ex1)], [bottom, under], [Math.min(ez0, ez0 + endT), Math.max(ez0, ez0 + endT)], m.blockwork)
-  // From the ground: roofed by the slab beyond the opening to the sky.
+  // From the ground: roofed by the slab beyond the opening to the sky. A ramp that starts inside
+  // the building is walled and roofed over that first stretch too, a tunnel under the ground floor.
   const open = r.open ?? 0
+  if (r.roof !== undefined && open > 0) {
+    const roof = r.roof
+    const sA: R = [0, open]
+    for (const side of [0, 1]) {
+      const [p0x, p0z] = rampPoint(r, sA[0], side)
+      const [p1x, p1z] = rampPoint(r, sA[1], side)
+      const out = side ? 0.2 : -0.2
+      const mats = Array.from({ length: 6 }, (_, i) => (i === (alongX ? (side ? 5 : 4) : side ? 1 : 0) ? m.wall(r.to, open) : m.cut))
+      if (alongX) bx(ctx, g, [Math.min(p0x, p1x), Math.max(p0x, p1x)], [storeyTop, roof + 0.3], side ? [p0z, p0z + out] : [p0z + out, p0z], mats)
+      else bx(ctx, g, side ? [p0x, p0x + out] : [p0x + out, p0x], [storeyTop, roof + 0.3], [Math.min(p0z, p1z), Math.max(p0z, p1z)], mats)
+    }
+    const [ax, az] = rampPoint(r, 0, 0)
+    const [bx2, bz2] = rampPoint(r, open, 1)
+    const rr2 = { x0: Math.min(ax, bx2), x1: Math.max(ax, bx2), z0: Math.min(az, bz2), z1: Math.max(az, bz2) }
+    g.add(slabSurface(rr2, [], roof, m.soffit, true))
+    // The header where the roof steps down to the slab's soffit.
+    const [hx, hz] = rampPoint(r, open, 0.5)
+    const W2 = r.across[1] - r.across[0] + 0.4
+    if (alongX) bx(ctx, g, [hx - 0.15, hx + 0.15], [-SLAB, roof], [hz - W2 / 2, hz + W2 / 2], m.concrete, false)
+    else bx(ctx, g, [hx - W2 / 2, hx + W2 / 2], [-SLAB, roof], [hz - 0.15, hz + 0.15], m.concrete, false)
+  }
   if (r.from === 0 && open < L) {
     const [ax, az] = rampPoint(r, open, 0)
     const [bx_, bz] = rampPoint(r, L, 1)

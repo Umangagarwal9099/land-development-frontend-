@@ -9,6 +9,7 @@ import { applyInset, BASE_SMOOTH_TIME, frameSphere } from '../../../lib/camera'
 import { heroInset, NO_INSET, panelInset } from '../../../lib/layout'
 import { useStageStore } from '../../../store/stage'
 import { useViewerStore } from '../../../store/viewer'
+import { useWalkStore } from '../../../store/walk'
 import { Floor, Plinth, SceneLighting, Trees, useFog } from '../../../stage/environment'
 import { FURNISHED_DESIGNS } from './furnished'
 import { LEVEL_Y, type BasementSpec } from './furnished/basement'
@@ -66,6 +67,10 @@ export default function PropertyScene({ slug }: { slug: string }) {
   const basement = property.model.kind === 'furnished' ? FURNISHED_DESIGNS[property.model.design].basement : undefined
   const activeLevel = useViewerStore((st) => st.activeLevel)
   const levelY = basement && activeLevel !== null && activeLevel < 0 ? LEVEL_Y[activeLevel] : null
+  // Walking down into the basements, the light changes with them.
+  const walkBelow = useWalkStore((st) => st.active && st.below)
+  // The plinth and floor stay open over the basement, so the ramps and stair can be seen going down.
+  const hole = useMemo(() => (basement ? { minX: basement.box.x0 - 0.3, maxX: basement.box.x1 + 0.3, minZ: basement.box.z0 - 0.3, maxZ: basement.box.z1 + 0.3 } : undefined), [basement])
 
   const gl = useThree((st) => st.gl)
   const invalidate = useThree((st) => st.invalidate)
@@ -95,9 +100,9 @@ export default function PropertyScene({ slug }: { slug: string }) {
 
   return (
     <group>
-      <SceneLighting radius={radius} center={[(site.minX + site.maxX) / 2, 0, (site.minZ + site.maxZ) / 2]} underground={levelY !== null} />
-      <Floor y={levelY === null ? -PLINTH_HEIGHT : levelY - PLINTH_HEIGHT - 0.02} size={radius * 30} />
-      {levelY === null && <Plinth {...site} height={PLINTH_HEIGHT} color="#1d2320" />}
+      <SceneLighting radius={radius} center={[(site.minX + site.maxX) / 2, 0, (site.minZ + site.maxZ) / 2]} underground={levelY !== null || walkBelow} />
+      <Floor y={levelY === null ? -PLINTH_HEIGHT : levelY - PLINTH_HEIGHT - 0.02} size={radius * 30} hole={levelY === null ? hole : undefined} />
+      {levelY === null && <Plinth {...site} height={PLINTH_HEIGHT} color="#1d2320" hole={hole} />}
       <Trees points={trees} scale={0.8} />
       <ModelRoot property={property} site={siteBox} interactive={mode === 'explore'} onReady={onReady} />
     </group>

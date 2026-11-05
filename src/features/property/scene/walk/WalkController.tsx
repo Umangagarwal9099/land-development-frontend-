@@ -1,10 +1,12 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
-import { MathUtils, PerspectiveCamera, Ray, Vector3, type Object3D } from 'three'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { Box3, MathUtils, PerspectiveCamera, Ray, Raycaster, Vector2, Vector3, type Object3D } from 'three'
 import { useStageStore } from '../../../../store/stage'
-import { useWalkStore, walkInput, type WalkPrompt } from '../../../../store/walk'
+import { useWalkStore, walkInput, type LiftStatus, type WalkPrompt } from '../../../../store/walk'
+import type { Basement } from '../furnished/basement'
+import { setListener, unlockSound } from '../furnished/basement/sound'
 import type { WalkArea } from '../furnished/shared'
-import { isDoor, isDrawer, isOpenable, isSpinner, isSwitch, operate } from '../openables'
+import { isButton, isDoor, isDrawer, isOpenable, isSpinner, isSwitch, operate } from '../openables'
 import { Character } from './character'
 import { Collider } from './collider'
 import { FollowCamera } from './followCamera'
@@ -25,6 +27,8 @@ function describe(o: Object3D): WalkPrompt {
   const n = o.name
   const open = !!o.userData.open
   const verb = open ? 'Close' : 'Open'
+  if (isButton(n)) return { verb: (o.userData.verb as string | undefined) ?? 'Press', label: (o.userData.label as string | undefined) ?? 'Button' }
+  if (isDoor(n) && typeof o.userData.label === 'string') return { verb, label: o.userData.label }
   if (isSwitch(n)) return { verb: (o.userData.on ?? true) ? 'Turn off' : 'Turn on', label: 'Light' }
   if (isSpinner(n)) return { verb: o.userData.on ? 'Stop' : 'Start', label: 'Ceiling Fan' }
   if (n === 'door_main') return { verb, label: 'Main Door' }
@@ -54,13 +58,33 @@ function grip(o: Object3D) {
 
 const v = new Vector3()
 const ray = new Ray()
+const caster = new Raycaster()
+const ndc = new Vector2()
+const closest = new Vector3()
+/** A tap or click this short and this still is a press, not a look round. */
+const TAP_MS = 350
+const TAP_PX = 8
+/** Entrance doors open for a walker within this distance of them. */
+const AUTO_DOOR = 2.6
+/** Below this the walker is in the basements (and back above the higher one). */
+const BELOW = -1.2
+const ABOVE = -0.9
+
+/** The centre of a door's, drawer's or button's front, in world space. */
+function frontCentre(front: Object3D, out: Vector3) {
+  const g = (front as { geometry?: { boundingSphere?: { center: Vector3 } | null; computeBoundingSphere: () => void } }).geometry
+  if (g && !g.boundingSphere) g.computeBoundingSphere()
+  const c = g?.boundingSphere?.center
+  out.set(c?.x ?? 0, c?.y ?? 0, c?.z ?? 0)
+  return front.localToWorld(out)
+}
 
 /**
  * Walking mode's brain, inside the 3D stage: takes over the camera, reads the keyboard and pointer,
  * moves the walker and poses the character. Doors and drawers go through the same `operate` and
  * animator as a tap in the camera view, so the two modes share their state.
  */
-export function WalkController({ root, area, setZone, rooms }: { root: Object3D; area: WalkArea; setZone: (zone: string) => void; rooms: Map<string, string> }) {
+export function WalkController({ root, area, setZone, rooms, basement }: { root: Object3D; area: WalkArea; setZone: (zone: string) => void; rooms: Map<string, string>; basement?: Basement }) {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
   const camera = useThree((s) => s.camera) as PerspectiveCamera
@@ -71,10 +95,15 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
     const collider = new Collider(root)
     const walker = new Walker(collider, new Vector3(...area.start), area.yaw, area.bounds)
     const targets: { node: Object3D; front: Object3D }[] = []
+    // Entrance doors that slide aside for a walker.
+    // Each is measured from where it actually stands (some are drawn in a group at the origin).
+    const leaves: { node: Object3D; closed: Vector3; at: Vector3; slide: Vector3; open: number }[] = []
     root.traverse((o) => {
       if (isOpenable(o.name)) targets.push({ node: o, front: grip(o) })
+      if (o.name.startsWith('autoleaf_'))
+        leaves.push({ node: o, closed: o.position.clone(), at: new Box3().setFromObject(o).getCenter(new Vector3()), slide: new Vector3().fromArray(o.userData.slide as number[]), open: 0 })
     })
-    return { collider, walker, targets, rig: new FollowCamera(collider, walker) }
+    return { collider, walker, targets, leaves, rig: new FollowCamera(collider, walker) }
   }, [root, area])
 
   const character = useRef<Character | null>(null)
@@ -111,6 +140,9 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
     return () => {
       figure.dispose()
       character.current = null
+      // The entrance doors close behind the walker; sounds no longer follow them.
+      for (const l of session.leaves) l.node.position.copy(l.closed)
+      setListener(null)
       camera.fov = fov
       camera.near = near
       camera.updateProjectionMatrix()
@@ -121,6 +153,39 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
       invalidate()
     }
   }, [camera, scene, controls, invalidate, session])
+
+  // Rooms are named as they're entered, and their lamps taken from the model's light pool.
+  const currentZone = useRef<string | null>(null)
+  const tapped = useRef<Object3D | null>(null)
+  const below = useRef(false)
+  const liftKey = useRef('')
+
+  /** The operable thing a tap at `at` (normalised screen coordinates) lands on, if within reach. */
+  const pick = useCallback(
+    (at: Vector2): Object3D | null => {
+    const { walker, collider, targets } = session
+    caster.setFromCamera(at, camera)
+    const eye = v.set(walker.position.x, walker.position.y + EYE, walker.position.z)
+    let best: Object3D | null = null
+    let bestT = Infinity
+    for (const { node, front } of targets) {
+      if (!node.visible) continue
+      frontCentre(front, closest)
+      if (closest.distanceTo(eye) > REACH + 0.25) continue
+      const t = caster.ray.closestPointToPoint(closest, new Vector3()).distanceTo(caster.ray.origin)
+      const off = caster.ray.distanceToPoint(closest)
+      const size = isButton(node.name) ? 0.07 : 0.3
+      if (off > size || t >= bestT) continue
+      // Nothing solid in the way but the thing itself.
+      ray.copy(caster.ray)
+      if (collider.raycast(ray, t - 0.06, node) < t - 0.12) continue
+      best = node
+      bestT = t
+    }
+    return best
+    },
+    [session, camera],
+  )
 
   useEffect(() => {
     const el = gl.domElement
@@ -133,7 +198,10 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
     let dragging: number | null = null
     let lastX = 0
     let lastY = 0
+    let press: { x: number; y: number; t: number; moved: number } | null = null
     const down = (e: PointerEvent) => {
+      unlockSound()
+      press = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0 }
       // A mouse takes the pointer on its first click, like a game; a finger drags to look.
       if (e.pointerType === 'mouse') {
         if (!document.pointerLockElement) void Promise.resolve(el.requestPointerLock?.()).catch(() => undefined)
@@ -143,6 +211,7 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
       lastY = e.clientY
     }
     const move = (e: PointerEvent) => {
+      if (press) press.moved += Math.abs(e.movementX) + Math.abs(e.movementY)
       if (document.pointerLockElement === el) turn(e.movementX, e.movementY)
       else if (dragging === e.pointerId) {
         turn((e.clientX - lastX) * 1.6, (e.clientY - lastY) * 1.6)
@@ -152,8 +221,19 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
     }
     const up = (e: PointerEvent) => {
       if (dragging === e.pointerId) dragging = null
+      // A quick, still tap or click presses what is under it (at the centre while the pointer is
+      // locked): a lift button, a door, a drawer, if the walker can reach it.
+      const p = press
+      press = null
+      if (!p || e.target !== el || performance.now() - p.t > TAP_MS || p.moved > TAP_PX) return
+      const r = el.getBoundingClientRect()
+      const locked = document.pointerLockElement === el
+      ndc.set(locked ? 0 : ((e.clientX - r.left) / r.width) * 2 - 1, locked ? 0 : -((e.clientY - r.top) / r.height) * 2 + 1)
+      tapped.current = pick(ndc)
+      if (tapped.current) walkInput.interact = true
     }
     const keyDown = (e: KeyboardEvent) => {
+      unlockSound()
       if ((e.target as HTMLElement).tagName === 'INPUT') return
       const k = e.code
       if (/^(Key[WASD]|Arrow|Space)/.test(k)) e.preventDefault()
@@ -161,6 +241,10 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
       if (k === 'KeyE') walkInput.interact = true
       else if (k === 'Space') walkInput.jump = true
       else if (k === 'KeyV') useWalkStore.getState().toggleView()
+      // At a lift: G, 1 and 2 choose the ground floor, B1 and B2 on its panel.
+      else if (k === 'KeyG' || k === 'Digit0' || k === 'Numpad0') walkInput.liftButton = 'G'
+      else if (k === 'Digit1' || k === 'Numpad1') walkInput.liftButton = 'B1'
+      else if (k === 'Digit2' || k === 'Numpad2') walkInput.liftButton = 'B2'
       else if (k === 'Escape' && !document.pointerLockElement) useWalkStore.getState().stop()
       keys.current.add(k)
     }
@@ -182,14 +266,21 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
       window.removeEventListener('keyup', keyUp)
       window.removeEventListener('blur', blur)
     }
-  }, [gl, session])
+  }, [gl, session, pick])
 
-  // Rooms are named as they're entered, and their lamps taken from the model's light pool.
-  const currentZone = useRef<string | null>(null)
+
 
   useFrame((state, rawDelta) => {
     const delta = Math.min(rawDelta, 0.1)
-    const { walker, collider, targets, rig } = session
+    const { walker, collider, targets, rig, leaves } = session
+    // The lifts run first: a walker in a car rides it, and the camera with them.
+    if (basement) {
+      const y0 = walker.position.y
+      basement.tick(delta, walker.position)
+      const rode = walker.position.y - y0
+      if (rode) rig.carry(rode)
+    }
+    setListener(walker.position)
     const k = keys.current
     const held = (...codes: string[]) => (codes.some((c) => k.has(c)) ? 1 : 0)
     const right = MathUtils.clamp(held('KeyD', 'ArrowRight') - held('KeyA', 'ArrowLeft') + walkInput.moveX, -1, 1)
@@ -288,9 +379,50 @@ export function WalkController({ root, area, setZone, rooms }: { root: Object3D;
       }
     }
 
+    // The entrance doors slide open as the walker comes near, and close behind.
+    for (const l of leaves) {
+      const dx = walker.position.x - l.at.x
+      const dz = walker.position.z - l.at.z
+      const want = Math.hypot(dx, dz) < AUTO_DOOR && Math.abs(walker.position.y - l.at.y) < 2.5 ? 1 : 0
+      if (Math.abs(l.open - want) < 1e-3) continue
+      // oxlint-disable-next-line react/immutability -- the doors' state is mutated per frame by design
+      l.open = MathUtils.damp(l.open, want, 3.2, delta)
+      l.node.position.copy(l.closed).addScaledVector(l.slide, l.open * l.open * (3 - 2 * l.open))
+    }
+
+    // Down in the basements, the building above stops shading the car park and its lights take over.
+    if (basement) {
+      const y = walker.position.y
+      const next = below.current ? y < ABOVE : y < BELOW
+      if (next !== below.current) {
+        below.current = next
+        if (basement.setBelow(next)) state.gl.shadowMap.needsUpdate = true
+        useWalkStore.getState().setBelow(next)
+      }
+      // The lift the walker rides, for its panel on screen.
+      const lift = basement.liftNear(walker.position)
+      const status: LiftStatus | null = lift ? { ...lift.status, floors: lift.levels.map((l) => l.name) } : null
+      const key = status ? `${status.floor}|${status.dir}|${status.moving}|${status.lit.join()}` : ''
+      if (key !== liftKey.current) {
+        liftKey.current = key
+        useWalkStore.getState().setLift(status)
+      }
+      // A button pressed on the screen's panel: the walker presses the real one in the car.
+      if (walkInput.liftButton) {
+        const node = lift?.carButton(walkInput.liftButton) ?? null
+        // oxlint-disable-next-line react/immutability -- walkInput is the controls' shared, per-frame input
+        walkInput.liftButton = null
+        if (node) {
+          tapped.current = node
+          walkInput.interact = true
+        }
+      }
+    }
+
     if (walkInput.interact) {
       walkInput.interact = false
-      const node = nearest.current
+      const node = tapped.current ?? nearest.current
+      tapped.current = null
       const figure = character.current
       if (node) {
         const done = () => {

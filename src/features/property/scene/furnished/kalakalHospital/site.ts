@@ -6,6 +6,7 @@ import { hedge, lawn, shrub, SPECIES, tree } from '../kalakalMall/foliage'
 import { metricBox, rect, slab } from '../kalakalMall/solids'
 import { signLine } from '../kalakalHotel/building'
 import { ambulance } from './ambulance'
+import { rectPoly } from '../basement'
 import { NAME, NAVY, type HospitalCtx } from './building'
 import { BACK_Z, BODY, clipHalf, DRIVE, ER, EXIT, FRONTAGE, FRONTAGE_Z, FT, GARDEN, GL, LANE, MAIN, PARK, PLOT, RAMP, TOWER, WALK, WALL_T, YARD } from './plan'
 
@@ -50,9 +51,9 @@ function bxAcross(ctx: HospitalCtx, p: Object3D, [x0, x1]: R, ys: R, zs: R, mat:
 }
 
 /** A ground surface laid at true scale, trimmed to the plan's road edge on the master plan. */
-function ground(ctx: HospitalCtx, p: Object3D, poly: Point2[], y: number, mat: Material) {
+function ground(ctx: HospitalCtx, p: Object3D, poly: Point2[], y: number, mat: Material, holes: Point2[][] = [], name = '') {
   const shape = ctx.onPlan ? clipHalf(poly, FRONTAGE.k, -1, FRONTAGE.c - 0.3) : poly
-  if (shape.length >= 3) slab(p, shape, 0, y, [mat, ctx.c.concrete], [], false)
+  if (shape.length >= 3) slab(p, shape, 0, y, [mat, ctx.c.concrete], holes, false, name)
 }
 
 /** Precast kerbs: along z at x, or along x at z; their shade on both sides. */
@@ -90,10 +91,11 @@ export function buildSite(ctx: HospitalCtx, p: Object3D) {
   // At the back: the bays, the aisle round to the exit road, the ramp's floor and the service court.
   ground(ctx, p, rect(DRIVE.x1, YARD.x0, PARK.z0, PARK.z1), 0.02, c.asphalt)
   ground(ctx, p, rect(DRIVE.x1, EXIT.x0, PARK.z1, RAMP.z0), 0.02, c.asphalt)
-  ground(ctx, p, rect(DRIVE.x1, RAMP.x1, RAMP.z0, RAMP.z1), 0.02, c.asphalt)
+  // Over the ramp, until the basement and its real ramp are built (see basement/).
+  ground(ctx, p, rect(DRIVE.x1, RAMP.x1, RAMP.z0, RAMP.z1), 0.02, c.asphalt, [], ctx.openings ? 'void_ramp_floor' : '')
   ground(ctx, p, rect(RAMP.x1, EXIT.x0, RAMP.z0, BODY.z0), 0.02, c.asphalt)
   // Paving: the terrace before the fronts, the walks round the building, the verge by the north wall.
-  ground(ctx, p, rect(DRIVE.x1, EXIT.x0, BACK_Z, LANE.z0), GL, c.paving)
+  ground(ctx, p, rect(DRIVE.x1, EXIT.x0, BACK_Z, LANE.z0), GL, c.paving, ctx.openings?.wells.map(rectPoly) ?? [])
   ground(ctx, p, rect(DRIVE.x1, BODY.x0, RAMP.z1, BACK_Z), GL, c.paving)
   ground(ctx, p, rect(DRIVE.x1, RAMP.x1, RAMP.z1, BODY.z0), GL, c.paving)
   ground(ctx, p, rect(BODY.x1, EXIT.x0, BODY.z0, BACK_Z), GL, c.paving)
@@ -246,7 +248,7 @@ function buildRamp(ctx: HospitalCtx, p: Object3D) {
   const zc = (z0 + z1) / 2
   const open: R = [z0 + T, z1 - T]
   bx(ctx, p, [x0, x0 + 0.3], [2.4, h - 0.3], open, c.wall)
-  k.box(p, 0.02, 2.4, open[1] - open[0], c.void, x0 + 2.2, 1.22, zc, false)
+  k.box(p, 0.02, 2.4, open[1] - open[0], c.void, x0 + 2.2, 1.22, zc, false).name = 'void_ramp_mouth'
   for (let i = 0; i < 8; i++) {
     const w = (open[1] - open[0] - 0.4) / 8
     const z = open[0] + 0.2 + i * w

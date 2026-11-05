@@ -1,5 +1,6 @@
 import { CylinderGeometry, ExtrudeGeometry, Group, Mesh, PointLight, Shape, Vector3, type Material, type Object3D } from 'three'
 import type { Point2 } from '../../../../../api/types'
+import { rectPoly, type Openings } from '../basement'
 import type { Kit } from '../kit'
 import type { Lighting } from '../shared'
 import type { Contact } from './contact'
@@ -19,6 +20,8 @@ export interface MallCtx {
   plant: Planting
   /** Contact shadows and occlusion, likewise. */
   shade: Contact
+  /** In the property view: what to leave open for the way down to the basements (see basement/). */
+  openings?: Openings
 }
 
 const PI = Math.PI
@@ -62,7 +65,12 @@ export function podiumOutline(): Point2[] {
 
 function buildPodium(ctx: MallCtx, parent: Object3D) {
   const { c } = ctx
-  slab(parent, podiumOutline(), 0, GL, [c.surface('travertine', 1, 1), c.granite], [], true, 'podium')
+  const open = ctx.openings
+  // In the property view the podium is open over the ramp tunnels and the stair well and lift
+  // shaft; the wells are closed over until the basement is built (see basement/).
+  const holes = open ? [...open.ramps, ...open.wells].map(rectPoly) : []
+  slab(parent, podiumOutline(), 0, GL, [c.surface('travertine', 1, 1), c.granite], holes, true, 'podium')
+  open?.wells.forEach((w, i) => slab(parent, rectPoly(w), GL - 0.02, GL, c.surface('travertine', 1, 1), [], false, `void_well_${i}`))
 }
 
 /** Shopfront glazing round the ground floor under the overhang; the rear is the service wall. */
@@ -95,7 +103,14 @@ function buildShopfronts(ctx: MallCtx, parent: Object3D) {
     ribbon(rails, s0, s1, (s) => plumb(s, 3.05, SHOPFRONT + 0.03), (s) => plumb(s, 3.15, SHOPFRONT + 0.03))
   for (const [s0, s1] of LOOP.runs((s) => !isRear(s) && bot(s) > 6.5, 0.05))
     ribbon(rails, s0, s1, (s) => plumb(s, L1 - 0.32, SHOPFRONT + 0.03), (s) => plumb(s, L1 + 0.05, SHOPFRONT + 0.03))
-  for (const [s0, s1] of LOOP.runs(isRear)) ribbon(wall, s0, s1, (s) => plumb(s, 0.1, SHOPFRONT), (s) => plumb(s, bot(s), SHOPFRONT))
+  // The rear wall, open at the basement portals in the property view (the ramps run in behind it).
+  const inPortal = (s: number) => {
+    if (!ctx.openings) return false
+    const [x] = LOOP.at(s, SHOPFRONT)
+    return [PORTALS.in, PORTALS.out].some((px) => Math.abs(x - px) < PORTALS.w / 2)
+  }
+  for (const [s0, s1] of LOOP.runs((s) => isRear(s) && !inPortal(s))) ribbon(wall, s0, s1, (s) => plumb(s, 0.1, SHOPFRONT), (s) => plumb(s, bot(s), SHOPFRONT))
+  for (const [s0, s1] of LOOP.runs((s) => isRear(s) && inPortal(s))) ribbon(wall, s0, s1, (s) => plumb(s, GL + PORTALS.h, SHOPFRONT), (s) => plumb(s, bot(s), SHOPFRONT))
   glass.mesh(c.shopGlass, parent, 'shopfront_glass', false)
   wall.mesh(c.surface('greige', 1, 1), parent, 'service_wall')
   rails.mesh(c.mullion, parent, 'shopfront_rails')
@@ -141,7 +156,14 @@ function buildInterior(ctx: MallCtx, parent: Object3D) {
   }
   // The shops' back walls: a lit core standing behind the shop units.
   const core = { x0: -11.6, x1: 11.6, z0: -19, z1: LOBBY.z0 }
-  k.box(parent, core.x1 - core.x0, L1 - 0.3 - GL, core.z1 - core.z0, c.shops, (core.x0 + core.x1) / 2, (GL + L1 - 0.3) / 2, (core.z0 + core.z1) / 2, false)
+  // In the property view, clear of the ramp tunnels that run in under the ground floor.
+  const spans: [number, number][] = ctx.openings
+    ? ctx.openings.ramps.reduce<[number, number][]>(
+        (out, r) => out.flatMap(([a, b]): [number, number][] => (r.x1 <= a || r.x0 >= b ? [[a, b]] : ([[a, r.x0 - 0.05], [r.x1 + 0.05, b]] as [number, number][]).filter(([p, q]) => q - p > 0.3))),
+        [[core.x0, core.x1]],
+      )
+    : [[core.x0, core.x1]]
+  for (const [x0, x1] of spans) k.box(parent, x1 - x0, L1 - 0.3 - GL, core.z1 - core.z0, c.shops, (x0 + x1) / 2, (GL + L1 - 0.3) / 2, (core.z0 + core.z1) / 2, false)
   // Shop partitions at 9 m, square to the glass.
   for (const [s0, s1] of LOOP.runs((s) => LOOP.normal(s)[1] > -0.7, 0.5)) {
     const n = Math.max(1, Math.round((s1 - s0) / 9))
@@ -149,6 +171,12 @@ function buildInterior(ctx: MallCtx, parent: Object3D) {
       const s = s0 + ((s1 - s0) * i) / n
       const [x] = LOOP.at(s)
       if (x > LOBBY.x0 - 0.5 && x < LOBBY.x1 + 0.5 && LOOP.at(s)[1] > LOBBY.z0) continue
+      // In the property view, none across the ramp tunnels or the lift and stair core.
+      const clear = [...(ctx.openings?.ramps ?? []), ...(ctx.openings?.wells ?? [])]
+      if (clear.some((r) => [-1.5, -3, -4.5, -6, -7.5].some((d) => {
+        const [px, pz] = LOOP.at(s, SHOPFRONT + d + 1.3)
+        return px > r.x0 - 0.3 && px < r.x1 + 0.3 && pz > r.z0 - 0.3 && pz < r.z1 + 0.3
+      }))) continue
       alongLoop(ctx, parent, s, SHOPFRONT - 3.2, 0.15, L1 - 0.3 - GL, 6, (GL + L1 - 0.3) / 2, c.white, false)
     }
   }
@@ -185,12 +213,20 @@ function buildEntrance(ctx: MallCtx, parent: Object3D) {
   // Automatic sliding doors: two fixed side lights and two sliding leaves under a head box with its sensor.
   const doors = { x0: ENTRY_X - 2.2, x1: ENTRY_X + 2.2, h: 2.9 }
   const leaf = (doors.x1 - doors.x0) / 4
-  for (let i = 0; i <= 4; i++) k.box(parent, 0.09, doors.h, 0.14, c.mullion, doors.x0 + i * leaf, GL + doors.h / 2, zg + 0.08)
+  // (The middle one is the leaves' meeting stile: walkable, the sliding leaves carry it away.)
+  for (let i = 0; i <= 4; i++) if (!(i === 2 && ctx.openings)) k.box(parent, 0.09, doors.h, 0.14, c.mullion, doors.x0 + i * leaf, GL + doors.h / 2, zg + 0.08)
   for (let i = 0; i < 4; i++) {
     const x = doors.x0 + (i + 0.5) * leaf
     const slide = i === 1 || i === 2 ? 0.1 : 0
-    k.box(parent, leaf - 0.1, doors.h - 0.1, 0.03, c.tintGlass, x, GL + doors.h / 2, zg + 0.1 + slide, false)
-    if (slide) k.box(parent, 0.03, 1.1, 0.05, c.mullion, x + (i === 1 ? leaf / 2 - 0.12 : -leaf / 2 + 0.12), GL + 1.1, zg + 0.16 + slide)
+    // The middle two slide open for a walker in the property view (see walk/).
+    const p = slide && ctx.openings ? new Group() : parent
+    if (p !== parent) {
+      p.name = `autoleaf_mall_${i}`
+      p.userData.slide = [(i === 1 ? -1 : 1) * (leaf - 0.05), 0, 0]
+      parent.add(p)
+    }
+    k.box(p, leaf - 0.1, doors.h - 0.1, 0.03, c.tintGlass, x, GL + doors.h / 2, zg + 0.1 + slide, false)
+    if (slide) k.box(p, 0.03, 1.1, 0.05, c.mullion, x + (i === 1 ? leaf / 2 - 0.12 : -leaf / 2 + 0.12), GL + 1.1, zg + 0.16 + slide)
   }
   k.box(parent, doors.x1 - doors.x0 + 0.1, 0.32, 0.36, c.mullion, ENTRY_X, GL + doors.h + 0.16, zg + 0.18)
   k.box(parent, 0.3, 0.06, 0.08, c.plantDark, ENTRY_X, GL + doors.h - 0.02, zg + 0.38, false)
@@ -503,7 +539,7 @@ function buildService(ctx: MallCtx, parent: Object3D) {
   // hung under the overhang, and the parking sign over the way in.
   for (const x of [PORTALS.in, PORTALS.out]) {
     const { w, h } = PORTALS
-    k.box(parent, w, h, 0.04, c.void, x, GL + h / 2, z - 0.03, false)
+    k.box(parent, w, h, 0.04, c.void, x, GL + h / 2, z - 0.03, false).name = 'void_portal'
     k.box(parent, w + 0.3, 0.35, 0.3, c.mullion, x, GL + h + 0.175, z - 0.15)
     for (const dx of [-w / 2 - 0.08, w / 2 + 0.08]) k.box(parent, 0.16, h, 0.3, c.mullion, x + dx, GL + h / 2, z - 0.15)
     for (let i = 0; i < 6; i++) k.box(parent, w / 6, 0.15, 0.08, i % 2 ? c.plantDark : c.hazard, x - w / 2 + (i + 0.5) * (w / 6), GL + 2.45, REAR_Z - 0.9, false)

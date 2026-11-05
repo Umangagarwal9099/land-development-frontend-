@@ -1,5 +1,6 @@
-import { PointLight, type Material, type Object3D } from 'three'
+import { Group, PointLight, type Material, type Object3D } from 'three'
 import type { Point2 } from '../../../../../api/types'
+import { rectPoly, type Openings } from '../basement'
 import type { Kit } from '../kit'
 import type { Lighting } from '../shared'
 import { rng } from '../textures'
@@ -8,7 +9,7 @@ import { shrub, type Planting } from '../kalakalMall/foliage'
 import { Tris } from '../kalakalMall/skin'
 import { rect, slab } from '../kalakalMall/solids'
 import { signLine, type LetterTone } from '../kalakalHotel/building'
-import { box, fbox, fplane, type Face } from '../kalakalA01/building'
+import { box, fbox, fplane, onFace, type Face } from '../kalakalA01/building'
 import type { HospitalMaterials } from './materials'
 import {
   BACK_Z, BODY, CANOPY, COURT, ER, footprint, GL, L1, LINK, MAIN, outline, PARAPET, ROOF, STOREYS, TOWER, UPPER, WING,
@@ -24,6 +25,8 @@ export interface HospitalCtx {
   shade: Contact
   /** On the master plan: trim the forecourt to the layout's skewed road edge. */
   onPlan: boolean
+  /** In the property view: what to leave open for the way down to the basements (see basement/). */
+  openings?: Openings
 }
 
 type R = [number, number]
@@ -218,12 +221,43 @@ function curtain(p: Parts, f: Face, y0: number, y1: number, lines: number[], see
  * floor, silver mullions with a transom, and automatic sliding doors at each of `doors` (centres
  * along the face) with their operator housings and mats.
  */
-function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[], offset: number) {
+function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[], offset: number, walk?: { ctx: HospitalCtx; parent: Object3D }) {
   fplane(p.hall, f, [0, f.len], [GL, top], -deep, (s, y) => [(s + offset) / 20, (y - GL) / (top - GL)])
   fbox(p.ceiling, f, [0, f.len], [top - 0.02, top], [-deep, -0.15])
-  fbox(p.floor, f, [0, f.len], [GL, GL + 0.012], [-deep, -0.15])
   for (const s of [0, f.len - 0.12]) fbox(p.inner, f, [s, s + 0.12], [GL, top], [-deep, -0.15])
-  fplane(p.glass, f, [0, f.len], [GL, top], -0.15)
+  if (!walk) {
+    fbox(p.floor, f, [0, f.len], [GL, GL + 0.012], [-deep, -0.15])
+    fplane(p.glass, f, [0, f.len], [GL, top], -0.15)
+  } else {
+    // Walkable: the floor left open over the lifts' shafts and the stair well down to the
+    // basements, and the glass open at each door, where the leaves slide aside for a walker.
+    const { ctx, parent } = walk
+    const [ax, az] = onFace(f, 0, -deep)
+    const [bx, bz] = onFace(f, f.len, -0.15)
+    const floor = rect(Math.min(ax, bx), Math.max(ax, bx), Math.min(az, bz), Math.max(az, bz))
+    slab(parent, floor, GL, GL + 0.012, ctx.c.floor, ctx.openings!.wells.map(rectPoly), false, 'lobby_floor')
+    // Closed over until the basement (and so the lifts and stair) is built.
+    ctx.openings!.wells.forEach((w, i) => slab(parent, rectPoly(w), GL, GL + 0.012, ctx.c.floor, [], false, `void_lobby_well_${i}`))
+    let at = 0
+    for (const d of doors) {
+      fplane(p.glass, f, [at, d - 1.22], [GL, top], -0.15)
+      at = d + 1.22
+      for (const side of [-1, 1]) {
+        const leaf = new Group()
+        leaf.name = `autoleaf_lobby_${d.toFixed(1)}_${side}`
+        const [lx, lz] = onFace(f, d + side * 0.61, -0.13)
+        ctx.k.box(leaf, Math.abs(f.u[0]) * 1.2 + 0.03, GL + 2.45 - GL - 0.02, Math.abs(f.u[1]) * 1.2 + 0.03, ctx.c.windowGlass, 0, 0, 0, false)
+        for (const e of [-0.6, 0.6]) {
+          const [ex, ez] = [f.u[0] * e, f.u[1] * e]
+          ctx.k.box(leaf, Math.abs(f.u[1]) * 0.05 + 0.04, 2.43, Math.abs(f.u[0]) * 0.05 + 0.04, ctx.c.silver, ex, 0, ez)
+        }
+        leaf.position.set(lx, GL + 1.225, lz)
+        leaf.userData.slide = [f.u[0] * side * 1.15, 0, f.u[1] * side * 1.15]
+        parent.add(leaf)
+      }
+    }
+    fplane(p.glass, f, [at, f.len], [GL, top], -0.15)
+  }
   const n = Math.max(1, Math.round(f.len / 1.6))
   for (let i = 0; i <= n; i++) {
     const s = (i * f.len) / n
@@ -237,7 +271,8 @@ function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[
     fbox(p.frame, f, [d + 1.3, f.len], [GL + 2.65, GL + 2.72], [-0.21, -0.08])
     // Jambs, the leaves' edges and meeting stiles, and the operator's housing over them.
     for (const s of [d - 1.3, d + 1.3]) fbox(p.frame, f, [s - 0.05, s + 0.05], [GL, top], [-0.24, -0.06])
-    for (const s of [d - 1.2, d - 0.04, d + 0.04, d + 1.2]) fbox(p.frame, f, [s - 0.025, s + 0.025], [GL, GL + 2.45], [-0.11, -0.06])
+    // The leaves' edges and meeting stiles (walkable, the leaves carry their own and slide).
+    if (!walk) for (const s of [d - 1.2, d - 0.04, d + 0.04, d + 1.2]) fbox(p.frame, f, [s - 0.025, s + 0.025], [GL, GL + 2.45], [-0.11, -0.06])
     for (const y of [GL + 0.02, GL + 2.4]) fbox(p.frame, f, [d - 1.2, d + 1.2], [y, y + 0.05], [-0.11, -0.06])
     fbox(p.frame, f, [d - 1.35, d + 1.35], [GL + 2.45, GL + 2.72], [-0.32, -0.06])
     fbox(p.mat, f, [d - 1.3, d + 1.3], [GL, GL + 0.01], [0.02, 1.5])
@@ -302,7 +337,9 @@ function buildFaces(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   ribbon(p, northFace(BODY.x1, BODY.z0, WING.z1), STOREYS.slice(1), PARAPET, 41)
   ribbon(p, northFace(BODY.x1, BODY.z0, ER.z0), STOREYS.slice(0, 1), L1 - 0.35, 42, 0)
   ribbon(p, northFace(BODY.x1, ER.z1, WING.z1), STOREYS.slice(0, 1), L1 - 0.35, 44, 0)
-  lobbyFront(p, northFace(BODY.x1, ER.z0, ER.z1), L1 - 0.35, 6, [ER.z1 - ER.door], 9)
+  // Seen through its glass the emergency hall runs 6 m in; in the property view 3.8 m, clear of the
+  // stair down to the basements behind the main lobby.
+  lobbyFront(p, northFace(BODY.x1, ER.z0, ER.z1), L1 - 0.35, ctx.openings ? 3.8 : 6, [ER.z1 - ER.door], 9)
   const back = westFace(BODY.z0, BODY.x0, BODY.x1)
   ribbon(p, back, STOREYS.slice(1), PARAPET, 43)
   serviceFront(p, back, [3.0, 7.0], [12, 16], 21)
@@ -355,7 +392,7 @@ function buildMain(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   // The first floor's edge, white, over the lobby's glass, and the lobby itself.
   box(p.wall, [x0 + pier, x1 - pier], [L1 - 0.65, L1 + 0.4], [lobby, glass])
   const lb = eastFace(lobby, x0 + pier, x1 - pier)
-  lobbyFront(p, lb, L1 - 0.65, 8, [lb.len / 2], 4)
+  lobbyFront(p, lb, L1 - 0.65, 8, [lb.len / 2], 4, ctx.openings ? { ctx, parent } : undefined)
   buildName(ctx, parent)
 }
 

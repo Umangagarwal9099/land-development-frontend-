@@ -93,18 +93,35 @@ export function StudioEnvironment() {
 }
 
 /** Endless dark floor the model's plinth sits on; fog dissolves its edge into the background. */
-export function Floor({ y, size }: { y: number; size: number }) {
+export function Floor({ y, size, hole }: { y: number; size: number; hole?: Hole }) {
   const day = useStageStore((s) => s.daylight)
+  const s = size / 2
+  // With a hole (over a basement), four pieces round it, so nothing closes over the levels below.
+  const pieces: [number, number, number, number][] = hole
+    ? [[-s, s, -s, hole.minZ], [-s, s, hole.maxZ, s], [-s, hole.minX, hole.minZ, hole.maxZ], [hole.maxX, s, hole.minZ, hole.maxZ]]
+    : [[-s, s, -s, s]]
   return (
-    <mesh rotation-x={-Math.PI / 2} position-y={y} receiveShadow raycast={() => null}>
-      <planeGeometry args={[size, size]} />
-      <meshStandardMaterial color={day ? '#3f4a52' : '#0b0c0e'} roughness={0.95} />
-    </mesh>
+    <group position-y={y}>
+      {pieces.map(([x0, x1, z0, z1], i) => (
+        <mesh key={i} rotation-x={-Math.PI / 2} position={[(x0 + x1) / 2, 0, (z0 + z1) / 2]} receiveShadow raycast={() => null}>
+          <planeGeometry args={[x1 - x0, z1 - z0]} />
+          <meshStandardMaterial color={day ? '#3f4a52' : '#0b0c0e'} roughness={0.95} />
+        </mesh>
+      ))}
+    </group>
   )
 }
 
+/** A plan rectangle left open in the floor and plinth: where a basement goes down. */
+export interface Hole {
+  minX: number
+  maxX: number
+  minZ: number
+  maxZ: number
+}
+
 /** A bevelled base the site sits on, like the table of a physical architectural model. */
-export function Plinth({ minX, minZ, maxX, maxZ, height, color = '#15181a' }: { minX: number; minZ: number; maxX: number; maxZ: number; height: number; color?: string }) {
+export function Plinth({ minX, minZ, maxX, maxZ, height, color = '#15181a', hole }: { minX: number; minZ: number; maxX: number; maxZ: number; height: number; color?: string; hole?: Hole }) {
   const w = maxX - minX
   const d = maxZ - minZ
   const cx = (minX + maxX) / 2
@@ -115,10 +132,20 @@ export function Plinth({ minX, minZ, maxX, maxZ, height, color = '#15181a' }: { 
   )
   return (
     <group>
-      <mesh position={[cx, -height / 2, cz]} receiveShadow raycast={() => null}>
-        <boxGeometry args={[w, height, d]} />
-        <meshStandardMaterial color={color} roughness={0.92} />
-      </mesh>
+      {hole ? (
+        // Round a basement, a frame of four blocks.
+        ([[minX, maxX, minZ, hole.minZ], [minX, maxX, hole.maxZ, maxZ], [minX, hole.minX, hole.minZ, hole.maxZ], [hole.maxX, maxX, hole.minZ, hole.maxZ]] as const).map(([x0, x1, z0, z1], i) => (
+          <mesh key={i} position={[(x0 + x1) / 2, -height / 2, (z0 + z1) / 2]} receiveShadow raycast={() => null}>
+            <boxGeometry args={[x1 - x0, height, z1 - z0]} />
+            <meshStandardMaterial color={color} roughness={0.92} />
+          </mesh>
+        ))
+      ) : (
+        <mesh position={[cx, -height / 2, cz]} receiveShadow raycast={() => null}>
+          <boxGeometry args={[w, height, d]} />
+          <meshStandardMaterial color={color} roughness={0.92} />
+        </mesh>
+      )}
       {/* Gold inlay around the top edge. */}
       <lineLoop raycast={() => null}>
         <bufferGeometry>

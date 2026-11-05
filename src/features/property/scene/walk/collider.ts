@@ -1,8 +1,11 @@
-import { DoubleSide, Line3, Matrix3, Matrix4, Mesh, MeshBasicMaterial, Ray, Sphere, Vector3, Box3, type Material, type Object3D } from 'three'
+import { DoubleSide, InstancedMesh, Line3, Matrix3, Matrix4, Mesh, MeshBasicMaterial, Ray, Sphere, Vector3, Box3, type Material, type Object3D } from 'three'
 import type { ExtendedTriangle } from 'three-mesh-bvh'
 
-/** Nodes that aren't solid: room hotspots' floor overlays. */
-const GHOST = /^(room_|amenity_)/
+/**
+ * Nodes that aren't solid: room hotspots' floor overlays, the earth a basement is cut from in the
+ * views from above, and the stand-ins over openings that are shown only until the real way down is.
+ */
+const GHOST = /^(room_|amenity_|earth$|void_)/
 
 /** Things that show but don't stop a walker: overlays, contact shadows and gauzy sheers. Glass stays solid. */
 function isSolid(mesh: Mesh) {
@@ -42,7 +45,8 @@ export class Collider {
     root.updateMatrixWorld(true)
     const visit = (o: Object3D) => {
       if (GHOST.test(o.name)) return
-      if (o instanceof Mesh && o.geometry.boundsTree && isSolid(o)) {
+      // Instanced parts (parked cars) are met through their own collision proxies instead.
+      if (o instanceof Mesh && !(o instanceof InstancedMesh) && o.geometry.boundsTree && isSolid(o)) {
         if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere()
         const s = o.geometry.boundingSphere!
         this.parts.push({ mesh: o, center: s.center, radius: s.radius })

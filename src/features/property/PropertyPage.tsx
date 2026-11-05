@@ -93,7 +93,7 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
       <AnimatePresence>
         {roomInView && <RoomViewer key="room-viewer" property={property} room={roomInView} onSelectRoom={openRoom} onClose={closeRoomView} />}
       </AnimatePresence>
-      {walking && <WalkOverlay />}
+      {walking && <WalkOverlay title={property.name} />}
 
       {/* The house view's chrome steps aside while a room is open. */}
       <motion.div

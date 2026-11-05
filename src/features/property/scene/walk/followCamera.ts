@@ -49,6 +49,11 @@ export class FollowCamera {
     this.pitch = walker.pitch
   }
 
+  /** The walker rode something up or down (a lift car): the camera rides with them, not after them. */
+  carry(dy: number) {
+    this.pivot.y += dy
+  }
+
   /** The user just moved the view by hand. */
   looked() {
     this.idle = 0
