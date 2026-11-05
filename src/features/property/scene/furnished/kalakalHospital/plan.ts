@@ -87,6 +87,35 @@ export const CANOPY = { x0: -1.2, x1: 11.4, z0: MAIN.lobby, z1: 26, y0: 4.25, y1
  * at `door` along the side.
  */
 export const ER = { x0: BODY.x1, x1: PLOT.x1 - WALL_T - 0.02, z0: -4, z1: 6, y0: 4.1, y1: 4.7, door: 1 }
+/**
+ * The emergency department, fitted out behind the ambulance entrance (see emergency.ts): the
+ * client's floor plan draws it as one 8.4 m structural bay down the side of the building, from
+ * the front to the back, between the lobby and the outside wall. Here that is the north wing's
+ * ground floor from the main lobby's back wall to the stores at the back, inside the cladding;
+ * the lobby, its lifts and stair (x < 9.7, z > 5) and the stores' roller shutters are left as
+ * they are.
+ *
+ *   x0 … x1, z0 … z1   inside faces of the inner wall, the cladding, the stores' wall, the lobby's
+ *   ceiling, bulkhead  the tiles at 3.0 m clear, the plasterboard bulkheads at 2.7 m
+ *   partition          between reception (in front) and the treatment area, the doors in it
+ *   bays               five, 3.0 × 3.0 m along the inner wall, from `z1` back
+ *   corridor           the clinical corridor in front of the bays, dark vinyl
+ *   station            the nurses' station's public face, and its ends
+ *   registration       the counter's public face, and its ends
+ *   triage             the glazed room in reception's south-west corner, its door
+ */
+export const EMERGENCY = {
+  x0: 5.6, x1: BODY.x1 - 0.3, z0: -21.8, z1: 4.85,
+  ceiling: GL + 3.0, bulkhead: GL + 2.7,
+  partition: -6.2, treatmentDoor: [9.4, 11.8] as [number, number], hospitalDoor: [6.0, 7.6] as [number, number],
+  bays: { x1: 8.6, z1: -6.5, w: 3.0, n: 5 },
+  bayBulkhead: [8.6, 9.2] as [number, number],
+  corridor: [8.6, 11.0] as [number, number],
+  station: { x0: 11.0, z0: -16.6, z1: -10.6 },
+  registration: { x: 7.75, z0: -1.4, z1: 2.6 },
+  triage: { x1: 8.6, z0: -6.14, z1: -2.6, door: [-3.6, -2.7] as [number, number] },
+}
+
 /** The garden between the lane and the road, and the entrance walk across it on the main doors' axis. */
 export const GARDEN = { x0: DRIVE.x1, x1: EXIT.x0, z0: LANE.z1 }
 export const WALK = { x0: 4.9, x1: 7.3 }

@@ -400,7 +400,7 @@ function sideLine(b: BodyShape, z: number, y0: number, y1: number, width: number
 }
 
 /** A tyre turned from its section: bulging sidewalls, rounded shoulders, four tread ribs. Axis along y. */
-function tyreGeometry(r: number, w: number) {
+export function tyreGeometry(r: number, w: number) {
   const rim = r * 0.62
   const hw = w / 2
   const pts: [number, number][] = [
@@ -416,7 +416,7 @@ function tyreGeometry(r: number, w: number) {
 }
 
 /** The rim's barrel and lip, turned; spokes are added separately. Axis along y, face towards +y. */
-function rimGeometry(r: number, w: number) {
+export function rimGeometry(r: number, w: number) {
   const hw = w / 2
   const pts: [number, number][] = [
     [r * 0.9, -hw * 0.8], [r * 0.93, -hw * 0.82], [r * 0.93, hw * 0.55], [r * 0.99, hw * 0.72], [r * 1.02, hw * 0.78], [r * 0.99, hw * 0.84], [r * 0.9, hw * 0.8],
@@ -562,7 +562,8 @@ const mat = <M extends Material>(key: string, make: () => M) => {
   return m as M
 }
 
-function materials() {
+/** The shared car finishes: glass, trims, chrome, tyres, lamps (also used by the hospital's ambulance). */
+export function carMaterials() {
   return {
     glass: mat('glass', () => new MeshPhysicalMaterial({ color: '#1a2126', metalness: 0, roughness: 0.03, clearcoat: 1, clearcoatRoughness: 0.02, transparent: true, opacity: 0.72, envMapIntensity: 1.4 })),
     trim: mat('trim', () => new MeshStandardMaterial({ color: '#141517', roughness: 0.55, metalness: 0.1 })),
@@ -636,7 +637,7 @@ export function parkedCar(parent: Object3D, body: Body, colour: string, x: numbe
   let b = shapes.get(body)
   if (!b) shapes.set(body, (b = new BodyShape(s)))
   const shape = b
-  const m = materials()
+  const m = carMaterials()
   const g = new Group()
   g.name = `car_${body}`
   g.position.set(x, y, z)

@@ -10,9 +10,10 @@ import { Tris } from '../kalakalMall/skin'
 import { rect, slab } from '../kalakalMall/solids'
 import { signLine, type LetterTone } from '../kalakalHotel/building'
 import { box, fbox, fplane, onFace, type Face } from '../kalakalA01/building'
+import { buildEmergency } from './emergency'
 import type { HospitalMaterials } from './materials'
 import {
-  BACK_Z, BODY, CANOPY, COURT, ER, footprint, GL, L1, LINK, MAIN, outline, PARAPET, ROOF, STOREYS, TOWER, UPPER, WING,
+  BACK_Z, BODY, CANOPY, COURT, EMERGENCY, ER, footprint, GL, L1, LINK, MAIN, outline, PARAPET, ROOF, STOREYS, TOWER, UPPER, WING,
 } from './plan'
 
 export interface HospitalCtx {
@@ -160,7 +161,7 @@ function punched(p: Parts, f: Face, storeys: R[], top: number, seed: number, col
  * the bands proud of the glass and carried round the corners, silver mullions at 1.5 m, ward
  * bays behind. The last band rises to `top` as the parapet.
  */
-function ribbon(p: Parts, f: Face, storeys: R[], top: number, seed: number, wrap = BAND_OUT) {
+function ribbon(p: Parts, f: Face, storeys: R[], top: number, seed: number, wrap = BAND_OUT, rooms = true) {
   const r = rng(seed)
   const n = Math.max(1, Math.round(f.len / 1.5))
   const w = f.len / n
@@ -173,7 +174,8 @@ function ribbon(p: Parts, f: Face, storeys: R[], top: number, seed: number, wrap
     fplane(p.glass, f, [0, f.len], [sill, head], -0.12)
     for (let i = 0; i <= n; i++) fbox(p.frame, f, [i * w - 0.03, i * w + 0.03], [sill, head], [-0.16, -0.05])
     fbox(p.frame, f, [0, f.len], [sill, sill + 0.05], [-0.17, -0.04])
-    for (let j = 0; j < bays; j++) {
+    // Without `rooms` the real interior stands behind the glass (the emergency department).
+    for (let j = 0; j < (rooms ? bays : 0); j++) {
       p.ward.tint = lit(r)
       const [b0, b1] = [j * bw, (j + 1) * bw]
       fplane(p.ward, f, [b0, b1], [y, next], -0.8, (s, yy) => [(s - b0) / bw, (yy - y) / (next - y)])
@@ -221,10 +223,14 @@ function curtain(p: Parts, f: Face, y0: number, y1: number, lines: number[], see
  * floor, silver mullions with a transom, and automatic sliding doors at each of `doors` (centres
  * along the face) with their operator housings and mats.
  */
-function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[], offset: number, walk?: { ctx: HospitalCtx; parent: Object3D }) {
-  fplane(p.hall, f, [0, f.len], [GL, top], -deep, (s, y) => [(s + offset) / 20, (y - GL) / (top - GL)])
-  fbox(p.ceiling, f, [0, f.len], [top - 0.02, top], [-deep, -0.15])
-  for (const s of [0, f.len - 0.12]) fbox(p.inner, f, [s, s + 0.12], [GL, top], [-deep, -0.15])
+function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[], offset: number, walk?: { ctx: HospitalCtx; parent: Object3D; fitted?: boolean }) {
+  // A fitted hall (the emergency department) is modelled in full behind the glass: no backdrop,
+  // ceiling or floor of its own.
+  if (!walk?.fitted) {
+    fplane(p.hall, f, [0, f.len], [GL, top], -deep, (s, y) => [(s + offset) / 20, (y - GL) / (top - GL)])
+    fbox(p.ceiling, f, [0, f.len], [top - 0.02, top], [-deep, -0.15])
+    for (const s of [0, f.len - 0.12]) fbox(p.inner, f, [s, s + 0.12], [GL, top], [-deep, -0.15])
+  }
   if (!walk) {
     fbox(p.floor, f, [0, f.len], [GL, GL + 0.012], [-deep, -0.15])
     fplane(p.glass, f, [0, f.len], [GL, top], -0.15)
@@ -232,12 +238,14 @@ function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[
     // Walkable: the floor left open over the lifts' shafts and the stair well down to the
     // basements, and the glass open at each door, where the leaves slide aside for a walker.
     const { ctx, parent } = walk
-    const [ax, az] = onFace(f, 0, -deep)
-    const [bx, bz] = onFace(f, f.len, -0.15)
-    const floor = rect(Math.min(ax, bx), Math.max(ax, bx), Math.min(az, bz), Math.max(az, bz))
-    slab(parent, floor, GL, GL + 0.012, ctx.c.floor, ctx.openings!.wells.map(rectPoly), false, 'lobby_floor')
-    // Closed over until the basement (and so the lifts and stair) is built.
-    ctx.openings!.wells.forEach((w, i) => slab(parent, rectPoly(w), GL, GL + 0.012, ctx.c.floor, [], false, `void_lobby_well_${i}`))
+    if (!walk.fitted) {
+      const [ax, az] = onFace(f, 0, -deep)
+      const [bx, bz] = onFace(f, f.len, -0.15)
+      const floor = rect(Math.min(ax, bx), Math.max(ax, bx), Math.min(az, bz), Math.max(az, bz))
+      slab(parent, floor, GL, GL + 0.012, ctx.c.floor, ctx.openings!.wells.map(rectPoly), false, 'lobby_floor')
+      // Closed over until the basement (and so the lifts and stair) is built.
+      ctx.openings!.wells.forEach((w, i) => slab(parent, rectPoly(w), GL, GL + 0.012, ctx.c.floor, [], false, `void_lobby_well_${i}`))
+    }
     let at = 0
     for (const d of doors) {
       fplane(p.glass, f, [at, d - 1.22], [GL, top], -0.15)
@@ -335,11 +343,17 @@ function buildFaces(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   // halfway along at the ground; and the back.
   ribbon(p, eastFace(WING.z1, WING.x0, WING.x1), STOREYS, PARAPET, 37)
   ribbon(p, northFace(BODY.x1, BODY.z0, WING.z1), STOREYS.slice(1), PARAPET, 41)
-  ribbon(p, northFace(BODY.x1, BODY.z0, ER.z0), STOREYS.slice(0, 1), L1 - 0.35, 42, 0)
+  // In the property view the emergency department is fitted out behind the ground floor's glass
+  // (emergency.ts), from the stores at the back to the entrance; on the master plan the glass
+  // shows a painted hall 6 m deep.
+  const fitted = !ctx.onPlan
+  if (fitted) {
+    ribbon(p, northFace(BODY.x1, BODY.z0, EMERGENCY.z0), STOREYS.slice(0, 1), L1 - 0.35, 42, 0)
+    ribbon(p, northFace(BODY.x1, EMERGENCY.z0, ER.z0), STOREYS.slice(0, 1), L1 - 0.35, 46, 0, false)
+  } else ribbon(p, northFace(BODY.x1, BODY.z0, ER.z0), STOREYS.slice(0, 1), L1 - 0.35, 42, 0)
   ribbon(p, northFace(BODY.x1, ER.z1, WING.z1), STOREYS.slice(0, 1), L1 - 0.35, 44, 0)
-  // Seen through its glass the emergency hall runs 6 m in; in the property view 3.8 m, clear of the
-  // stair down to the basements behind the main lobby.
-  lobbyFront(p, northFace(BODY.x1, ER.z0, ER.z1), L1 - 0.35, ctx.openings ? 3.8 : 6, [ER.z1 - ER.door], 9)
+  lobbyFront(p, northFace(BODY.x1, ER.z0, ER.z1), L1 - 0.35, 6, [ER.z1 - ER.door], 9, fitted ? { ctx, parent, fitted } : undefined)
+  if (fitted) buildEmergency(ctx, parent)
   const back = westFace(BODY.z0, BODY.x0, BODY.x1)
   ribbon(p, back, STOREYS.slice(1), PARAPET, 43)
   serviceFront(p, back, [3.0, 7.0], [12, 16], 21)

@@ -28,7 +28,9 @@ function describe(o: Object3D): WalkPrompt {
   const open = !!o.userData.open
   const verb = open ? 'Close' : 'Open'
   if (isButton(n)) return { verb: (o.userData.verb as string | undefined) ?? 'Press', label: (o.userData.label as string | undefined) ?? 'Button' }
-  if (isDoor(n) && typeof o.userData.label === 'string') return { verb, label: o.userData.label }
+  // A part can name itself and its two actions (a bed's backrest: Raise / Lower).
+  const verbs = o.userData.verbs as [string, string] | undefined
+  if ((isDoor(n) || isDrawer(n)) && typeof o.userData.label === 'string') return { verb: verbs ? verbs[open ? 1 : 0] : verb, label: o.userData.label }
   if (isSwitch(n)) return { verb: (o.userData.on ?? true) ? 'Turn off' : 'Turn on', label: 'Light' }
   if (isSpinner(n)) return { verb: o.userData.on ? 'Stop' : 'Start', label: 'Ceiling Fan' }
   if (n === 'door_main') return { verb, label: 'Main Door' }
