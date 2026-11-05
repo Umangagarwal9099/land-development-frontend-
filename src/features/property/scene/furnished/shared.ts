@@ -1,4 +1,4 @@
-import { Group, MeshStandardMaterial, PointLight, Vector3, type Camera, type Object3D, type MeshBasicMaterial, type MeshStandardMaterialParameters, type Texture } from 'three'
+import { Group, MeshStandardMaterial, PointLight, Vector3, type Object3D, type MeshBasicMaterial, type MeshStandardMaterialParameters, type Texture } from 'three'
 import type { Basement } from './basement'
 import { Kit } from './kit'
 import type { Paint } from './textures'
@@ -26,11 +26,6 @@ export interface FurnishedModel {
   syncLights?: () => void
   /** Present on designs that can be walked through. */
   walk?: WalkArea
-  /**
-   * Moving parts (running water): advanced every rendered frame, returning true while they are in
-   * view, so the on-demand stage keeps drawing then and idles otherwise.
-   */
-  animate?: (elapsed: number, camera: Camera) => boolean
   /** Basement parking levels under the building, built the first time one is visited. */
   basement?: Basement
 }

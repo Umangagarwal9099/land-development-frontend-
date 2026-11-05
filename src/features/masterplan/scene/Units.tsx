@@ -166,7 +166,6 @@ function DesignUnit({ plot, design, interactive, onSelect, onHover }: Omit<Units
   }, [model])
   const near = useRef<boolean | null>(null)
   useFrame((state) => {
-    if (model?.animate?.(state.clock.elapsedTime, state.camera)) state.invalidate()
     if (!group.current || !detail.length) return
     const d = state.camera.position.distanceTo(group.current.getWorldPosition(at))
     const camera = state.camera as PerspectiveCamera

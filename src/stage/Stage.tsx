@@ -124,8 +124,7 @@ function shadowSignature(scene: Scene) {
  * light changes (a model arriving, a door opening, a floor peeled away, day turning to night);
  * three.js otherwise redraws it every frame, which doubled the cost of every frame of a camera
  * move. Guessing from the camera instead (redraw whenever it was still, and twice a second while
- * it moved) cost the hotel dearly: its fountain keeps frames coming, so every still frame redrew
- * it, and every half second of a zoom stalled on two million triangles of shadow pass.
+ * it moved) stalled every half second of a zoom on two million triangles of shadow pass.
  */
 function ShadowCache() {
   const gl = useThree((s) => s.gl)

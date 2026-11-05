@@ -8,7 +8,7 @@ import type { Point2 } from '../../../../../api/types'
  * Site frame, as for D-65 and the mall: +z east (the road), +x north, y up, origin at the plot
  * centre. The reference design is fitted to the plot like this:
  *
- *   a G+2 ring of curved glass pavilions round a circular fountain plaza that opens east to the
+ *   a G+2 ring of curved glass pavilions round a circular plaza that opens east to the
  *   road: the south wing ends in a rounded white wall; the centre wing, with the main entrance,
  *   carries a cantilevered roof; the north wing stands behind a white wall that sweeps up out of
  *   the plaza, pierced by two arches. Three black mesh "capsules" with round openings, grown over
@@ -89,7 +89,7 @@ export const ENTRY_T = -180
 /** How far the centre's roof runs out over the plaza. */
 export const CANTILEVER = 1.8
 
-/** The fountain's rings, and the outer rings of the paving, which run on under the wings and out into the forecourt. */
+/** The plaza's rings, and the outer rings of the paving, which run on under the wings and out into the forecourt. */
 export const PLAZA_R = 6.4
 export const PAVED_R = 11.5
 

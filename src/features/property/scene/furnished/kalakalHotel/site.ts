@@ -1,16 +1,15 @@
-import { PointLight, Sphere, Vector3, type Material, type Object3D } from 'three'
+import { PointLight, type Material, type Object3D } from 'three'
 import type { Point2 } from '../../../../../api/types'
 import { PI } from '../kit'
 import { parkedCar, type Body } from '../car'
 import { lawn, shrub, SPECIES, tree } from '../kalakalMall/foliage'
-import { Tris } from '../kalakalMall/skin'
 import { metricBox, rect, slab } from '../kalakalMall/solids'
 import { NAME, signLine, type HotelCtx } from './building'
-import { buildFountain, type Fountain, type Jet } from './fountain'
+import { buildLamps, type Lamps } from './lamps'
 import { circle, clipHalf, DRIVE, EXIT, FRONTAGE, FRONTAGE_Z, FT, GL, P, PARK, PAVED_R, PLAZA_R, PLOT, polar, R_IN, R_OUT, WALL, YARD } from './plan'
 
 /*
- * The grounds. The fountain plaza opens east to the road across a stone forecourt. Traffic runs
+ * The grounds. The lamp-lit plaza opens east to the road across a stone forecourt. Traffic runs
  * one way round the plot: in from the HMDA road by a 4.6 m entry road down the south boundary,
  * past the hotel to the guests' car park behind it, and out by a 4.4 m exit road up the north
  * boundary back to the HMDA road. The car park fills the plot's depth: four rows of nose-in bays
@@ -19,8 +18,8 @@ import { circle, clipHalf, DRIVE, EXIT, FRONTAGE, FRONTAGE_Z, FT, GL, P, PARK, P
  * the back wall, which runs unbroken across the plot: there is no way in from the cross road.
  *
  * The plaza is the reference's: concentric rings of polished black granite and travertine, with
- * a dry-deck fountain set flush in them (fountain.ts): three rings of nozzles and a crown of six
- * at the centre, no basin, the run-off taken by a concealed slot drain round the jets.
+ * decorative lamps set in the dark bands (lamps.ts): a bronze candelabrum at the centre, and rings
+ * of opal orbs, post-top lanterns and lantern bollards round it.
  */
 
 type R = [number, number]
@@ -70,7 +69,7 @@ function kerbX(ctx: HotelCtx, p: Object3D, [x0, x1]: R, z: number, h: number, lo
   ctx.shade.edge([[x0, z + low * 0.075], [x1, z + low * 0.075]], 0.025, 0.22, low, 0.45)
 }
 
-export function buildSite(ctx: HotelCtx, p: Object3D): Fountain {
+export function buildSite(ctx: HotelCtx, p: Object3D): Lamps {
   const { c } = ctx
   // The entry and exit roads and the car park's aisles in asphalt, its rows of bays in concrete pavers.
   ground(ctx, p, rect(DRIVE.x0, DRIVE.x1, PARK.back[0], PLOT.z1), 0.02, c.asphalt)
@@ -84,7 +83,7 @@ export function buildSite(ctx: HotelCtx, p: Object3D): Fountain {
   ground(ctx, p, rect(DRIVE.x0, YARD.x0, PLOT.z0 + WALL_T, PARK.back[0]), 0.1, c.lawnGround)
   ground(ctx, p, rect(YARD.x0, PLOT.x1 - WALL_T, YARD.z1, PARK.back[0]), 0.1, c.lawnGround)
 
-  const fountain = buildPlaza(ctx, p)
+  const lamps = buildPlaza(ctx, p)
   buildEdges(ctx, p)
   buildParking(ctx, p)
   buildYard(ctx, p)
@@ -93,7 +92,7 @@ export function buildSite(ctx: HotelCtx, p: Object3D): Fountain {
   buildPlanting(ctx, p)
   buildLighting(ctx, p)
   buildPylon(ctx, p)
-  return fountain
+  return lamps
 }
 
 /* ---------- the plaza ---------- */
@@ -112,21 +111,11 @@ const RINGS: [r: number, dark: boolean][] = [
   [11.1, false],
   [PAVED_R, true],
 ]
-/** The fountain's nozzles: three rings in the dark bands (with a crown of six at the centre); base jet heights. */
-const JET_RINGS = [
-  { r: 1.8, n: 8, h: 1.0 },
-  { r: 4.22, n: 17, h: 1.45 },
-  { r: 6.15, n: 22, h: 1.1 },
-]
-/** The white wall's foot stands just outside the outer ring; no nozzles or drain where it runs (degrees round P). */
+/** The white wall's foot stands just outside the outer ring; no lamps there (degrees round P). */
 const UNDER_WALL: [number, number] = [WALL.t0 + 360 - 5, WALL.t1 + 360 + 5]
-const tOf = (x: number, z: number) => {
-  const t = (Math.atan2(x - P.x, z - P.z) * 180) / PI
-  return t < 0 ? t + 360 : t
-}
 
-function buildPlaza(ctx: HotelCtx, p: Object3D): Fountain {
-  const { c, k, shade } = ctx
+function buildPlaza(ctx: HotelCtx, p: Object3D): Lamps {
+  const { c, shade } = ctx
   let inner = 0
   for (const [r, dark] of RINGS) {
     const holes = inner ? [circle(P.x, P.z, inner, 160)] : []
@@ -136,46 +125,13 @@ function buildPlaza(ctx: HotelCtx, p: Object3D): Fountain {
     inner = r
   }
 
-  // Nozzles flush in the stone: a stainless ring round a dark orifice, nothing standing proud.
-  const jets: Jet[] = []
-  const nozzle = (x: number, z: number, h: number) => {
-    k.cyl(p, 0.055, 0.055, 0.004, c.chromeRail, x, GL + 0.002, z, 16).castShadow = false
-    k.cyl(p, 0.022, 0.022, 0.005, c.void, x, GL + 0.0025, z, 12).castShadow = false
-    jets.push({ x, z, h, angle: Math.atan2(z - P.z, x - P.x) })
-  }
-  // The centre feature: a tight crown of six nozzles throwing highest.
-  for (let i = 0; i < 6; i++) nozzle(P.x + 0.38 * Math.cos((i * PI) / 3), P.z + 0.38 * Math.sin((i * PI) / 3), 1.7)
-  for (const ring of JET_RINGS)
-    for (let i = 0; i < ring.n; i++) {
-      const a = (i / ring.n) * PI * 2 + 0.13
-      const [x, z] = [P.x + ring.r * Math.cos(a), P.z + ring.r * Math.sin(a)]
-      const t = tOf(x, z)
-      if (ring.r > PLAZA_R - 1 && t > UNDER_WALL[0] && t < UNDER_WALL[1]) continue
-      nozzle(x, z, ring.h)
-    }
-  const fountain = buildFountain(p, jets, GL, c.env, new Sphere(new Vector3(P.x, GL + 1.4, P.z), PLAZA_R + 1.5))
-
-  // A concealed slot drain round the jets: a 12 mm slot between stainless lips, flush in the stone,
-  // where the run-off from the wet stone goes. It stops where the white wall stands.
-  const lips = new Tris()
-  const slot = new Tris()
-  const on = (pt: Point2) => new Vector3(pt[0], GL + 0.003, pt[1])
-  const band = (t: Tris, r0: number, r1: number, a: number, b: number) => {
-    const step = 1.5
-    for (let x = a; x < b - 1e-6; x += step) {
-      const y = Math.min(b, x + step)
-      t.quad(on(polar(x, r0)), on(polar(x, r1)), on(polar(y, r1)), on(polar(y, r0)), [0, 0], [0, 1], [1, 1], [1, 0])
-    }
-  }
-  const dr = PLAZA_R + 0.4
-  const [a, b] = [UNDER_WALL[1] - 360, UNDER_WALL[0]]
-  band(lips, dr - 0.03, dr - 0.006, a, b)
-  band(slot, dr - 0.006, dr + 0.006, a, b)
-  band(lips, dr + 0.006, dr + 0.03, a, b)
-  lips.mesh(c.chromeRail, p, 'drain_lips', false)
-  slot.mesh(c.void, p, 'drain_slot', false)
+  // Decorative lamps in the dark bands, none in the outer one where the white wall stands.
+  const lamps = buildLamps(ctx, p, (t) => {
+    const a = t < 0 ? t + 360 : t
+    return !(a > UNDER_WALL[0] && a < UNDER_WALL[1])
+  })
   shade.edge(circle(P.x, P.z, 1.2, 64), GL + 0.004, 0.2, -1, 0.12, true)
-  return fountain
+  return lamps
 }
 
 /* ---------- the drive and the car park ---------- */
@@ -193,10 +149,11 @@ function buildEdges(ctx: HotelCtx, p: Object3D) {
     bxIn(ctx, p, [x - 0.08, x + 0.08], [0.02, 0.024], [z - 1.0, z + 1.0], c.lane, false)
     const tip = z + dir * 1.0
     if (!within(ctx, x, tip + 0.5, 0.4)) return
+    // Barbs meet at the tip and sweep back from it on either side of the shaft.
     for (const s of [-1, 1]) {
       const m = bx(ctx, p, [-0.38, 0.38], [0.02, 0.024], [-0.06, 0.06], c.lane, false)
-      m.position.set(x + s * 0.2, 0.022, tip - dir * 0.15)
-      m.rotation.y = PI / 2 + s * dir * 0.65
+      m.position.set(x + s * 0.2, 0.022, tip - dir * 0.3)
+      m.rotation.y = PI / 2 - s * dir * 0.65
     }
   }
   const mid = (DRIVE.x0 + DRIVE.x1) / 2

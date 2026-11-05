@@ -353,7 +353,7 @@ function kalakalMall(): Property {
 
 /**
  * Kallakal Hotel on commercial Plot A-04, Kallakal: the client's reference design, a G+2 ring of
- * curved glass pavilions round a fountain plaza, modelled in 3D
+ * curved glass pavilions round a lamp-lit plaza, modelled in 3D
  * (features/property/scene/furnished/kalakalHotel) as an exterior with its grounds. Areas map to
  * the model's amenity_* hotspots.
  */
@@ -367,10 +367,10 @@ function kalakalHotel(): Property {
       'The hotel\'s entrance on the centre wing\'s axis, across the plaza from the road: automatic sliding doors in the curved glass under a white blade canopy, opening into the double-height lobby with its reception and a spiral stair to the first floor. The centre\'s roof runs out over the plaza above, carrying the name.',
       ['Automatic sliding doors, 3.8 m frame', 'White canopy with recessed downlights', 'Cantilevered roof canopy, 1.8 m', 'Reception, lobby lounge and all-day restaurant on the ground floor'],
       ['Planters along the glass', 'Benches on the plaza']),
-    area('Fountain Plaza', 'amenity_plaza', [42, 42],
-      'A circular plaza 23 m across, open to the road: concentric rings of polished black granite and honed travertine with a dry-deck fountain set flush in them. Forty-seven nozzles in three rings and a crown of six at the centre throw jets of varying height that rise, break into spray and fall back onto the stone, the height of each ring rising and falling in a slow wave; the run-off spreads over the wet stone to a concealed slot drain round the jets. No basin: the plaza is walkable, wet or dry.',
-      ['Dry-deck fountain: 47 flush stainless nozzles', 'Jets 1.0–1.7 m, each varying on its own', 'Polished black granite and honed travertine', 'Concealed 12 mm slot drain round the jets'],
-      ['Interactive splash plaza', 'Benches and bollard lights']),
+    area('Lamp Plaza', 'amenity_plaza', [42, 42],
+      'A circular plaza 23 m across, open to the road: concentric rings of polished black granite and honed travertine, with decorative lamps set in the dark bands. At the centre a bronze candelabrum of seven opal globes stands on a granite drum; round it a ring of glowing opal orbs, then slim bronze post-top lanterns, and low lantern bollards on the outer band, with the axis from the road to the entrance left clear. By day the lamps read as dark bronze and opal glass; at dusk they glow warm and pool light on the stone.',
+      ['Bronze candelabrum, seven opal globes, 3.9 m', '8 opal orb lamps, 8 post-top lanterns, lantern bollards', 'Dark statuary bronze and opal glass', 'Polished black granite and honed travertine'],
+      ['Lamp-lit plaza', 'Benches and bollard lights']),
     area('Guest Car Park', 'amenity_parking', [118, 138],
       'Behind the hotel\'s rear wing: 44 nose-in bays in concrete pavers in four rows, on two aisles and the entry road, with neem trees in planted islands and twin-headed pole lights. Traffic runs one way: in by the 4.6 m entry road down the south boundary from the HMDA road, past the forecourt for drop-off and the rear wing, into the car park, and out by the 4.4 m exit road up the north boundary back to the HMDA road. The back of the plot is walled off from the cross road.',
       ['44 bays, 2.5 × 5 m, wheel stops and painted lines', '6 m aisles, cross aisles front and back', 'Neem trees in kerbed islands', 'One way: 4.6 m entry road (south), 4.4 m exit road (north)'], ['Guest parking', 'Drop-off on the entry road']),
@@ -380,11 +380,11 @@ function kalakalHotel(): Property {
   ]
   return {
     id: 'p_kalakal_hotel', slug: 'kalakal-hotel', name: 'Kallakal Hotel', type: 'commercial', location: 'Kallakal, NH-44',
-    tagline: 'A boutique hotel of curved glass pavilions round a fountain plaza, on the HMDA road frontage',
+    tagline: 'A boutique hotel of curved glass pavilions round a lamp-lit plaza, on the HMDA road frontage',
     thumbnailUrl: placeholderImage('Kallakal Hotel', 160, 800, 500),
     stats: [{ label: 'Plot', value: '4,676 sq yd' }, { label: 'Floors', value: 'G + 3' }, { label: 'Facing', value: 'East' }],
     description:
-      'A hotel on Plot A-04 in Kallakal, facing east onto the 250 ft HMDA master plan road. Three curved, fully glazed G+2 wings with white slab edges wrap a circular fountain plaza that opens to the road: the lobby, reception and all-day restaurant on the ground floor, guest rooms behind sheer curtains on the two floors above. Behind the centre a G+3 rear wing, glazed and banded to match and a storey taller, holds more guest rooms either side of a corridor over a banquet and dining floor. The south wing ends in a glass corner and a white curved fin, the centre wing holds the entrance under a cantilevered roof, and the north wing stands behind a white wall that sweeps up out of the plaza, pierced by two arches. Three black mesh capsules grown over with creepers rise above the roofs. The plot runs 104 m deep, holding the guests\' car park behind the rear wing and the utility yard, walled off from the cross road behind; cars come in by an entry road down the south side and leave by an exit road up the north side.',
+      'A hotel on Plot A-04 in Kallakal, facing east onto the 250 ft HMDA master plan road. Three curved, fully glazed G+2 wings with white slab edges wrap a circular lamp-lit plaza that opens to the road: the lobby, reception and all-day restaurant on the ground floor, guest rooms behind sheer curtains on the two floors above. Behind the centre a G+3 rear wing, glazed and banded to match and a storey taller, holds more guest rooms either side of a corridor over a banquet and dining floor. The south wing ends in a glass corner and a white curved fin, the centre wing holds the entrance under a cantilevered roof, and the north wing stands behind a white wall that sweeps up out of the plaza, pierced by two arches. Three black mesh capsules grown over with creepers rise above the roofs. The plot runs 104 m deep, holding the guests\' car park behind the rear wing and the utility yard, walled off from the cross road behind; cars come in by an entry road down the south side and leave by an exit road up the north side.',
     highlights: {
       Plot: 'A-04 · 124′3″ × 340′7″ (4,676 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Ring G + 2, rear wing G + 3',
       Height: 'Ring roof 12.35 m, rear wing 15.95 m; north capsule to 23 m', Plan: 'Wings 5.3 m deep on an 8.2 m / 13.5 m ring; rear wing 18 m wide', 'Façade': 'Clear curtain glass, white slab bands, white GRC',
@@ -403,8 +403,8 @@ function kalakalHotel(): Property {
       { id: 'carpark', name: 'Car park', position: [-16, 8, -2], target: [2, 0, -28], fov: 55 },
       { id: 'rear', name: 'Rear and back wall', position: [-8, 22, -82], target: [0, 4, -10] },
       { id: 'aerial', name: 'Aerial', position: [55, 75, 80], target: [0, 2, 0] },
-      { id: 'fountain', name: 'Fountain, eye level', position: [6, 1.6, 37], target: [-1.5, 3.2, 25], fov: 55 },
-      { id: 'jets', name: 'Jets, close-up', position: [5.2, 1.5, 33.6], target: [2, 1.0, 30], fov: 45 },
+      { id: 'fountain', name: 'Plaza, eye level', position: [6, 1.6, 37], target: [-1.5, 3.2, 25], fov: 55 },
+      { id: 'jets', name: 'Lamps, close-up', position: [5.2, 1.5, 33.6], target: [2, 1.0, 30], fov: 45 },
       { id: 'top', name: 'Plan view', position: [0, 260, -0.01], target: [0, 0, 0] },
     ],
     media: [],

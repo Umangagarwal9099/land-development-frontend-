@@ -97,8 +97,6 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
     // Light switches fade their circuits over a few frames; keep frames coming until they settle.
     if (stepCircuits(delta)) state.invalidate()
     model.syncLights?.()
-    // Running water keeps frames coming while it is in view.
-    if (model.animate?.(state.clock.elapsedTime, state.camera)) state.invalidate()
     // Below ground, the services overhead come and go as the camera enters the level or rises out of it.
     if (model.basement?.frame(state.camera)) state.invalidate()
     // Lifts finish what they were doing (walking, the walk controller runs them with the walker).

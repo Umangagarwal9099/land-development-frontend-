@@ -212,7 +212,7 @@ const sheer: Paint = (g, w, h) => {
 
 /**
  * Kallakal Hotel's finishes: the mall's palette (glass, aluminium, paving, asphalt, planting, lamps,
- * car parts, sky reflections), plus the white GRC, polished plaza stone, black mesh and water of
+ * car parts, sky reflections), plus the white GRC, polished plaza stone and black mesh of
  * the reference design.
  */
 export function hotelMaterials(k: Kit, lighting: Lighting) {
@@ -227,7 +227,7 @@ export function hotelMaterials(k: Kit, lighting: Lighting) {
   const stone = (dark: boolean) => {
     const map = tex(512, 512, polished(dark))
     map.repeat.set(1 / 1.2, 1 / 1.2)
-    // Polished black granite and honed travertine; the fountain lays its own wet film over them.
+    // Polished black granite and honed travertine.
     return std({ map, color: dark ? '#ffffff' : '#d6cfc3', roughness: dark ? 0.12 : 0.3, metalness: dark ? 0.15 : 0.05 })
   }
 

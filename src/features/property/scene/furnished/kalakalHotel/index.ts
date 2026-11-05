@@ -13,7 +13,7 @@ export { SITE }
 
 /*
  * Kallakal Hotel on commercial Plot A-04: an exterior model of the client's reference design, a
- * G+2 ring of curved glass pavilions with white slab bands round a fountain plaza (the lobby and
+ * G+2 ring of curved glass pavilions with white slab bands round a lamp-lit plaza (the lobby and
  * restaurant below, guest rooms above), its white sweeping wall and black mesh capsules grown
  * over with creepers, fitted to the front of the 124′3″ × 340′7″ east-facing plot, with the
  * guests' car park and utility yard filling the depth behind, walled off from the cross road;
@@ -53,7 +53,7 @@ export function buildKalakalHotel(context = true): FurnishedModel {
   const ctx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact() }
 
   buildBuilding(ctx, building)
-  const fountain = buildSite(ctx, site)
+  const lamps = buildSite(ctx, site)
   if (context) buildContext(ctx, site)
   else root.position.z = -PLAN_CENTRE_Z
   ctx.plant.build(site)
@@ -76,14 +76,14 @@ export function buildKalakalHotel(context = true): FurnishedModel {
   }
 
   const pool = new LightPool(root, () => 'exterior', 6)
-  // On foot from the road: across the forecourt towards the fountain and the entrance beyond it.
+  // On foot from the road: across the forecourt towards the plaza's lamps and the entrance beyond it.
   const walk: WalkArea = {
     start: [P.x, GL, PLOT.z1 - 2.5],
     yaw: 0,
     bounds: { ...PLOT },
     zoneAt: () => 'exterior',
   }
-  // Glass, metal and the wet stone reflect the design's own sky (see kalakalMall/surfaces.ts).
+  // Glass, metal and the polished stone reflect the design's own sky (see kalakalMall/surfaces.ts).
   const reflective: MeshStandardMaterial[] = []
   root.traverse((o) => {
     const mats = (o as Mesh).material
@@ -98,14 +98,13 @@ export function buildKalakalHotel(context = true): FurnishedModel {
     c.shopGlass.opacity = day ? 0.58 : 0.3
   }
   setSky(false)
-  fountain.setDaylight(false)
+  lamps.setDaylight(false)
   return {
     root,
     highlights,
     walk,
-    setDaylight: (day) => (lighting.set(day), setSky(day), fountain.setDaylight(day)),
+    setDaylight: (day) => (lighting.set(day), setSky(day), lamps.setDaylight(day)),
     setZone: (z) => pool.setZone(z),
     syncLights: () => pool.sync(),
-    animate: (elapsed, camera) => fountain.animate(elapsed, camera),
   }
 }
