@@ -1,21 +1,22 @@
 import { Group, type Object3D } from 'three'
 import { PI } from '../../../kit'
 import { counter } from '../../erFurniture'
-import { ecgCart, examLight, ultrasound } from '../../erEquipment'
+import { examLight, ultrasound } from '../../erEquipment'
 import { workstation } from '../../emergency'
 import { group, signPanel } from '../../erKit'
 import type { OpdCtx, Room } from '../ctx'
 import {
-  aedCabinet, cauteryTrolley, coatStand, coffeeTable, compactor, cryoCanister, dermatoscope, electrodes, entChair, entUnit, fileTrolley, foetalDoppler,
+  aedCabinet, cauteryTrolley, coatStand, coffeeTable, compactor, cryoCanister, dermatoscope, ecgPaint, ecgTrolley, electrodes, entChair, entUnit, fileTrolley, foetalDoppler,
   glucometer, goniometer, gyneTable, headlight, infantometer, infantScale, kettle, magnifierLamp, nebuliser, neuroTray, paedCouch, plasterTrolley,
-  kidsTable, scanner, sofa, speculumTray, splintRack, sutureTray, tokenCaller, toyCrate,
+  kidsTable, scanner, speculumTray, splintRack, sutureTray, tokenCaller, toyCrate,
 } from '../equipment/clinical'
 import {
   baseRun, basin, bins, bpMonitor, clock, coatOnHook, computer, cupboard, curtain, deskPhone, desk, diagnosticWall, doctorChair, dressingTrolley,
   examCouch, fileCabinet, gloveBox, injectionTrolley, lockers, oximeter, papers, patientChair, poster, printer, rack, scale, sharps, stadiometer,
-  stethoscope, stool, thermometer, viewer, wallCupboard, wallScreen, medFridge, workbench, type BinColour,
+  stethoscope, stool, thermometer, viewer, wallCupboard, wallScreen, medFridge, workbench, armChair, sofa, type BinColour,
 } from '../furniture'
 import { board, NAVY, tokenScreen } from '../paints'
+import { antisepticBottle, gauzePacks, instrumentTray, kidneyTray, syringe, tapeRoll, cottonRoll, bandageRoll } from '../equipment/items'
 import type { Fitter } from './types'
 
 /*
@@ -117,9 +118,10 @@ function southRoom(e: OpdCtx, room: Room, extra: (r: Room) => void, top?: (D: Gr
   const C = couchBay(e, room, x0 + 1.22, z0 + 0.42, 0, { off: 0.95, from: -1.1, to: 1.4, drawn: 0.4 })
   note(room, C, couchInfo)
   diagnosticWall(e, room.onWall('-z', x0 + 1.75))
-  hygiene(e, room, '+x', z0 + 0.55, ['-z', x1 - 0.75], ['yellow', 'red', 'black'], ['+x', z0 + 1.18])
-  medCupboard(e, room, '+x', z0 + 1.66)
-  clock(e, room.onWall('+x', z0 + 1.66), 2.35)
+  // Along the door wall: the basin in the corner, the cupboard beside it, clear of the switch by the door's latch.
+  hygiene(e, room, '+x', z0 + 0.48, ['-z', x1 - 0.8], ['yellow', 'red', 'black'], ['-z', x1 - 0.2])
+  medCupboard(e, room, '+x', z0 + 1.1, 0.55)
+  clock(e, room.onWall('+x', z0 + 1.1), 2.35)
   viewer(e, room.onWall('+z', x0 + 1.3), 2, 1.6)
   coatOnHook(e, room.onWall('+z', x1 - 1.35))
   if (wallArt) wallArt(room.onWall('+z', x0 + 2.45))
@@ -137,8 +139,8 @@ const consultMedicine: Fitter = (e, room) =>
 
 const consultCardiology: Fitter = (e, room) =>
   southRoom(e, room, (r) => {
-    const ecg = r.at(r.x0 + 2.55, r.z0 + 0.85, -PI / 2 + 0.3)
-    ecgCart(e, ecg, e.o.screen('ecg12', 256, 192, ecgPaint))
+    const ecg = r.at(r.x0 + 2.45, r.z0 + 0.95, -PI / 2 + 0.35)
+    ecgTrolley(e, ecg, e.o.screen('ecg12b', 512, 352, ecgPaint, 0.8))
     note(r, ecg, { title: '12-Lead ECG Machine', kind: 'Cardiology · Diagnostic', body: 'A 12-channel resting electrocardiograph on its trolley, beside the couch: ten electrodes on the chest and limbs record the heart\'s electrical activity, interpreted on the spot and printed for the file.', specs: ['12 channels, automatic interpretation', 'Thermal print, 80 mm / A4', 'Battery and mains, HIS connected'] })
     note(r, electrodes(e, r.group, r.x0 + 1.75, r.y + 0.73, r.z0 + 0.42), { title: 'ECG Electrodes', kind: 'Consumable', body: 'Disposable pre-gelled electrodes and the lead clips, laid ready on the couch for the next tracing.' })
     aedCabinet(e, r.onWall('+z', r.x0 + 2.5))
@@ -286,6 +288,10 @@ const consultSurgery: Fitter = (e, room) => {
   const it = room.at(x0 + 0.5, -16.35, PI / 2)
   injectionTrolley(e, it)
   note(room, sutureTray(e, it, 0, 0.94, -0.22), { title: 'Suture Tray', kind: 'Surgery · Instruments', body: 'A sterile suture set on its green drape: needle holder, toothed forceps, scissors and the sutures, laid out for a minor procedure.' })
+  // Local anaesthetic drawn up: two capped syringes and the antiseptic beside the tray.
+  syringe(e, it, 0.2, 0.94, -0.12, 0.3, 5, true)
+  syringe(e, it, 0.22, 0.94, -0.06, 0.25, 2, true)
+  antisepticBottle(e, it, -0.22, 0.94, -0.1, 'iodine', 0.15)
   hygiene(e, room, '-x', -17.45, ['+x', -17.75], ['yellow', 'red'], ['-x', -16.7])
   medCupboard(e, room, '+z', 11.75, 0.6)
   coatOnHook(e, room.onWall('+z', 12.65))
@@ -311,6 +317,17 @@ const dressingExam: Fitter = (e, room) => {
   const br = room.onWall('+z', x0 + 0.95, 0, 0.62)
   baseRun(e, br, 1.6, { fill: 'supplies' })
   wallCupboard(e, room.onWall('+z', x0 + 0.95, 0, 0.35), 1.6, 0.75, 0.35, 1.5, { glass: true, fill: 'supplies', label: 'Dressing Cupboard' })
+  // On the worktop, a dressing being prepared: an instrument tray, kidney tray, gauze, cotton,
+  // crêpe bandage, tape, antiseptics and syringes.
+  instrumentTray(e, br, -0.45, 0.91, -0.3, 0.05, 3)
+  kidneyTray(e, br, -0.05, 0.91, -0.25, 0.3)
+  gauzePacks(e, br, 0.2, 0.91, -0.35, 4, 0.1)
+  cottonRoll(e, br, 0.45, 0.91, -0.38, 0.2)
+  bandageRoll(e, br, 0.6, 0.91, -0.25, 0)
+  tapeRoll(e, br, 0.32, 0.91, -0.15)
+  antisepticBottle(e, br, 0.72, 0.91, -0.42, 'chlorhexidine', 0.18)
+  antisepticBottle(e, br, 0.62, 0.91, -0.45, 'iodine', 0.15)
+  syringe(e, br, 0.05, 0.91, -0.1, 0.1, 10, true)
   note(room, br, { title: 'Dressing Preparation Counter', kind: 'Clinical storage', body: 'Drawers of sterile dressing packs, syringes and needles under a solid-surface worktop where dressings are opened and prepared; glazed cupboards of supplies over it.' })
   poster(e, room.onWall('-x', -7.0), 'Wound care · Aseptic technique', '#1f9d55', 0.42, 0.6, 1.55)
   clock(e, room.onWall('-x', -7.0), 2.45)
@@ -346,8 +363,9 @@ const vitals: Fitter = (e, room) => {
 
 const records: Fitter = (e, room) => {
   const { x0 } = room
+  // The carriages with the open aisle in the room's middle, where the files are taken from.
   const cg = room.at(x0 + 0.35, -9.55, 0)
-  compactor(e, cg, 5, 4.2, 2)
+  compactor(e, cg, 5, 4.2, 4)
   note(room, cg, { title: 'Mobile Compactor Shelving', kind: 'Medical records · Storage', body: 'Five carriages of steel shelving on floor rails, moved apart by their hand wheels to open an aisle where it is needed: twice the files of fixed racks in the same floor. Outpatient files are kept here by year and by number, and retrieved for each visit.', specs: ['Double-sided carriages, 6 shelves', 'Three-spoke hand wheels, anti-tilt rails'] })
   const D = room.at(6.62, -10.0, PI / 2)
   desk(e, D, 1.3, 0.72, -1)
@@ -369,9 +387,9 @@ const records: Fitter = (e, room) => {
 const doctorsRoom: Fitter = (e, room) => {
   const { x0, z0, z1 } = room
   const s = room.at(3.3, z1 - 0.48, PI)
-  sofa(e, s, 2.0)
+  sofa(e, s, 3)
   coffeeTable(e, room.at(3.3, z1 - 1.55, 0))
-  for (const x of [2.0, 4.6]) patientChair(e, room.at(x, z1 - 1.55, x < 3 ? PI / 2 : -PI / 2))
+  for (const x of [2.0, 4.6]) armChair(e, room.at(x, z1 - 1.55, x < 3 ? PI / 2 : -PI / 2))
   const D = room.at(x0 + 0.42, -16.3, -PI / 2)
   desk(e, D, 1.3, 0.72, 1)
   doctorChair(e, D, 0, -0.66, 0.2)
@@ -423,23 +441,6 @@ const nursesStation: Fitter = (e, room) => {
 }
 
 /* ---------- printed faces ---------- */
-
-function ecgPaint(g: CanvasRenderingContext2D, w: number, h: number) {
-  g.fillStyle = '#071209'
-  g.fillRect(0, 0, w, h)
-  g.strokeStyle = '#3cff8a'
-  g.lineWidth = 2
-  for (let r = 0; r < 3; r++) {
-    g.beginPath()
-    for (let i = 0; i <= w; i += 2) {
-      const t = (i % 64) / 64
-      const y = h * (0.22 + r * 0.28) - (t > 0.45 && t < 0.5 ? h * 0.12 : t > 0.5 && t < 0.53 ? -h * 0.04 : t > 0.7 && t < 0.8 ? h * 0.025 : 0)
-      if (i) g.lineTo(i, y)
-      else g.moveTo(i, y)
-    }
-    g.stroke()
-  }
-}
 
 /** The Snellen chart's face on a wall group, as a framed board. */
 function snellenFace(e: OpdCtx) {

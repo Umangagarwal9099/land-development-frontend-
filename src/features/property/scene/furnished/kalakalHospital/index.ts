@@ -1,4 +1,4 @@
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, type Object3D } from 'three'
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Vector3, type Object3D } from 'three'
 import { GOLD } from '../../../../../lib/palette'
 import { Basement, openingsOf } from '../basement'
 import { Kit } from '../kit'
@@ -102,6 +102,13 @@ export function buildKalakalHospital(context = true): FurnishedModel {
   const within = (o: Object3D | null): boolean => !!o && (o === er || within(o.parent))
   // The OPD's lamps carry their room's zone (or their floor's circulation, or its overview).
   const pool = new LightPool(root, (l) => (er && within(l) ? ER_ROOM : ((l.userData.zone as string | undefined) ?? 'exterior')), 6)
+  // An OPD room viewed or walked into also gets the two nearest lamps of its floor's corridors
+  // and halls, so what is seen through its door is lit.
+  for (const floor of opd?.rooms ?? [])
+    for (const r of floor) {
+      if (r.zone === `opd_${r.level === 0 ? 'g' : r.level}_circulation`) continue
+      pool.link(r.zone, `opd_${r.level === 0 ? 'g' : r.level}_circulation`, new Vector3(r.cx, r.y + 2.5, r.cz), 2)
+    }
   // Two basement parking levels, built the first time a visitor goes below ground (not on the master plan).
   const basement = context ? new Basement(root, k, lighting, pool, HOSPITAL_BASEMENT, SITE, highlights) : undefined
   // On foot from the road: up the entrance walk towards the main doors.

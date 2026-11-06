@@ -1,7 +1,7 @@
 import { Group, MeshStandardMaterial, type Material, type Object3D } from 'three'
 import { PI } from '../../../kit'
 import { rng } from '../../../textures'
-import { carcass, castor, cupboardDoor, drawer, face, group, put, bentTube, rod, lathe, signPanel } from '../../erKit'
+import { carcass, castor, cupboardDoor, drawer, face, group, panel as erPanel, put, bentTube, rod, lathe, signPanel } from '../../erKit'
 import { packs } from '../../erFurniture'
 import type { OpdCtx } from '../ctx'
 import { medicineBoxes } from '../furniture'
@@ -165,19 +165,22 @@ export function bulkRack(e: OpdCtx, p: Object3D, w = 1.5, h = 2.2, d = 0.55, lev
 export function chest(e: OpdCtx, p: Object3D, kind: 'ilr' | 'freezer', w = 1.1, d = 0.7, h = 0.88) {
   const { k, m } = e
   const g = gmats(e)
-  k.box(p, w, 0.08, d - 0.04, m.skirting, 0, 0.04, -d / 2)
-  for (const s of [-1, 1]) k.box(p, 0.05, h - 0.08, d, g.freezer, s * (w / 2 - 0.025), 0.08 + (h - 0.08) / 2, -d / 2)
-  for (const z of [-0.025, -d + 0.025]) k.box(p, w - 0.1, h - 0.08, 0.05, g.freezer, 0, 0.08 + (h - 0.08) / 2, z)
-  k.box(p, w - 0.1, 0.04, d - 0.1, g.freezer, 0, 0.28, -d / 2)
-  // Inside: wire baskets of vaccine vials (ILR) or frozen ice packs (freezer).
+  // The cabinet: a rounded white steel body on four levelling feet, the compressor grille in its
+  // right end, a darker plinth band; the walls 50 mm of foam, a white liner inside.
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.cyl(p, 0.025, 0.025, 0.04, m.black, sx * (w / 2 - 0.07), 0.02, -d / 2 + sz * (d / 2 - 0.07), 12)
+  k.soft(p, w, h - 0.04, d, 0.035, g.freezer, 0, 0.04 + (h - 0.04) / 2, -d / 2)
+  k.box(p, w - 0.06, 0.07, 0.004, m.greyPlastic, 0, 0.085, 0.001, false)
+  for (let i = 0; i < 7; i++) k.box(p, 0.004, 0.018, d * 0.55, m.darkPlastic, w / 2 + 0.001, 0.14 + i * 0.03, -d / 2, false)
+  // The liner seen when the lid lifts: its rim, and baskets of vials (ILR) or frozen ice packs.
+  k.box(p, w - 0.12, 0.012, d - 0.12, e.m.melamine, 0, h - 0.004, -d / 2, false)
   for (let i = 0; i < 3; i++) {
     const bx = -w / 2 + 0.2 + i * ((w - 0.4) / 2)
-    k.box(p, 0.3, 0.2, d - 0.18, m.powder, bx, 0.62, -d / 2)
-    if (kind === 'ilr') packs(e, [m.whitePlastic, m.blue, m.paper], [0.05, 0.05, 0.08])(group(p, bx, 0.72, -0.1), 0.26, d - 0.22, 0.08)
-    else for (let q = 0; q < 3; q++) k.box(p, 0.24, 0.03, 0.16, m.blue, bx, 0.74 + q * 0.035, -d / 2, false)
+    for (const s of [-1, 1]) k.box(p, 0.3, 0.16, 0.006, m.powder, bx, h - 0.12, -d / 2 + s * ((d - 0.2) / 2), false)
+    if (kind === 'ilr') packs(e, [m.whitePlastic, m.blue, m.paper], [0.05, 0.05, 0.08])(group(p, bx, h - 0.2, -0.1), 0.26, d - 0.22, 0.08)
+    else for (let q = 0; q < 3; q++) k.box(p, 0.24, 0.03, 0.16, m.blue, bx, h - 0.19 + q * 0.035, -d / 2, false)
   }
-  k.box(p, w - 0.2, 0.004, d - 0.2, e.m.melamine, 0, h - 0.02, -d / 2, false)
-  // The lid: hinged along its back edge, lifting about x.
+  // The lid, hinged along its back edge (lifting about x): a rounded slab with its grey gasket
+  // under it, a recessed handle along its front, the key lock.
   const lid = new Group()
   lid.name = `door_g_chest_${kind}_${Math.round(w * 1000)}`
   lid.position.set(0, h, -d)
@@ -185,19 +188,49 @@ export function chest(e: OpdCtx, p: Object3D, kind: 'ilr' | 'freezer', w = 1.1, 
   lid.userData.openAngle = -1.15
   lid.userData.label = kind === 'ilr' ? 'Ice-Lined Refrigerator Lid' : 'Deep Freezer Lid'
   p.add(lid)
-  const top = k.box(lid, w + 0.01, 0.07, d + 0.01, g.freezer, 0, 0.035, d / 2)
+  const top = k.soft(lid, w + 0.006, 0.075, d + 0.006, 0.03, g.freezer, 0, 0.045, d / 2)
   top.userData.front = true
-  k.box(lid, 0.3, 0.025, 0.04, m.greyPlastic, 0, 0.0, d + 0.01)
-  // The control panel on the front, a lit temperature readout.
-  k.box(p, 0.3, 0.12, 0.02, m.greyPlastic, w / 2 - 0.25, h - 0.15, 0.01)
+  k.box(lid, w - 0.02, 0.008, d - 0.02, m.greyPlastic, 0, 0.004, d / 2, false)
+  k.box(lid, 0.42, 0.03, 0.035, m.greyPlastic, 0, 0.035, d + 0.008)
+  k.box(lid, 0.4, 0.008, 0.02, m.darkPlastic, 0, 0.02, d + 0.016, false)
+  k.cyl(lid, 0.012, 0.012, 0.01, e.m.chrome, w / 2 - 0.15, 0.045, d + 0.006, 14).rotation.x = PI / 2
+  for (const s of [-1, 1]) k.box(p, 0.06, 0.02, 0.03, e.m.aluminium, s * (w / 2 - 0.15), h - 0.005, -d - 0.012)
+  // The controller on the front: the lit temperature readout, a power lamp, the alarm buzzer.
+  k.soft(p, 0.3, 0.12, 0.03, 0.01, m.greyPlastic, w / 2 - 0.25, h - 0.15, 0.012)
   k.box(p, 0.09, 0.035, 0.004, e.o.screen(`g_chest_${kind}`, 64, 24, (c, ww, hh) => {
     c.fillStyle = '#081208'
     c.fillRect(0, 0, ww, hh)
     c.fillStyle = kind === 'ilr' ? '#4bff72' : '#5fd0ff'
     c.font = `700 ${hh * 0.78}px Helvetica`
     c.fillText(kind === 'ilr' ? '+4.0°C' : '-21°C', 3, hh * 0.85)
-  }, 1.1), w / 2 - 0.25, h - 0.15, 0.022, false)
+  }, 1.1), w / 2 - 0.27, h - 0.15, 0.029, false)
+  k.cyl(p, 0.006, 0.006, 0.004, e.o.cove, w / 2 - 0.15, h - 0.15, 0.029, 10).rotation.x = PI / 2
   face(e, p, 0.22, 0.08, e.o.sign(`g_chestlabel_${kind}`, 256, 96, board('#ffffff', [[kind === 'ilr' ? 'ILR · VACCINES' : 'DEEP FREEZER · ICE PACKS', 0.36, NAVY]])), -w / 2 + 0.25, h - 0.18, 0.001)
+}
+
+/**
+ * A pharmacy dispensing basket on a bench: a stacking polypropylene tray with its walls and hand
+ * slots, a patient's medicines in it and the prescription slip clipped to its end.
+ */
+export function dispTray(e: OpdCtx, p: Object3D, x: number, y: number, z: number, ry = 0, seed = 1) {
+  const { k, m } = e
+  const g = group(p, x, y, z, ry)
+  const w = 0.3
+  const d = 0.4
+  const h = 0.09
+  k.box(g, w, 0.006, d, m.binBlue, 0, 0.003, 0)
+  for (const s of [-1, 1]) {
+    put(g, panelGeo(e, d, h), m.binBlue, s * (w / 2 - 0.003), h / 2, 0).rotation.y = PI / 2
+    put(g, panelGeo(e, w, h), m.binBlue, 0, h / 2, s * (d / 2 - 0.003))
+  }
+  medicineBoxes(e, g, w - 0.04, 0.006, d / 2 - 0.08 - (seed % 2) * 0.05, 0.16, 0.06)
+  k.box(g, 0.1, 0.002, 0.14, m.paper, 0.0, 0.009, -d / 2 + 0.1, false).rotation.y = 0.1 * (seed % 3)
+  k.box(g, 0.08, 0.06, 0.002, m.paper, 0, h + 0.01, d / 2 + 0.004, false)
+}
+
+/** A thin tray wall w × h with a hand slot near its top, as a moulded panel. */
+function panelGeo(e: OpdCtx, w: number, h: number) {
+  return erPanel(e, w, h, 0.005, 0.008, w > 0.35 ? [] : [[0.09, 0.022, 0, h / 2 - 0.025, 0.011]])
 }
 
 /** A blue vaccine carrier box with its lid and strap. */

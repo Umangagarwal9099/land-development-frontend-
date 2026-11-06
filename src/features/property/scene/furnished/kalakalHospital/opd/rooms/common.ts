@@ -6,11 +6,15 @@ import { ivStand, ultrasound } from '../../erEquipment'
 import { group, signPanel } from '../../erKit'
 import type { OpdCtx } from '../ctx'
 import {
-  armchair, bench, cableLadder, cubicles, detectorPillar, diningSet, distributionBoard, drain, extinguishers, footstool, fridge, grabBar, handDryer, handRub,
-  hoseReel, janitor, keyLockers, kitchenette, leafletRack, mats, mrSafeBay, networkRack, noticeBoard, pigeonholes, planter, platformScale, sanitiserStand,
-  sideTable, sofa, tokenKiosk, totem, urinal, vanity, waterStation, wc, wheelieBin,
+  armchair, bench, cableLadder, detectorPillar, diningSet, distributionBoard, extinguishers, footstool, fridge, handRub, hoseReel, janitor, keyLockers, kitchenette, leafletRack, mats, mrSafeBay, networkRack, noticeBoard, pigeonholes, planter, platformScale, sanitiserStand, sideTable, tokenKiosk, totem, waterStation, wheelieBin,
 } from '../equipment/common'
-import { basin, bins, clock, computer, cupboard, curtain, desk, deskPhone, lockers, papers, poster, printer, rack, wallScreen, wheelchair, workbench } from '../furniture'
+import {
+  babyChanger, cisternDuct, cubicleRun, dropDownRail, exhaustGrille, floorDrain, grabRail, handDryerUnit, jumboRoll, mirror, pedalBin, pullCord, soapDispenser,
+  handWashPoint, towelDispenser, urinalUnit, vanityTop, wallBasin, washroomSign, wcPan,
+} from '../equipment/sanitary'
+import {
+  armChair, bariatricChair, bins, clock, computer, cupboard, curtain, desk, deskPhone, lockers, papers, poster, printer, rack, sofa, wallScreen, wheelchair, workbench,
+} from '../furniture'
 import { board, NAVY, tokenScreen } from '../paints'
 import type { Fitter } from './types'
 
@@ -24,6 +28,9 @@ import type { Fitter } from './types'
 
 const FACE = { '+z': 0, '-z': PI, '+x': PI / 2, '-x': -PI / 2 } as const
 
+/** Each floor's waiting seating, one family per floor: upholstered, perforated steel, polypropylene. */
+const SEATS: Record<number, 'upholstered' | 'perforated' | 'polypropylene'> = { 0: 'upholstered', 1: 'upholstered', 2: 'perforated', 3: 'polypropylene' }
+
 /** A sign board on a wall, its art painted once per model. */
 function wallSign(e: OpdCtx, p: Object3D, key: string, w: number, h: number, art: Parameters<OpdCtx['o']['sign']>[3], y: number) {
   signPanel(e, p, w, h, e.o.sign(key, Math.round(w * 400), Math.round(h * 400), art), 0, y, 0.012, 0, 0.012)
@@ -32,75 +39,76 @@ function wallSign(e: OpdCtx, p: Object3D, key: string, w: number, h: number, art
 /* ---------- toilets ---------- */
 
 /**
- * Public toilets on the south façade: a row of WC cubicles along the back wall (the first against
- * the frosted window), a vanity of two basins under a full-width mirror on the front wall, hand
- * dryers, a floor drain; the gents' also a bank of three urinals with modesty screens.
+ * Public toilets on the south façade, the same on every floor: a row of compact-laminate WC
+ * cubicles against the back wall in front of the tiled duct that hides their concealed cisterns
+ * (the first enclosing the frosted lower half of the window), a solid-surface vanity of two
+ * undermount basins under a bevelled mirror on the front wall, clear of the door's swing; the
+ * hand dryer, towel dispenser, bins and the floor gully; the gents' a bank of three wall-hung
+ * urinals with modesty screens.
  */
 const toilets = (ladies: boolean): Fitter => (e, room) => {
-  const { k } = e
+  const name = `opd_${room.level}_${room.spec.id}`
   const n = ladies ? 3 : 2
-  const cw = 1.0
-  cubicles(e, room.at(room.x0, room.z0, 0), n, cw, 1.5, `opd_${room.level}_${room.spec.id}`, { ladies, endRight: true })
-  const vx = ladies ? room.x0 + 1.3 : room.x0 + 1.2
+  const cw = 0.95
+  cubicleRun(e, room.at(room.x0, room.z0, 0), n, cw, 1.55, name, { ladies, endRight: true })
   const vlen = ladies ? 2.4 : 2.2
-  vanity(e, room.at(vx, room.z1, PI), vlen, [-vlen / 4, vlen / 4])
-  handDryer(e, room.onWall('+z', room.x1 - 1.4))
-  drain(e, room.at(room.x0 + 2.0, (room.z0 + room.z1) / 2 + 0.1))
+  const vx = room.x0 + 0.15 + vlen / 2
+  const v = room.at(vx, room.z1, PI)
+  vanityTop(e, v, vlen, [-vlen / 4, vlen / 4])
+  room.info(v, { title: 'Washroom Vanity', kind: 'Sanitaryware', body: 'A cantilevered solid-surface vanity with undermount vitreous china bowls, infra-red sensor taps and deck-mounted soap pumps: no handles to touch, and the floor under it left clear for cleaning.', specs: ['Top at 820 mm, 550 mm deep', 'Sensor taps on a 6 l/min flow restrictor', 'Chrome bottle traps and angle valves', '6 mm bevelled mirror on clips'] })
   if (ladies) {
-    bins(e, room.at(room.x1 - 0.35, room.z0 + 0.3, PI / 2), ['black'])
-    k.box(room.group, 0.4, 0.5, 0.15, e.m.whitePlastic, room.x1 - 0.5, room.y + 1.1, room.z0 + 0.075)
+    towelDispenser(e, room.onWall('+z', room.x0 + 0.15 + vlen + 0.3), 0, 1.35)
+    pedalBin(e, room.at(room.x0 + 0.15 + vlen + 0.3, room.z1 - 0.2), 0.15, 0.45)
+    handDryerUnit(e, room.onWall('-z', room.x1 - 0.65), 0, 1.15)
   } else {
-    const x0 = room.x0 + n * cw + 0.45
-    for (let i = 0; i < 3; i++) urinal(e, room.at(x0 + i * 0.68, room.z0, 0), i < 2 ? 1 : 0)
-    bins(e, room.at(room.x1 - 0.3, room.z1 - 0.9, -PI / 2), ['black'])
+    const x0 = room.x0 + n * cw + 0.4
+    for (let i = 0; i < 3; i++) {
+      const u = room.at(x0 + i * 0.65, room.z0, 0)
+      const body = urinalUnit(e, u, i < 2 ? 1 : 0)
+      if (i === 0) room.info(body, { title: 'Wall-hung Urinal', kind: 'Sanitaryware', body: 'Vitreous china urinals with infra-red sensor flush valves, so nothing is touched, between compact-laminate modesty screens.', specs: ['Rim at 610 mm (one at 510 mm for children)', 'Sensor flush, 0.8 l per use', 'Concealed waste to the stack in the duct'] })
+    }
+    handDryerUnit(e, room.onWall('+z', room.x0 + 0.15 + vlen + 0.35), 0, 1.15)
+    pedalBin(e, room.at(room.x0 + 0.15 + vlen + 0.35, room.z1 - 0.2), 0.15, 0.45)
   }
-  poster(e, room.onWall('+z', room.x1 - 0.65), ladies ? 'Keep it clean' : 'Wash your hands', '#1f6fd1', 0.3, 0.42, 1.55)
+  floorDrain(e, room.at(room.x0 + 1.6, (room.z0 + 1.55 + room.z1 - 0.55) / 2))
+  exhaustGrille(e, room.at(room.x0 + 1.4, room.z0 + 1.0), room.ceiling)
+  exhaustGrille(e, room.at(room.x1 - 0.8, room.z1 - 1.2), room.ceiling)
+  washroomSign(e, room.onWall('+z', room.x1 - 1.35), ladies ? 'ladies' : 'gents', 1.65)
 }
 
 /**
- * The accessible WC behind the lifts: a wall-hung WC at 0.48 m from the side wall with a fixed
- * grab bar there and a drop-down bar on its open side, a basin with knee space and a lever mixer
- * under a tilted mirror, the emergency pull cord, a fold-down baby-changing table, 1.5 m turning
- * space in the middle.
+ * The accessible WC behind the lifts, as the Harmonised Guidelines draw it: a wall-hung WC with its
+ * seat at 480 mm on a cistern duct, its centre 480 mm off the side wall; an L-shaped grab rail on
+ * that wall and a hinged drop-down rail on the transfer side; the basin within reach of the WC,
+ * at 800 mm with knee space and a lever mixer, under a tilted mirror; the roll holder in reach, the
+ * emergency pull cord to the floor; a fold-down baby changer; the 1.5 m turning circle kept clear.
  */
 const accessible: Fitter = (e, room) => {
-  const { k, m } = e
-  const c = mats(e)
   const wx = room.x1 - 0.48
-  const w = room.at(wx, room.z1, PI)
-  wc(e, w)
-  // Fixed bars on the side wall: horizontal at 0.75 m and a vertical one at the pan's front.
-  const side = room.onWall('+x', room.z1 - 0.55)
-  grabBar(e, side, 0.7, 0.75, 0)
-  const v = group(side, 0.45, 0, 0.08)
-  k.cyl(v, 0.017, 0.017, 0.6, m.stainless, 0, 1.05, 0, 12)
-  // The drop-down bar on the open side, lowered.
-  const dd = room.at(wx - 0.4, room.z1, PI)
-  k.box(dd, 0.1, 0.18, 0.03, m.stainless, 0, 0.78, 0.015)
-  k.cyl(dd, 0.017, 0.017, 0.75, m.stainless, 0, 0.75, 0.42, 12).rotation.x = PI / 2
-  // The basin on the opposite wall, at 0.8 m with knee space, the mirror tilted to a seated user.
-  const b = room.onWall('-x', room.z1 - 1.3)
-  k.soft(b, 0.55, 0.15, 0.45, 0.04, c.vitreous, 0, 0.78, 0.23)
-  k.cyl(b, 0.02, 0.024, 0.16, m.chrome, 0, 0.92, 0.06, 12)
-  k.box(b, 0.18, 0.02, 0.02, m.chrome, 0.06, 1.0, 0.07, false)
-  const mirror = k.box(b, 0.55, 0.8, 0.012, c.mirror, 0, 1.45, 0.06, false)
-  mirror.rotation.x = -0.12
-  k.soft(b, 0.11, 0.24, 0.1, 0.02, m.whitePlastic, 0.45, 1.05, 0.05)
-  grabBar(e, room.onWall('-x', room.z1 - 1.85), 0.5, 0.85)
-  // The emergency pull cord by the WC, its red triangle pulls at 0.1 m and 0.9 m; the reset button.
-  const cord = room.onWall('+x', room.z1 - 1.25)
-  k.box(cord, 0.08, 0.08, 0.04, m.whitePlastic, 0, 2.3, 0.02)
-  k.cyl(cord, 0.003, 0.003, 2.2, m.red, 0, 1.2, 0.06, 6)
-  for (const y of [0.1, 0.9]) k.box(cord, 0.05, 0.05, 0.01, m.red, 0, y, 0.06, false)
-  k.box(cord, 0.09, 0.09, 0.02, m.red, 0, 1.1, 0.01, false)
-  // The fold-down baby-changing table, closed against the wall.
-  const bc = room.onWall('-x', room.z0 + 0.75)
-  k.soft(bc, 0.86, 0.56, 0.1, 0.02, m.greyPlastic, 0, 1.05, 0.05)
-  k.box(bc, 0.5, 0.06, 0.006, e.o.navy, 0, 1.2, 0.101, false)
-  handDryer(e, room.onWall('-x', room.z1 - 2.2), 1.05)
-  bins(e, room.at(room.x0 + 0.25, room.z1 - 0.3, PI / 2), ['black'])
+  const duct = room.at(wx - 0.1, room.z1, PI)
+  cisternDuct(e, duct, 1.1, 1.1, 0.2)
+  const w = room.at(wx, room.z1 - 0.2, PI)
+  const pan = wcPan(e, w, 0.48, 0.95)
+  // The L-shaped rail on the side wall beside the WC (local x runs towards the back wall).
+  const side = room.onWall('+x', room.z1 - 0.95)
+  grabRail(e, side, 'accL', [[-0.05, 0.7, 0], [-0.05, 0.7, 0.07], [0.6, 0.7, 0.07], [0.6, 1.4, 0.07], [0.6, 1.4, 0]])
+  jumboRoll(e, room.onWall('+x', room.z1 - 1.25), 0, 0.72)
+  // The drop-down rail on the transfer side, folded down along the WC.
+  dropDownRail(e, room.at(wx - 0.35, room.z1 - 0.2, PI), 0.75, 0.78)
+  // The basin, in reach of the WC, on the back wall; its tilted mirror; dispensers beside it.
+  const bx = room.x0 + 0.65
+  wallBasin(e, room.onWall('+z', bx), 0.55, 0.8)
+  mirror(e, room.onWall('+z', bx), 0.5, 0.75, 1.32, 0.1)
+  soapDispenser(e, room.onWall('+z', bx + 0.42), 0, 1.05)
+  towelDispenser(e, room.onWall('-x', room.z1 - 0.75), 0, 1.2)
+  pedalBin(e, room.at(room.x0 + 0.25, room.z1 - 0.95), 0.13, 0.4)
+  babyChanger(e, room.onWall('-x', room.z0 + 1.0), 0.95)
+  pullCord(e, room.onWall('+x', room.z1 - 1.75), room.ceiling)
+  floorDrain(e, room.at((room.x0 + room.x1) / 2, (room.z0 + room.z1) / 2 - 0.2))
+  exhaustGrille(e, room.at(room.x0 + 0.6, room.z0 + 0.7), room.ceiling)
+  washroomSign(e, room.onWall('-z', room.x0 + 0.5), 'accessible', 1.6)
   wallSign(e, room.onWall('-z', room.x1 - 0.5), 'accessibleAlarm', 0.3, 0.2, board('#ffffff', [['IN EMERGENCY', 0.22, '#c8161d'], ['PULL CORD', 0.3, '#c8161d']], { border: '#c8161d' }), 1.5)
-  room.info(w, { title: 'Accessible WC', kind: 'Universal toilet', body: 'A wheelchair-accessible toilet as the Harmonised Guidelines for accessibility require: a wall-hung WC with its seat at 0.48 m, a fixed grab bar on the side wall and a drop-down bar on the transfer side, an emergency pull cord that rings at the floor\'s nurses\' station, and a 1.5 m turning circle.', specs: ['Outward-opening 1.0 m door', 'Basin at 0.8 m with knee space, lever mixer', 'Fold-down baby-changing table'] })
+  room.info(pan, { title: 'Accessible WC', kind: 'Universal toilet', body: 'A wheelchair-accessible toilet as the Harmonised Guidelines for accessibility require: the WC seat at 480 mm, 480 mm off the side wall with an L-shaped rail there and a drop-down rail on the transfer side, the basin within reach, an emergency pull cord that rings at the floor\'s nurses\' station, and a clear 1.5 m turning circle.', specs: ['Outward-opening 1.0 m door', 'Basin rim at 800 mm, knee space, lever mixer', 'Mirror tilted for a seated user', 'Fold-down baby-changing station'] })
 }
 
 /** The electrical and IT riser and janitor's closet behind the stair. */
@@ -192,11 +200,11 @@ const lounge: Fitter = (e, room) => {
     const xs = [2.4, 4.0, 5.6, 7.2, 8.8]
     for (const [i, x] of xs.entries()) {
       const a = room.at(x, 7.4, FACE['+x'])
-      beamSeating(e, a, 4)
+      beamSeating(e, a, 4, SEATS[room.level])
       seats.push(a)
-      if (i < xs.length - 1) beamSeating(e, room.at(x, 11.2, FACE['+x']), 4)
+      if (i < xs.length - 1) beamSeating(e, room.at(x, 11.2, FACE['+x']), 4, SEATS[room.level])
       else {
-        beamSeating(e, room.at(x, 11.82, FACE['+x']), 2)
+        beamSeating(e, room.at(x, 11.82, FACE['+x']), 2, SEATS[room.level])
         wheelchairSpace(e, room.at(x + 0.1, 10.5, FACE['+x']), 0.9, 1.3)
       }
     }
@@ -208,9 +216,9 @@ const lounge: Fitter = (e, room) => {
     leafletRack(e, room.onWall('+x', 9.8), 1.1)
     sanitiserStand(e, room.at(room.x1 - 0.3, 6.4, -PI / 2))
     // The sliver by the link: a bariatric seat, a low table, a chair.
-    armchair(e, room.at(1.45, 12.3, FACE['+x']), 0.75)
+    bariatricChair(e, room.at(1.45, 12.3, FACE['+x']))
     sideTable(e, room.at(1.45, 11.3))
-    armchair(e, room.at(1.45, 10.3, FACE['+x']), 0.6)
+    armChair(e, room.at(1.45, 10.3, FACE['+x']))
     sanitiserStand(e, room.at(1.35, 9.3, FACE['+x']))
     if (room.level === 1) {
       const w = room.at(room.x1, 12.2, -PI / 2)
@@ -226,8 +234,8 @@ const lounge: Fitter = (e, room) => {
   } else {
     // The third floor: rows across, facing the displays on the back wall.
     for (const [i, z] of [6.4, 8.0, 9.6, 11.2].entries()) {
-      beamSeating(e, room.at(3.84, z, PI), 4)
-      if (i < 3) beamSeating(e, room.at(7.54, z, PI), 4)
+      beamSeating(e, room.at(3.84, z, PI), 4, SEATS[room.level])
+      if (i < 3) beamSeating(e, room.at(7.54, z, PI), 4, SEATS[room.level])
       else wheelchairSpace(e, room.at(7.2, z, PI), 1.3, 0.9)
     }
     const d1 = room.onWall('-z', 5.5)
@@ -236,7 +244,7 @@ const lounge: Fitter = (e, room) => {
     wallScreen(e, room.onWall('-z', 8.95), 1.0, 2.0, second)
     leafletRack(e, room.onWall('+x', 7.6), 1.15)
     sanitiserStand(e, room.at(room.x1 - 0.3, 6.4, -PI / 2))
-    for (const z of [9.9, 11.0]) armchair(e, room.at(1.45, z, FACE['+x']), 0.62, mats(e).fabricTeal)
+    for (const z of [9.9, 11.0]) armChair(e, room.at(1.45, z, FACE['+x']), mats(e).fabricTeal)
     sideTable(e, room.at(1.45, 12.1))
     waterStation(e, room.at(room.x1, 12.2, -PI / 2))
   }
@@ -245,7 +253,7 @@ const lounge: Fitter = (e, room) => {
 
 /** The strip along the curtain wall: seats facing the view, out over the garden and the road. */
 const loungeFront: Fitter = (e, room) => {
-  for (const x of [3.8, 8.4]) beamSeating(e, room.at(x, room.z0 + 0.3, 0), 5)
+  for (const x of [3.8, 8.4]) beamSeating(e, room.at(x, room.z0 + 0.3, 0), 5, SEATS[room.level])
 }
 
 /* ---------- the floors' reception halls ---------- */
@@ -306,9 +314,9 @@ const reception: Fitter = (e, room) => {
   room.info(kiosk, { title: 'Token Kiosk', kind: 'Self-service', body: 'Patients with a booked appointment scan their appointment SMS or enter their UHID to print their token for the floor; others take a token here for the reception counter.' })
   // Rows of seats facing the counter and the display.
   const n = room.level === 3 ? 5 : 6
-  for (const z of room.level === 3 ? [7.6, 9.2] : [7.4, 8.9, 10.4]) beamSeating(e, room.at(-8.9, z, PI), n)
+  for (const z of room.level === 3 ? [7.6, 9.2] : [7.4, 8.9, 10.4]) beamSeating(e, room.at(-8.9, z, PI), n, SEATS[room.level])
   if (room.level === 3) {
-    armchair(e, room.at(-10.7, 10.7, PI), 0.75)
+    bariatricChair(e, room.at(-10.7, 10.7, PI))
     wheelchairSpace(e, room.at(-9.4, 10.75, PI), 0.9, 1.3)
   }
   wheelchair(e, room.at(room.x1 - 0.5, room.z1 - 0.7, -PI / 2))
@@ -337,7 +345,7 @@ const pantry: Fitter = (e, room) => {
   kitchenette(e, room.onWall('-x', 1.5), 2.4)
   fridge(e, room.onWall('-x', 3.3))
   diningSet(e, room.at(-0.55, -1.0), 1.2, 0.8, 4)
-  sofa(e, room.at(room.x1 - 0.4, 1.8, -PI / 2), 1.8)
+  sofa(e, room.at(room.x1 - 0.45, 1.8, -PI / 2), 2)
   lockers(e, room.at(room.x1 - 0.5, -1.7, -PI / 2), 3)
   noticeBoard(e, room.onWall('+z', -0.5))
   bins(e, room.at(room.x0 + 0.25, -2.1, PI / 2), ['green', 'black'])
@@ -349,7 +357,7 @@ const staffRoom = (lab: boolean): Fitter => (e, room) => {
   diningSet(e, room.at(8.45, 1.0), 0.7, 0.7, 4)
   kitchenette(e, room.onWall('+x', 1.2), 2.4)
   fridge(e, room.onWall('+x', -0.4))
-  sofa(e, room.at(room.cx, room.z1 - 0.4, PI), 1.8)
+  sofa(e, room.at(room.cx, room.z1 - 0.45, PI), 2)
   noticeBoard(e, room.onWall('-x', 2.4), 0.9)
   poster(e, room.onWall('-x', -2.9), lab ? 'Lab safety rules' : 'Radiation safety', lab ? '#1f9d55' : '#f08a00', 0.36, 0.5, 1.55)
   bins(e, room.at(room.x1 - 0.25, -2.6, -PI / 2), ['green', 'black'])
@@ -370,7 +378,7 @@ const cleanUtility: Fitter = (e, room) => {
   rack(e, iv, 1.8, 1.8, 0.5, 4, 'medicines')
   wallSign(e, room.onWall('+x', -16.0), 'ivfluids', 0.6, 0.15, board(NAVY, [['IV FLUIDS · DISPOSABLES', 0.4, '#ffffff']]), 2.05)
   linenTrolley(e, room.at(-0.6, room.z0 + 0.35))
-  basin(e, room.onWall('-z', 0.6))
+  handWashPoint(e, room.onWall('-z', 0.6))
   room.info(units[1], { title: 'Clean Supply Units', kind: 'Sterile store', body: 'Sterile and clean consumables for the floor\'s consultation and dressing rooms: dressings, syringes, cannulas, catheters and gloves in labelled drawers, topped up daily by the central store on a par-level system, first-expiry first-out.', specs: ['Drawers that open', 'Glazed wall cupboards over the worktop', 'IV fluids and disposables racked separately'] })
 }
 
@@ -379,7 +387,7 @@ const cleanUtilitySmall: Fitter = (e, room) => {
   supplyUnit(e, u, 0.94)
   rack(e, room.at(room.x0 + 0.45, -1.6, PI / 2), 1.4, 2.0, 0.45, 5, 'supplies')
   linenTrolley(e, room.at(room.x1 - 0.3, -0.9, PI / 2))
-  basin(e, room.onWall('+x', -2.0), 0.5)
+  handWashPoint(e, room.onWall('+x', -2.0))
   room.info(u, { title: 'Clean Utility', kind: 'Sterile store', body: 'The diagnostics floor\'s clean consumables: vacutainers, needles, swabs and dressings for the collection bays, ultrasound gel and probe covers, linen for the couches.' })
 }
 
@@ -423,7 +431,7 @@ const bmwStore: Fitter = (e, room) => {
   k.box(shelf, 0.5, 0.025, 0.3, m.galvanised, 0, 1.0, 0.15)
   k.box(shelf, 0.3, 0.04, 0.22, m.blue, 0, 1.035, 0.15)
   wallSign(e, room.onWall('+x', -24.8), 'bmwSign', 0.45, 0.6, board('#f7d117', [['BIOHAZARD', 0.12, '#111'], ['BIO-MEDICAL', 0.08, '#111'], ['WASTE STORE', 0.08, '#111'], ['Authorised staff only', 0.055, '#c8161d', 500]], { border: '#111' }), 1.6)
-  drain(e, room.at(room.cx, -21.4))
+  floorDrain(e, room.at(room.cx, -21.4))
   k.cyl(room.group, 0.02, 0.02, 0.12, m.chrome, room.x1 - 0.05, room.y + 0.6, -21.2, 10).rotation.z = PI / 2
   room.info(bins0[0], { title: 'Biomedical Waste Store', kind: 'Bio-Medical Waste Management Rules, 2016', body: 'Waste segregated at source on the floor is brought here in closed bins: yellow for soiled dressings and anatomical waste, red for contaminated plastics and tubing, white puncture-proof containers for sharps, blue for broken glass and vials. It is weighed, logged and handed over daily to the authorised common treatment facility; nothing is kept beyond 48 hours.', specs: ['Lidded 240 L wheeled bins, colour-coded and labelled', 'Platform scale and register', 'Washable tiled walls and floor drain'] })
   room.info(s, { title: 'Waste Weighing Scale', kind: 'Store', body: 'Each category of waste is weighed before handover and entered in the register and the online BMW tracking system with its barcode.' })
@@ -439,7 +447,7 @@ const feeding: Fitter = (e, room) => {
   k.soft(ch, 0.76, 0.1, 0.52, 0.04, m.blanket, 0, 0.92, -0.27)
   for (const s of [-1, 1]) k.soft(ch, 0.04, 0.12, 0.52, 0.015, m.blanket, s * 0.38, 0.98, -0.27)
   room.info(ch, { title: 'Baby Changing Station', kind: 'Mother & baby', body: 'A padded changing top with raised edges over a cupboard of diapers, wipes and spare linen; a lidded nappy bin beside it.' })
-  basin(e, room.onWall('-x', 6.4), 0.5)
+  handWashPoint(e, room.onWall('-x', 6.4))
   for (const z of [7.5, 9.7]) {
     armchair(e, room.at(room.x1 - 0.5, z, -PI / 2), 0.62, mats(e).fabricTeal)
     footstool(e, room.at(room.x1 - 1.25, z, -PI / 2), mats(e).fabricTeal)

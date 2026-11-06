@@ -5,7 +5,7 @@ import { box } from '../../kalakalA01/building'
 import { switchPlate } from '../../kalakalD65/fixtures'
 import { rect, slab } from '../../kalakalMall/solids'
 import { Tris } from '../../kalakalMall/skin'
-import { bake, face, signPanel } from '../erKit'
+import { bake, bentTube, face, put, signPanel } from '../erKit'
 import { COURT, ROOF } from '../plan'
 import { inward, Room, type OpdCtx } from './ctx'
 import { lampFace, magnet, radiation, roomPlate, board } from './paints'
@@ -285,6 +285,8 @@ export function buildShell(e: OpdCtx): Shell {
   for (const d of doorAt) buildDoor(e, d.room, d.spec, d.run)
   for (const g of glassAt) buildGlazing(e, g.room, g.spec, g.run)
   for (const room of rooms.values()) overhead(e, room, ceilingMats.has(room))
+  for (const room of rooms.values()) sockets(e, room)
+  windowBoards(e)
 
   // Hotspots: the floor of every room a visitor can open, faintly lit when chosen.
   const highlights = new Map<string, MeshBasicMaterial>()
@@ -293,6 +295,9 @@ export function buildShell(e: OpdCtx): Shell {
     const g = new Group()
     g.name = room.mesh
     g.userData.height = CEILING - 0.1
+    // Rooms whose middle is taken by a machine open from their door, looking along it.
+    const eye = ENTRY[`${e.level}:${room.spec.id}`]
+    if (eye) g.userData.eye = { from: [eye[0], y + eye[1], eye[2]], to: [eye[3], y + eye[4], eye[5]] }
     const mat = new MeshBasicMaterial({ color: GOLD, transparent: true, opacity: 0, depthWrite: false })
     const s = new Mesh(new BoxGeometry(room.w, 0.01, room.d), mat)
     s.position.set(room.cx, y + 0.03, room.cz)
@@ -302,6 +307,12 @@ export function buildShell(e: OpdCtx): Shell {
     highlights.set(room.mesh, mat)
   }
   return { rooms: [...rooms.values()], highlights }
+}
+
+/** Composed room-viewer entries (plan x, height, z from; and to), by `level:id`. */
+const ENTRY: Record<string, [number, number, number, number, number, number]> = {
+  '3:mri': [8.6, 1.65, -21.1, 3.8, 1.0, -23.4],
+  '3:ct': [-7.9, 1.65, -7.45, -9.5, 0.95, -11.6],
 }
 
 /* ---------- doors ---------- */
@@ -366,11 +377,23 @@ function buildDoor(e: OpdCtx, room: Room, d: DoorSpec, run: WallRun) {
       for (const s of [-1, 1]) k.box(L, 0.02, vh + 0.04, th + 0.006, m.aluminium, latch + s * 0.11, 1.48, 0, false)
     }
     // Kick plates, both faces; lever handles on roses, both faces.
+    // Kick plates; on each face a round rose, a returned lever towards the hinges, and under it
+    // the lock: a thumb-turn inside, a cylinder (or the toilets' emergency release) outside.
+    const hx = -side * (lw / 2 - 0.075)
     for (const s of [-1, 1]) {
       k.box(L, lw - 0.06, 0.3, 0.002, m.stainless, 0, 0.17, s * (th / 2 + 0.001), false)
-      const hx = -side * (lw / 2 - 0.075)
-      k.cyl(L, 0.026, 0.026, 0.012, m.stainless, hx, 1.04, s * (th / 2 + 0.006), 16).rotation.x = PI / 2
-      k.box(L, 0.13, 0.018, 0.02, m.stainless, hx + side * 0.055, 1.04, s * (th / 2 + 0.03), false)
+      k.cyl(L, 0.026, 0.026, 0.01, m.stainless, hx, 1.04, s * (th / 2 + 0.005), 20).rotation.x = PI / 2
+      const lever = put(L, bentTube(e, `lever${side}`, [[0, 0, 0], [0, 0, 0.055], [side * 0.03, 0, 0.068], [side * 0.13, 0, 0.068], [side * 0.135, -0.004, 0.055]], 0.0095, 0.02), m.stainless, hx, 1.04, s * (th / 2 + 0.008), false)
+      if (s < 0) lever.scale.z = -1
+      k.cyl(L, 0.02, 0.02, 0.008, m.stainless, hx, 0.92, s * (th / 2 + 0.004), 18).rotation.x = PI / 2
+      k.box(L, 0.008, 0.024, 0.006, s > 0 ? m.stainless : m.black, hx, 0.92, s * (th / 2 + 0.01), false)
+    }
+    // Three butt hinges on the hinge edge, their knuckles showing on the side it swings to.
+    for (const hy of [0.24, H / 2 + 0.1, H - 0.24]) k.cyl(L, 0.009, 0.009, 0.1, m.stainless, side * (lw / 2 + 0.002), hy, out * (th / 2), 12)
+    // An overhead closer on the push side of doors to the corridors.
+    if (!wet && !d.internal && kind !== 'glass') {
+      k.soft(L, 0.26, 0.05, 0.055, 0.012, m.aluminium, side * (lw / 2 - 0.2), H - 0.08, -out * (th / 2 + 0.028))
+      k.box(L, 0.24, 0.012, 0.02, m.aluminium, side * (lw / 2 - 0.12), H - 0.03, -out * (th / 2 + 0.07), false)
     }
     if (kind === 'mri') {
       // The RF door's copper fingers round its edge, and the long pull handle.
@@ -389,6 +412,8 @@ function buildDoor(e: OpdCtx, room: Room, d: DoorSpec, run: WallRun) {
     L.removeFromParent()
     bake(node, leaf)
   }
+  // A threshold strip across the opening where the floor finish changes.
+  if (kind !== 'glass') k.box(G, w, 0.005, t + 0.06, wet ? m.aluminium : m.stainless, 0, 0.0145, 0, false)
   // Outside, by the latch: the room's plate (or the hazard signs of the rooms behind lead and RF).
   const latchX = pair ? w / 2 + 0.38 : -(d.hinge ?? 1) * (w / 2 + 0.36)
   const outside = -(t / 2) - 0.007
@@ -412,7 +437,8 @@ function buildDoor(e: OpdCtx, room: Room, d: DoorSpec, run: WallRun) {
     const sg = new Group()
     sg.position.set(sx, 1.2, t / 2 + 0.001)
     G.add(sg)
-    switchPlate(e.k, sg, `opd_${e.level}_${spec.id}`, ['switch'], o.switches, [room.circuit])
+    // A modular plate: the lights' switch and a 6 A socket beside it.
+    switchPlate(e.k, sg, `opd_${e.level}_${spec.id}`, ['switch', 'socket'], o.switches, [room.circuit])
   }
 }
 
@@ -456,9 +482,9 @@ function buildGlazing(e: OpdCtx, room: Room, g: Glazing, run: WallRun) {
     return
   }
   k.box(G, len, 0.04, t + 0.04, kind === 'lead' || kind === 'rf' ? m.solidSurface : o.frame, 0, g.sill + 0.02, 0)
-  const glass = kind === 'lead' ? o.leadGlass : kind === 'rf' ? o.rfGlass : o.screenGlass
+  // Frosted (privacy) glazing is one acid-etched pane, not a clear pane with a film over it.
+  const glass = kind === 'lead' ? o.leadGlass : kind === 'rf' ? o.rfGlass : kind === 'frosted' ? m.frosted : o.screenGlass
   k.box(G, len - 0.08, h - 0.08, kind === 'lead' ? 0.02 : 0.012, glass, 0, g.sill + h / 2, 0, false)
-  if (kind === 'frosted') k.box(G, len - 0.08, 0.5, 0.014, m.frosted, 0, g.sill + 0.55, 0, false)
 }
 
 /* ---------- overhead: lights, air, sprinklers ---------- */
@@ -579,3 +605,61 @@ function lamps(room: Room) {
   }
 }
 
+
+/* ---------- small electrical and window details ---------- */
+
+/**
+ * Power at working height: in rooms and offices, a pair of modular socket plates low on a wall
+ * that has no door in it (beside where furniture stands), as an electrical layout would put them.
+ */
+function sockets(e: OpdCtx, room: Room) {
+  const spec = room.spec
+  if (spec.kind !== 'room' || spec.quiet) return
+  const sides: Dir[] = ['-z', '+z', '-x', '+x']
+  const doorSides = new Set((spec.doors ?? []).map((d) => d.side))
+  const d = sides.find((s) => !room.exterior.includes(s) && !doorSides.has(s) && !(spec.glazing ?? []).some((g) => g.side === s))
+  if (!d) return
+  const [a0, a1] = room.side(d)
+  const len = a1 - a0
+  if (len < 1.6) return
+  for (const t of [0.28, 0.72]) {
+    const g = room.onWall(d, a0 + len * t, 0.32, 0.001)
+    switchPlate(e.k, g, `opd_${e.level}_${spec.id}_sockets`, ['socket', 'socket'], e.o.switches)
+  }
+}
+
+/**
+ * Window boards inside the façade's windows: white solid surface at the sill, one per punched
+ * window on the south side and the tower's front, continuous under the ribbon glazing elsewhere.
+ */
+function windowBoards(e: OpdCtx) {
+  const t = new Tris()
+  const y = e.y
+  const inside = (x: number, z: number) => e.plan.rooms.some((r) => x > r.rect[0] && x < r.rect[1] && z > r.rect[2] && z < r.rect[3])
+  // Punched windows on the south side: 12 bays of 3.167 m from the back, each 2.0 m wide.
+  const bay = 38 / 12
+  for (let i = 0; i < 12; i++) {
+    const z0 = -26 + i * bay + (bay - 2.0) / 2
+    if (!inside(-11.3, z0 + 1.0)) continue
+    box(t, [-11.5, -11.43], [y + 0.9, y + 0.925], [z0, z0 + 2.0])
+  }
+  // The tower's front, above the ground: 3 bays of 3.133 m.
+  if (e.level > 0) for (let i = 0; i < 3; i++) {
+    const x0 = -11.8 + i * (9.4 / 3) + (9.4 / 3 - 2.0) / 2
+    box(t, [x0, x0 + 2.0], [y + 0.9, y + 0.925], [11.63, 11.7])
+  }
+  // Ribbon glazing above the ground: the back, the north side, the court (2nd, 3rd), the front behind the link's roof (3rd).
+  if (e.level > 0) {
+    const sill: R = [y + 0.95, y + 0.975]
+    box(t, [-11.5, 13.6], sill, [-25.78, -25.67])
+    box(t, [13.57, 13.78], sill, [-25.7, 10.7])
+    if (e.level >= 2) {
+      box(t, [-4.83, -4.62], sill, [-18.0, -6.0])
+      box(t, [-4.5, 7.5], sill, [-5.88, -5.67])
+      box(t, [-4.5, 7.5], sill, [-18.33, -18.12])
+      box(t, [7.62, 7.83], sill, [-18.0, -6.0])
+    }
+    if (e.level === 3) box(t, [-2.4, 0.6], sill, [3.67, 3.88])
+  }
+  if (!t.empty) t.mesh(e.m.solidSurface, e.root, 'opd_window_boards', false)
+}

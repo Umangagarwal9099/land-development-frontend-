@@ -116,12 +116,13 @@ export const epoxy: Paint = (g, w, h) => {
 /** A wood-grain laminate (door leaves, counter fronts): pale ash, straight grain, along the canvas's height. */
 export const ashLaminate: Paint = (g, w, h) => {
   const r = rng(5151)
-  g.fillStyle = '#d9c7a8'
+  g.fillStyle = '#d8c6a6'
   g.fillRect(0, 0, w, h)
-  for (let i = 0; i < 260; i++) {
+  // Fine, low-contrast grain, as printed on a high-pressure laminate.
+  for (let i = 0; i < 220; i++) {
     const x = r() * w
-    g.strokeStyle = `rgba(${120 + r() * 40},${90 + r() * 30},${55 + r() * 20},${0.05 + r() * 0.12})`
-    g.lineWidth = 0.6 + r() * 2.2
+    g.strokeStyle = `rgba(${130 + r() * 30},${100 + r() * 25},${65 + r() * 15},${0.025 + r() * 0.045})`
+    g.lineWidth = 0.5 + r() * 1.2
     g.beginPath()
     g.moveTo(x, 0)
     let xx = x

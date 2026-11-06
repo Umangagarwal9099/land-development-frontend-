@@ -1,8 +1,12 @@
-import { Group, TorusGeometry, type Material, type Object3D } from 'three'
+import {
+  CatmullRomCurve3, DoubleSide, ExtrudeGeometry, Group, Mesh, MeshStandardMaterial, PlaneGeometry, Shape, TorusGeometry, Vector2, Vector3,
+  type Material, type MeshStandardMaterialParameters, type Object3D,
+} from 'three'
 import { PI } from '../kit'
 import {
-  bake, bentTube, carcass, castor, cupboardDoor, drape, drawer, face, geo, group, lathe, panel, pillow, put, rod, starBase, tube, type Ctx,
+  bake, bentTube, carcass, castor, cupboardDoor, drape, drawer, face, geo, group, lathe, panel, pillow, put, rod, tube, type Ctx,
 } from './erKit'
+import { itemMats, ivBag, regulator } from './opd/equipment/items'
 
 /*
  * The emergency department's furniture, modelled on the products such a department buys: an ED
@@ -128,13 +132,9 @@ export function bed(e: Ctx, p: Object3D, o: BedFit) {
   } else k.cyl(p, 0.012, 0.012, 0.5, m.stainless, 0.36, deck - 0.2, -0.98, 10)
 }
 
-/** A 1 L bag of saline on its hook: the bag, its label, the giving set's drip chamber and line. */
+/** A 1 L bag of saline on its hook (y the bag's middle): the PVC bag, its print, the ports, the giving set's drip chamber, line and roller clamp. */
 export function infusionBag(e: Ctx, p: Object3D, x: number, y: number, z: number, line = 0.9) {
-  const { k, m } = e
-  put(p, pillow(e, 0.12, 0.035, 0.2), m.clearPlastic, x, y, z).rotation.x = PI / 2
-  k.box(p, 0.07, 0.09, 0.002, m.paper, x, y, z + 0.02, false)
-  k.cyl(p, 0.009, 0.009, 0.05, m.clearPlastic, x, y - 0.13, z, 10)
-  k.cyl(p, 0.002, 0.002, line, m.tubing, x, y - 0.16 - line / 2, z, 6)
+  ivBag(e, p, x, y + 0.16, z, line)
 }
 
 /* ---------- lockers, tables, chairs ---------- */
@@ -187,66 +187,422 @@ export function overbedTable(e: Ctx, p: Object3D, height = 0.92) {
   put(p, panel(e, 0.86, 0.42, 0.012, 0.035, [[0.82, 0.38, 0, 0]]), m.whitePlastic, -0.12, height + 0.006, 0).rotation.x = -PI / 2
 }
 
-/** A visitor's armchair on a sled frame: navy vinyl seat and back, padded arms. */
-export function visitorChair(e: Ctx, p: Object3D) {
-  const { k, m } = e
-  for (const s of [-1, 1]) {
-    put(p, bentTube(e, 'sled', [[0, 0.02, 0.26], [0, 0.02, -0.22], [0, 0.44, -0.28], [0, 0.66, -0.26], [0, 0.66, 0.16], [0, 0.42, 0.24], [0, 0.02, 0.26]], 0.012, 0.06), m.powder, s * 0.27, 0, 0)
-    k.soft(p, 0.06, 0.03, 0.36, 0.012, m.darkPlastic, s * 0.27, 0.675, -0.04)
+/* ---------- materials and shapes for seating ---------- */
+
+const fmCache = new WeakMap<object, ReturnType<typeof makeFurnMats>>()
+
+/** Grain for upholstery vinyl: a fine pebble with faint creasing, tinted per colour. */
+const pebble = (base: string, seed: number) => (g: CanvasRenderingContext2D, w: number, h: number) => {
+  g.fillStyle = base
+  g.fillRect(0, 0, w, h)
+  let s = seed
+  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647)
+  for (let i = 0; i < (w * h) / 6; i++) {
+    g.fillStyle = r() < 0.5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)'
+    g.fillRect(r() * w, r() * h, 1 + r(), 1 + r())
   }
-  k.soft(p, 0.5, 0.09, 0.48, 0.035, m.vinylSeat, 0, 0.47, 0.0)
-  const b = k.soft(p, 0.48, 0.46, 0.08, 0.035, m.vinylSeat, 0, 0.8, -0.25)
-  b.rotation.x = -0.12
-  for (const z of [-0.2, 0.2]) rod(e, p, 0.01, 0.54, m.powder, 0, 0.42, z, 'x', 8)
 }
 
-/** A task chair on a five-star base: gas lift, synchro mechanism, upholstered seat, mesh back, arms. */
-export function taskChair(e: Ctx, p: Object3D) {
-  const { k, m } = e
-  starBase(e, p, 0.32, 0.085, m.black, 0.03)
-  put(p, lathe(e, 'gaslift', [[0, 0.11], [0.03, 0.11], [0.03, 0.27], [0.024, 0.27], [0.024, 0.4], [0, 0.4]], 18), m.chrome)
-  k.soft(p, 0.26, 0.05, 0.28, 0.015, m.black, 0, 0.42, 0)
-  k.soft(p, 0.5, 0.08, 0.48, 0.035, m.fabric, 0, 0.48, 0.02)
-  put(p, bentTube(e, 'chairSpine', [[0, 0.44, -0.12], [0, 0.46, -0.27], [0, 0.7, -0.29]], 0.018, 0.06), m.black)
-  const back = put(p, panel(e, 0.46, 0.52, 0.03, 0.12, [[0.38, 0.44, 0, 0]]), m.black, 0, 0.94, -0.3)
-  back.rotation.x = -0.1
-  const mesh = k.box(p, 0.4, 0.46, 0.006, m.fabric, 0, 0.94, -0.3)
-  mesh.rotation.x = -0.1
-  for (const s of [-1, 1]) {
-    put(p, bentTube(e, 'chairArm', [[0, 0.45, 0.0], [0, 0.66, -0.02], [0, 0.66, 0.06]], 0.012, 0.03), m.black, s * 0.25, 0, 0)
-    k.soft(p, 0.07, 0.03, 0.24, 0.012, m.black, s * 0.25, 0.675, 0.03)
+/** A woven upholstery fabric: warp and weft in two close tones, a slight heather. */
+const weave = (a: string, b: string, seed: number) => (g: CanvasRenderingContext2D, w: number, h: number) => {
+  g.fillStyle = a
+  g.fillRect(0, 0, w, h)
+  let s = seed
+  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647)
+  for (let y = 0; y < h; y += 2) {
+    g.fillStyle = b
+    g.globalAlpha = 0.12 + r() * 0.08
+    g.fillRect(0, y, w, 1)
   }
+  for (let x = 0; x < w; x += 2) {
+    g.globalAlpha = 0.06 + r() * 0.06
+    g.fillStyle = r() < 0.5 ? '#ffffff' : '#000000'
+    g.fillRect(x, 0, 1, h)
+  }
+  g.globalAlpha = 1
+}
+
+/** Perforated steel: round holes on a 60° pitch, as an alpha map (white solid, black open). */
+const perforation = (g: CanvasRenderingContext2D, w: number, h: number) => {
+  g.fillStyle = '#ffffff'
+  g.fillRect(0, 0, w, h)
+  g.fillStyle = '#000000'
+  const p = w / 8
+  for (let j = 0; j < 9; j++)
+    for (let i = -1; i < 9; i++) {
+      g.beginPath()
+      g.arc(i * p + (j % 2 ? p / 2 : 0), j * p * 0.866 * (h / w) * (w / h), p * 0.28, 0, Math.PI * 2)
+      g.fill()
+    }
+}
+
+/** Mesh-back fabric: an open weave, as an alpha map. */
+const meshWeave = (g: CanvasRenderingContext2D, w: number, h: number) => {
+  g.fillStyle = '#000000'
+  g.fillRect(0, 0, w, h)
+  g.fillStyle = '#ffffff'
+  for (let i = 0; i < w; i += 4) g.fillRect(i, 0, 2, h)
+  for (let j = 0; j < h; j += 4) g.fillRect(0, j, w, 2)
+}
+
+function makeFurnMats(e: Ctx) {
+  const t = (w: number, h: number, paint: (g: CanvasRenderingContext2D, w: number, h: number) => void, repeat = 1) => {
+    const tex = e.k.tex.painted(w, h, paint)
+    tex.repeat.set(repeat, repeat)
+    return tex
+  }
+  const std = (p: MeshStandardMaterialParameters) => new MeshStandardMaterial({ roughness: 0.6, ...p })
+  const perf = t(64, 64, perforation, 10)
+  const mesh = t(32, 32, meshWeave, 40)
+  return {
+    /** Upholstery vinyls (healthcare grade, wipe-clean): navy, slate teal, charcoal, warm grey. */
+    vinylNavy: std({ map: t(256, 256, pebble('#2f4258', 11), 3), roughness: 0.55 }),
+    vinylTeal: std({ map: t(256, 256, pebble('#3e5f63', 12), 3), roughness: 0.55 }),
+    vinylCharcoal: std({ map: t(256, 256, pebble('#34373b', 13), 3), roughness: 0.58 }),
+    vinylTaupe: std({ map: t(256, 256, pebble('#7a6e63', 14), 3), roughness: 0.55 }),
+    /** Woven fabrics for staff and lounge seating. */
+    fabricGrey: std({ map: t(128, 128, weave('#4d5257', '#3a3e42', 15), 20), roughness: 0.95 }),
+    fabricBlue: std({ map: t(128, 128, weave('#3c5574', '#2d4158', 16), 20), roughness: 0.95 }),
+    /** Mesh back: an open black weave on its frame. */
+    meshBack: std({ color: '#1d1e20', alphaMap: mesh, alphaTest: 0.45, side: DoubleSide, roughness: 0.8 }),
+    /** Powder coats: silver grey, black, white; satin chrome; black nylon; rubber. */
+    powderSilver: std({ color: '#a6aaae', metalness: 0.55, roughness: 0.42 }),
+    powderBlack: std({ color: '#26272a', metalness: 0.3, roughness: 0.5 }),
+    powderWhite: std({ color: '#e7e8e6', metalness: 0.15, roughness: 0.45 }),
+    satinChrome: std({ color: '#c8ccd0', metalness: 0.95, roughness: 0.22 }),
+    nylon: std({ color: '#202124', roughness: 0.55 }),
+    rubber: std({ color: '#151516', roughness: 0.9 }),
+    /** Cast aluminium arms, polished grey. */
+    castAlu: std({ color: '#b6babd', metalness: 0.8, roughness: 0.32 }),
+    /** Perforated steel shells, powder-coated silver. */
+    perforated: std({ color: '#9fa4a8', metalness: 0.6, roughness: 0.4, alphaMap: perf, alphaTest: 0.5, side: DoubleSide }),
+    /** One-piece polypropylene shells. */
+    ppGrey: std({ color: '#5b6066', roughness: 0.5 }),
+    ppBlue: std({ color: '#35577e', roughness: 0.48 }),
+    /** PU armrest pads. */
+    pu: std({ color: '#1c1d1f', roughness: 0.62 }),
+    /** PVC edge banding: matched to the oak laminate, and to white boards. */
+    edgeOak: std({ color: '#a8835d', roughness: 0.45 }),
+    edgeWhite: std({ color: '#d9d9d5', roughness: 0.4 }),
+    /** Slots and recesses in pressed steel. */
+    slot: std({ color: '#3b3e42', roughness: 0.7 }),
+  }
+}
+
+/** The shared seating finishes, made once per model. */
+export function furnMats(e: Ctx) {
+  let f = fmCache.get(e.m)
+  if (!f) fmCache.set(e.m, (f = makeFurnMats(e)))
+  return f
+}
+
+/**
+ * A formed shell (a chair's seat-and-back in one, a sheet-steel seat), from its side profile:
+ * the centre line through `pts` ([z, y] pairs, front to back), `t` thick, `w` wide across x,
+ * smoothed through its bends, edges eased. Its front faces +z.
+ */
+export function shell(e: Ctx, key: string, pts: [number, number][], t: number, w: number, bevel = 0.003) {
+  return geo(e, `shell${key}|${t}|${w}`, () => {
+    const curve = new CatmullRomCurve3(pts.map(([z, y]) => new Vector3(-z, y, 0)), false, 'centripetal')
+    const c = curve.getSpacedPoints(36)
+    const out: Vector2[] = []
+    const inn: Vector2[] = []
+    for (let i = 0; i < c.length; i++) {
+      const a = c[Math.max(0, i - 1)]
+      const b = c[Math.min(c.length - 1, i + 1)]
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const l = Math.hypot(dx, dy) || 1
+      const nx = -dy / l
+      const ny = dx / l
+      out.push(new Vector2(c[i].x + (nx * t) / 2, c[i].y + (ny * t) / 2))
+      inn.push(new Vector2(c[i].x - (nx * t) / 2, c[i].y - (ny * t) / 2))
+    }
+    const s = new Shape([...out, ...inn.reverse()])
+    const g = new ExtrudeGeometry(s, { depth: Math.max(0.002, w - 2 * bevel), bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: Math.min(bevel, t / 3), bevelSegments: 2, curveSegments: 4 })
+    g.rotateY(PI / 2)
+    g.translate(-(w - 2 * bevel) / 2, 0, 0)
+    g.computeVertexNormals()
+    return g
+  })
+}
+
+/**
+ * An upholstered cushion: a rounded pad w × h × d with piping welted round its top (and bottom)
+ * edge, as a seat or back cushion is sewn; centred at (x, y, z) in `p`.
+ */
+export function cushion(e: Ctx, p: Object3D, w: number, h: number, d: number, mat: Material, x: number, y: number, z: number, opts: { welt?: 'top' | 'both' | 'none'; r?: number } = {}) {
+  const r = opts.r ?? Math.min(0.03, h * 0.45)
+  const pad = e.k.soft(p, w, h, d, r, mat, x, y, z)
+  const welt = opts.welt ?? 'top'
+  if (welt !== 'none') {
+    const ring = (yy: number) => {
+      const rr = Math.min(0.04, w / 4, d / 4)
+      const pts: [number, number, number][] = []
+      const hw = w / 2 - 0.004
+      const hd = d / 2 - 0.004
+      const corner = (cx: number, cz: number, a0: number) => {
+        for (let i = 0; i <= 4; i++) {
+          const a = a0 + (i / 4) * (PI / 2)
+          pts.push([cx + Math.cos(a) * rr, 0, cz + Math.sin(a) * rr])
+        }
+      }
+      corner(hw - rr, hd - rr, 0)
+      corner(-hw + rr, hd - rr, PI / 2)
+      corner(-hw + rr, -hd + rr, PI)
+      corner(hw - rr, -hd + rr, PI * 1.5)
+      put(p, tube(e, `welt${w.toFixed(3)}|${d.toFixed(3)}`, pts, 0.0035, true, 0), mat, x, yy, z, false)
+    }
+    ring(y + h / 2 - r * 0.55)
+    if (welt === 'both') ring(y - h / 2 + r * 0.55)
+  }
+  return pad
+}
+
+/** A screw-in floor glide or leveller under a leg end at (x, z). */
+function glide(e: Ctx, p: Object3D, x: number, z: number, r = 0.014) {
+  e.k.cyl(p, r, r * 1.1, 0.012, furnMats(e).nylon, x, 0.006, z, 14).castShadow = false
+}
+
+/* ---------- chairs ---------- */
+
+/**
+ * A visitor's armchair on a sled base, as in a bay or a waiting corner: a bent steel tube sled
+ * each side carrying the armrest, black PU arm caps, a cushioned seat on its black under-shell
+ * and a cushioned back, both in healthcare vinyl with welted edges.
+ */
+export function visitorChair(e: Ctx, p: Object3D, upholstery?: Material) {
+  const { k } = e
+  const f = furnMats(e)
+  const vinyl = upholstery ?? f.vinylNavy
+  for (const s of [-1, 1]) {
+    put(p, bentTube(e, 'sled2', [[0, 0.012, 0.25], [0, 0.012, -0.22], [0, 0.4, -0.26], [0, 0.645, -0.24], [0, 0.645, 0.15], [0, 0.4, 0.23], [0, 0.012, 0.25]], 0.0125, 0.07), f.powderSilver, s * 0.275, 0, 0)
+    k.soft(p, 0.055, 0.028, 0.34, 0.012, f.pu, s * 0.275, 0.66, -0.04)
+    for (const z of [-0.2, 0.22]) glide(e, p, s * 0.275, z, 0.012)
+  }
+  // Seat: under-shell, then the cushion; cross rails under it.
+  k.soft(p, 0.5, 0.025, 0.46, 0.01, f.nylon, 0, 0.415, 0.01)
+  cushion(e, p, 0.5, 0.075, 0.47, vinyl, 0, 0.465, 0.015)
+  for (const z of [-0.18, 0.18]) rod(e, p, 0.009, 0.54, f.powderSilver, 0, 0.395, z, 'x', 10)
+  const back = group(p, 0, 0.78, -0.235)
+  back.rotation.x = -0.13
+  k.soft(back, 0.48, 0.42, 0.02, 0.008, f.nylon, 0, 0, -0.035)
+  cushion(e, back, 0.48, 0.42, 0.07, vinyl, 0, 0, 0, { welt: 'none', r: 0.03 })
+  for (const s of [-1, 1]) put(p, bentTube(e, 'backPost', [[0, 0.43, -0.2], [0, 0.6, -0.25], [0, 0.82, -0.29]], 0.01, 0.05), f.powderSilver, s * 0.2, 0, 0)
+}
+
+/**
+ * An ergonomic task chair, as at every workstation: a five-star base in black nylon on twin-wheel
+ * castors, the gas lift in its telescoping cover, the synchro mechanism with its paddles, a
+ * contoured fabric seat on its shell, height-adjustable T-arms with PU pads, and a framed mesh
+ * back with its lumbar band on the spine.
+ */
+export function taskChair(e: Ctx, p: Object3D, fabric?: Material) {
+  const { k } = e
+  const f = furnMats(e)
+  const seat = fabric ?? f.fabricGrey
+  chairBase(e, p, 0.32)
+  put(p, lathe(e, 'gasCover2', [[0.032, 0.11], [0.034, 0.12], [0.034, 0.26], [0.028, 0.27], [0.026, 0.38], [0, 0.38]], 20), f.nylon)
+  put(p, lathe(e, 'gasRod2', [[0, 0.37], [0.014, 0.37], [0.014, 0.42], [0, 0.42]], 12), f.satinChrome)
+  // Mechanism: the cast body, the height paddle and the tilt-lock lever.
+  k.soft(p, 0.24, 0.055, 0.26, 0.012, f.powderBlack, 0, 0.44, 0.0)
+  k.soft(p, 0.09, 0.012, 0.03, 0.006, f.nylon, 0.15, 0.435, 0.06)
+  k.soft(p, 0.012, 0.012, 0.09, 0.006, f.nylon, -0.15, 0.44, -0.02)
+  // Seat: a moulded under-shell and the contoured cushion, its waterfall front.
+  k.soft(p, 0.47, 0.03, 0.45, 0.012, f.nylon, 0, 0.475, 0.02)
+  cushion(e, p, 0.49, 0.07, 0.47, seat, 0, 0.52, 0.025, { welt: 'none', r: 0.03 })
+  // The spine from the mechanism up behind the seat, the back frame and its mesh.
+  put(p, bentTube(e, 'spine2', [[0, 0.45, -0.1], [0, 0.47, -0.25], [0, 0.66, -0.29], [0, 0.78, -0.3]], 0.02, 0.07), f.powderBlack)
+  const back = group(p, 0, 0.98, -0.31)
+  back.rotation.x = -0.12
+  put(back, panel(e, 0.46, 0.56, 0.028, 0.11, [[0.4, 0.5, 0, 0, 0.09]]), f.nylon)
+  const m = new Mesh(geo(e, 'meshBack2', () => new PlaneGeometry(0.41, 0.51)), f.meshBack)
+  back.add(m)
+  k.soft(back, 0.38, 0.07, 0.02, 0.01, f.nylon, 0, -0.14, 0.012)
+  // T-arms: column from under the seat, the adjuster button, the PU pad.
+  for (const s of [-1, 1]) {
+    put(p, bentTube(e, 'tarm', [[0, 0.47, -0.02], [0.03, 0.5, -0.02], [0.03, 0.66, -0.02]], 0.014, 0.03), f.powderBlack, s * 0.21, 0, 0)
+    k.soft(p, 0.07, 0.025, 0.24, 0.01, f.pu, s * 0.245, 0.68, 0.0)
+    k.box(p, 0.012, 0.02, 0.03, f.nylon, s * 0.262, 0.6, -0.02, false)
+  }
+}
+
+/** A five-star chair base in black nylon, tapered legs, twin-wheel castors, the hub; legs reach `radius`. */
+export function chairBase(e: Ctx, p: Object3D, radius: number, mat?: Material) {
+  const f = furnMats(e)
+  const legMat = mat ?? f.nylon
+  const leg = geo(e, `chairLeg${radius}`, () => {
+    const s = new Shape()
+    s.moveTo(0, 0.045)
+    s.lineTo(radius - 0.035, 0.03)
+    s.quadraticCurveTo(radius, 0.03, radius, 0.0)
+    s.lineTo(radius - 0.03, -0.004)
+    s.lineTo(0.05, 0.0)
+    s.lineTo(0, 0.0)
+    s.closePath()
+    const g = new ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005, bevelSegments: 2 })
+    g.translate(0, 0, -0.02)
+    return g
+  })
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * PI * 2
+    const g = group(p, 0, 0.075, 0, a)
+    put(g, leg, legMat).rotation.y = -PI / 2
+    castor(e, p, Math.sin(a) * (radius - 0.02), Math.cos(a) * (radius - 0.02), 0.026, a + 0.6 * Math.sin(i * 3))
+  }
+  put(p, lathe(e, `chairHub${radius}`, [[0, 0.07], [0.055, 0.07], [0.05, 0.13], [0.034, 0.135], [0, 0.135]], 24), legMat)
+}
+
+/**
+ * A consulting-room chair with arms: a four-leg frame in powder-coated steel tube, each side a
+ * loop from the front leg up into the armrest and down the back leg, PP arm caps, a cushioned
+ * seat and a shaped back on two posts, both upholstered and welted.
+ */
+export function armChair(e: Ctx, p: Object3D, upholstery?: Material, frame?: Material) {
+  const { k } = e
+  const f = furnMats(e)
+  const vinyl = upholstery ?? f.vinylTeal
+  const fr = frame ?? f.powderBlack
+  for (const s of [-1, 1]) {
+    put(p, bentTube(e, 'armLoop', [[0, 0.0, 0.22], [0, 0.635, 0.2], [0, 0.645, -0.17], [0, 0.0, -0.23]], 0.0125, 0.05), fr, s * 0.26, 0, 0)
+    k.soft(p, 0.05, 0.026, 0.3, 0.01, f.pu, s * 0.26, 0.658, 0.02)
+    glide(e, p, s * 0.26, 0.22)
+    glide(e, p, s * 0.26, -0.23)
+  }
+  for (const z of [-0.17, 0.17]) rod(e, p, 0.009, 0.52, fr, 0, 0.4, z, 'x', 10)
+  k.soft(p, 0.48, 0.022, 0.44, 0.008, f.nylon, 0, 0.42, 0.01)
+  cushion(e, p, 0.49, 0.07, 0.46, vinyl, 0, 0.466, 0.015)
+  const back = group(p, 0, 0.8, -0.215)
+  back.rotation.x = -0.1
+  put(back, shell(e, 'armChairBack', [[0.0, -0.2], [-0.02, 0.0], [0.0, 0.2]], 0.06, 0.47, 0.012), vinyl)
+  for (const s of [-1, 1]) put(p, bentTube(e, 'armChairPost', [[0, 0.41, -0.19], [0, 0.6, -0.22], [0, 0.72, -0.235]], 0.01, 0.05), fr, s * 0.2, 0, 0)
+}
+
+/** A bariatric (wide) chair, 0.75 m between the arms, rated to 300 kg: heavier frame, wider cushions. */
+export function bariatricChair(e: Ctx, p: Object3D, upholstery?: Material) {
+  const { k } = e
+  const f = furnMats(e)
+  const vinyl = upholstery ?? f.vinylNavy
+  for (const s of [-1, 1]) {
+    put(p, bentTube(e, 'bariLoop', [[0, 0.0, 0.25], [0, 0.64, 0.23], [0, 0.65, -0.2], [0, 0.0, -0.26]], 0.016, 0.06), f.powderSilver, s * 0.4, 0, 0)
+    k.soft(p, 0.07, 0.03, 0.34, 0.012, f.pu, s * 0.4, 0.665, 0.02)
+    glide(e, p, s * 0.4, 0.25, 0.018)
+    glide(e, p, s * 0.4, -0.26, 0.018)
+  }
+  for (const z of [-0.2, 0.2]) rod(e, p, 0.012, 0.8, f.powderSilver, 0, 0.39, z, 'x', 10)
+  k.soft(p, 0.76, 0.025, 0.48, 0.01, f.nylon, 0, 0.415, 0.01)
+  cushion(e, p, 0.76, 0.08, 0.5, vinyl, 0, 0.465, 0.02)
+  const back = group(p, 0, 0.8, -0.245)
+  back.rotation.x = -0.1
+  cushion(e, back, 0.74, 0.44, 0.08, vinyl, 0, 0, 0, { welt: 'none' })
+}
+
+/**
+ * A round medical stool on five chrome legs and castors, with the ring footrest, a gas lift under
+ * its release ring, and a thick upholstered seat with a welted edge; or (`saddle`) a saddle seat.
+ */
+export function roundStool(e: Ctx, p: Object3D, opts: { saddle?: boolean; ring?: boolean; vinyl?: Material; height?: number } = {}) {
+  const { k } = e
+  const f = furnMats(e)
+  const H = opts.height ?? 0.55
+  chairBase(e, p, 0.27, f.satinChrome)
+  put(p, lathe(e, `stoolLift${H}`, [[0.03, 0.12], [0.03, H - 0.16], [0.018, H - 0.15], [0.018, H - 0.06], [0, H - 0.06]], 18), f.satinChrome)
+  if (opts.ring ?? true) {
+    const ring = put(p, geo(e, 'footRing', () => new TorusGeometry(0.2, 0.011, 8, 32)), f.satinChrome, 0, Math.min(0.3, H - 0.25), 0)
+    ring.rotation.x = PI / 2
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * PI * 2
+      rod(e, group(p, 0, Math.min(0.3, H - 0.25), 0, a), 0.006, 0.17, f.satinChrome, 0.1, 0, 0, 'x', 6)
+    }
+  }
+  k.soft(p, 0.16, 0.02, 0.16, 0.008, f.powderBlack, 0, H - 0.07, 0)
+  const vinyl = opts.vinyl ?? f.vinylCharcoal
+  if (opts.saddle) {
+    put(p, shell(e, 'saddle', [[0.18, -0.01], [0.06, -0.03], [-0.06, -0.03], [-0.18, 0.01]], 0.07, 0.42, 0.02), vinyl, 0, H, 0)
+  } else {
+    put(p, lathe(e, 'stoolSeat', [[0, -0.035], [0.17, -0.035], [0.188, -0.025], [0.192, 0.0], [0.188, 0.025], [0.175, 0.036], [0, 0.04]], 32), vinyl, 0, H - 0.01, 0)
+    put(p, geo(e, 'stoolWelt', () => new TorusGeometry(0.184, 0.0045, 6, 40)), vinyl, 0, H + 0.018, 0).rotation.x = PI / 2
+  }
+}
+
+/**
+ * A two- or three-seat staff-room sofa: a box frame on short square legs, a wipe-clean vinyl or
+ * fabric cover, separate seat and back cushions with welted edges, rolled arms. Front +z.
+ */
+export function sofa(e: Ctx, p: Object3D, seats = 2, cover?: Material) {
+  const { k } = e
+  const f = furnMats(e)
+  const mat = cover ?? f.vinylTaupe
+  const cw = 0.58
+  const W = seats * cw + 0.3
+  for (const x of [-W / 2 + 0.06, W / 2 - 0.06]) for (const z of [-0.33, 0.33]) k.box(p, 0.04, 0.12, 0.04, f.powderBlack, x, 0.06, z)
+  k.soft(p, W, 0.2, 0.8, 0.03, mat, 0, 0.22, 0)
+  for (const s of [-1, 1]) cushion(e, p, 0.15, 0.4, 0.82, mat, s * (W / 2 - 0.075), 0.5, 0, { welt: 'both', r: 0.05 })
+  k.soft(p, W - 0.3, 0.42, 0.18, 0.04, mat, 0, 0.6, -0.31)
+  for (let i = 0; i < seats; i++) {
+    const x = -W / 2 + 0.15 + cw * (i + 0.5)
+    cushion(e, p, cw - 0.01, 0.13, 0.6, mat, x, 0.385, 0.08, { welt: 'both' })
+    const b = group(p, x, 0.66, -0.2)
+    b.rotation.x = -0.18
+    cushion(e, b, cw - 0.02, 0.42, 0.14, mat, 0, 0, 0, { welt: 'both', r: 0.05 })
+  }
+}
+
+/** A lab or counter-height stool: polypropylene seat on a chrome base with a footring, at `height`. */
+export function labStool(e: Ctx, p: Object3D, height = 0.68) {
+  const f = furnMats(e)
+  roundStool(e, p, { ring: true, height, vinyl: f.ppGrey })
 }
 
 /** A manual wheelchair, facing local +z: tube frame, spoked 24″ wheels with push rims, castors, sling seat and back, footplates. */
 export function wheelchair(e: Ctx, p: Object3D) {
   const { k, m } = e
-  const tyre = lathe(e, 'wcTyre', [[0.27, -0.016], [0.29, -0.018], [0.3, -0.01], [0.3, 0.01], [0.29, 0.018], [0.27, 0.016]], 48)
-  const rim = lathe(e, 'wcRim', [[0.255, -0.012], [0.272, -0.012], [0.272, 0.012], [0.255, 0.012]], 48)
-  const push = geo(e, 'wcPush', () => new TorusGeometry(0.26, 0.009, 8, 48))
+  const f = furnMats(e)
+  const tyre = lathe(e, 'wcTyre', [[0.27, -0.016], [0.29, -0.018], [0.3, -0.01], [0.3, 0.01], [0.29, 0.018], [0.27, 0.016]], 32)
+  const rim = lathe(e, 'wcRim', [[0.255, -0.012], [0.272, -0.012], [0.272, 0.012], [0.255, 0.012]], 32)
+  const push = geo(e, 'wcPush', () => new TorusGeometry(0.26, 0.009, 8, 40))
   for (const s of [-1, 1]) {
     const w = group(p, s * 0.31, 0.3, -0.12)
     w.rotation.z = PI / 2
-    put(w, tyre, m.rubber)
-    put(w, rim, m.chrome, 0, 0, 0, false)
-    const pr = put(w, push, m.chrome, 0, s * 0.03, 0, false)
+    put(w, tyre, f.rubber)
+    put(w, rim, f.satinChrome, 0, 0, 0, false)
+    const pr = put(w, push, f.satinChrome, 0, s * 0.035, 0, false)
     pr.rotation.x = PI / 2
-    for (let i = 0; i < 12; i++) rod(e, group(w, 0, 0, 0, (i / 12) * PI), 0.0015, 0.5, m.chrome, 0, 0, 0, 'z', 4).castShadow = false
-    put(w, lathe(e, 'wcHub', [[0, -0.03], [0.03, -0.03], [0.03, 0.03], [0, 0.03]], 16), m.aluminium)
-    castor(e, p, s * 0.22, 0.3, 0.06, 0.2 * s)
-    // Side frame: down tube to the castor, seat rail, back post with its push handle.
-    put(p, bentTube(e, 'wcSide', [[0, 0.16, 0.3], [0, 0.5, 0.26], [0, 0.5, -0.18], [0, 0.95, -0.24]], 0.012, 0.05), m.chrome, s * 0.23, 0, 0)
-    k.cyl(p, 0.017, 0.017, 0.11, m.black, s * 0.23, 0.92, -0.32, 10).rotation.x = PI / 2 - 0.4
-    put(p, bentTube(e, 'wcArm', [[0, 0.5, -0.12], [0, 0.72, -0.12], [0, 0.72, 0.16], [0, 0.5, 0.18]], 0.01, 0.04), m.chrome, s * 0.26, 0, 0)
-    k.soft(p, 0.05, 0.03, 0.26, 0.012, m.black, s * 0.26, 0.735, 0.02)
-    // Footrest hanger and plate.
-    put(p, bentTube(e, 'wcFoot', [[0, 0.5, 0.24], [0, 0.14, 0.4]], 0.01), m.chrome, s * 0.15, 0, 0)
-    k.soft(p, 0.15, 0.012, 0.13, 0.005, m.black, s * 0.12, 0.13, 0.42)
+    // Push-rim stand-offs, and the spokes crossing in pairs.
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * PI * 2
+      k.cyl(w, 0.005, 0.005, 0.035, f.satinChrome, Math.cos(a) * 0.26, s * 0.018, Math.sin(a) * 0.26, 6).castShadow = false
+    }
+    for (let i = 0; i < 18; i++) rod(e, group(w, 0, s * (i % 2 ? 0.008 : -0.008), 0, (i / 18) * PI), 0.0012, 0.51, f.satinChrome, 0, 0, 0, 'z', 4).castShadow = false
+    put(w, lathe(e, 'wcHub', [[0, -0.035], [0.022, -0.035], [0.03, -0.02], [0.03, 0.02], [0.022, 0.035], [0, 0.035]], 16), m.aluminium)
+    // Front castor in its fork under the down tube.
+    castor(e, p, s * 0.22, 0.3, 0.07, 0.15 * s)
+    // Side frame: down tube to the castor, seat rail, back post with its push handle and grip.
+    put(p, bentTube(e, 'wcSide2', [[0, 0.17, 0.3], [0, 0.5, 0.25], [0, 0.5, -0.17], [0, 0.96, -0.25]], 0.0125, 0.05), f.satinChrome, s * 0.23, 0, 0)
+    put(p, bentTube(e, 'wcLower', [[0, 0.17, 0.3], [0, 0.2, -0.12], [0, 0.32, -0.2]], 0.011, 0.05), f.satinChrome, s * 0.23, 0, 0)
+    const grip = k.cyl(p, 0.017, 0.017, 0.12, f.rubber, s * 0.23, 0.95, -0.33, 14)
+    grip.rotation.x = PI / 2 - 0.45
+    // Armrest on its two posts, its PU pad; the brake lever by the tyre.
+    put(p, bentTube(e, 'wcArm2', [[0, 0.5, -0.12], [0, 0.72, -0.12], [0, 0.72, 0.16], [0, 0.5, 0.2]], 0.01, 0.04), f.satinChrome, s * 0.265, 0, 0)
+    k.soft(p, 0.055, 0.03, 0.27, 0.012, f.pu, s * 0.265, 0.735, 0.02)
+    put(p, bentTube(e, 'wcBrake', [[0, 0.42, 0.06], [0, 0.5, 0.12], [0, 0.58, 0.1]], 0.006, 0.02), f.powderBlack, s * 0.27, 0, 0)
+    k.soft(p, 0.02, 0.05, 0.025, 0.008, f.rubber, s * 0.27, 0.6, 0.1)
+    // Swing-away footrest: hanger, the flip-up plate in its hinge, the heel strap.
+    put(p, bentTube(e, 'wcFoot2', [[0, 0.5, 0.25], [0, 0.17, 0.42]], 0.011), f.satinChrome, s * 0.16, 0, 0)
+    k.soft(p, 0.15, 0.014, 0.14, 0.006, f.nylon, s * 0.11, 0.155, 0.45)
+    k.box(p, 0.13, 0.04, 0.006, f.nylon, s * 0.11, 0.18, 0.39, false)
   }
-  k.box(p, 0.44, 0.012, 0.42, m.black, 0, 0.5, 0.03)
-  k.box(p, 0.44, 0.38, 0.01, m.black, 0, 0.75, -0.22).rotation.x = -0.12
-  rod(e, p, 0.009, 0.46, m.chrome, 0, 0.22, -0.1, 'x', 8)
+  // The folding cross-brace under the seat.
+  for (const s of [-1, 1]) {
+    const brace = rod(e, p, 0.01, 0.55, f.satinChrome, 0, 0.34, -0.02, 'x', 8)
+    brace.rotation.set(0, 0, PI / 2 + s * 0.38)
+  }
+  // Sling seat and back in black nylon, sagging a little between the rails.
+  put(p, shell(e, 'wcSeat', [[0.22, 0.5], [0.0, 0.485], [-0.18, 0.5]], 0.008, 0.46, 0.002), f.nylon)
+  put(p, shell(e, 'wcBack', [[-0.18, 0.52], [-0.205, 0.72], [-0.24, 0.92]], 0.008, 0.46, 0.002), f.nylon)
+  rod(e, p, 0.009, 0.46, f.satinChrome, 0, 0.21, -0.12, 'x', 8)
 }
+
 
 /* ---------- counters, pedestals, cupboards ---------- */
 
@@ -447,41 +803,55 @@ export function defibrillator(e: Ctx, p: Object3D, x: number, y: number, z: numb
 /* ---------- oxygen cylinders ---------- */
 
 /**
- * A medical oxygen cylinder, radius r, `h` tall overall, as filled in India: black body, white
- * shoulder, the pin-index valve with its handwheel; standing on y = 0 of `p`. A cylinder `in use`
- * carries its regulator (contents gauge, flow selector and outlet); a `full` spare its plastic cap
- * and tag; a `portable` one its integral valve and guard.
+ * A medical oxygen cylinder, radius r, `h` tall overall, as filled in India: a seamless black body,
+ * white shoulder, the stamped neck ring and contents collar label, the pin-index valve with its
+ * handwheel and outlet. A cylinder `in use` carries its regulator (yoke, contents gauge, flowmeter
+ * and humidifier); a `full` spare its tamper cap and tag; a `portable` one its valve guard.
  */
 export function cylinder(e: Ctx, p: Object3D, r: number, h: number, kind: 'in use' | 'full' | 'portable') {
   const { k, m } = e
+  const t = itemMats(e)
   const body = h * 0.86
   const shoulder = body - r * 0.9
-  put(p, lathe(e, `cylBody${r}|${h}`, [[0, 0], [r * 0.7, 0], [r * 0.94, r * 0.12], [r, r * 0.35], [r, shoulder], [r * 0.97, shoulder + r * 0.25]], 32), m.cylinder)
-  put(p, lathe(e, `cylShoulder${r}|${h}`, [[r * 0.97, shoulder + r * 0.25], [r * 0.82, shoulder + r * 0.6], [r * 0.5, body - r * 0.05], [r * 0.2, body], [0, body]], 32), m.whitePlastic)
-  // Stamped neck ring and the valve.
-  put(p, lathe(e, `cylNeck${r}`, [[0, 0], [r * 0.24, 0], [r * 0.24, r * 0.25], [0, r * 0.25]], 18), m.stainless, 0, body - 0.005)
-  const vy = body + r * 0.25
+  put(p, lathe(e, `cylBody${r}|${h}`, [[0, 0.004], [r * 0.6, 0], [r * 0.9, r * 0.08], [r, r * 0.3], [r, shoulder], [r * 0.97, shoulder + r * 0.25]], 32), m.cylinder)
+  put(p, lathe(e, `cylShoulder${r}|${h}`, [[r * 0.97, shoulder + r * 0.25], [r * 0.85, shoulder + r * 0.55], [r * 0.6, body - r * 0.12], [r * 0.3, body - r * 0.01], [0, body]], 32), m.whitePlastic)
+  // The foot ring it stands on.
+  put(p, lathe(e, `cylFoot${r}`, [[r * 0.7, 0], [r * 0.95, 0], [r * 0.95, r * 0.25], [r * 0.7, r * 0.25]], 24), t.graphite)
+  // The contents label collar round the shoulder: the gas, its pressure, the batch.
+  const label = t.printed('o2collar', 256, 64, (c, w, hh) => {
+    c.fillStyle = '#ffffff'
+    c.fillRect(0, 0, w, hh)
+    c.fillStyle = '#111'
+    c.font = `800 ${hh * 0.42}px Helvetica`
+    c.fillText('MEDICAL OXYGEN  O₂', w * 0.03, hh * 0.5)
+    c.font = `500 ${hh * 0.22}px Helvetica`
+    c.fillText('UN1072 · 150 bar · IP', w * 0.03, hh * 0.85)
+  })
+  put(p, lathe(e, `cylCollar${r}`, [[r * 1.005, shoulder - r * 0.6], [r * 1.005, shoulder - r * 0.05]], 28), label)
+  put(p, lathe(e, `cylNeck${r}`, [[0, 0], [r * 0.28, 0], [r * 0.3, r * 0.06], [r * 0.3, r * 0.2], [r * 0.24, r * 0.25], [0, r * 0.25]], 20), t.satin, 0, body - 0.005)
+  const vy = body + r * 0.24
   if (kind === 'full') {
-    put(p, lathe(e, `cylCap${r}`, [[0, 0], [r * 0.5, 0], [r * 0.52, r * 0.6], [r * 0.4, r * 1.25], [0, r * 1.3]], 24), m.whitePlastic, 0, vy - 0.01)
+    put(p, lathe(e, `cylCap${r}`, [[0, 0], [r * 0.5, 0], [r * 0.52, r * 0.6], [r * 0.45, r * 1.2], [r * 0.3, r * 1.3], [0, r * 1.32]], 24), m.whitePlastic, 0, vy - 0.01)
     face(e, p, 0.06, 0.09, m.tagFull, 0, vy + r * 0.5, r * 0.53)
     return
   }
-  k.box(p, r * 0.5, r * 0.7, r * 0.45, m.brass, 0, vy + r * 0.35, 0)
-  put(p, lathe(e, 'handwheel', [[0, 0], [0.03, 0], [0.032, 0.01], [0.03, 0.02], [0, 0.02]], 16), m.black, 0, vy + r * 0.75, 0)
+  // The pin-index valve: a forged brass body, its outlet face with the two index holes, the spindle and handwheel.
+  put(p, lathe(e, 'valveStem', [[0, 0], [0.016, 0], [0.016, 0.02], [0, 0.02]], 16), t.brass, 0, vy - 0.005)
+  put(p, panel(e, 0.05, 0.06, 0.04, 0.006), t.brass, 0, vy + 0.045, 0)
+  k.cyl(p, 0.003, 0.003, 0.004, t.graphite, -0.012, vy + 0.04, 0.021, 8).rotation.x = PI / 2
+  k.cyl(p, 0.003, 0.003, 0.004, t.graphite, 0.012, vy + 0.04, 0.021, 8).rotation.x = PI / 2
+  rod(e, p, 0.006, 0.03, t.brass, 0, vy + 0.085, 0, 'z', 10).rotation.set(0, 0, 0)
+  const wheel = group(p, 0, vy + 0.1, 0)
+  put(wheel, geo(e, 'handwheelRim', () => new TorusGeometry(0.03, 0.005, 8, 24)), t.graphite).rotation.x = PI / 2
+  for (let i = 0; i < 3; i++) rod(e, wheel, 0.003, 0.06, t.graphite, 0, 0, 0, 'x', 6).rotation.set(0, (i / 3) * PI, PI / 2)
+  put(wheel, lathe(e, 'handwheelHub', [[0, -0.008], [0.009, -0.008], [0.009, 0.008], [0, 0.008]], 12), t.graphite)
   if (kind === 'portable') {
-    put(p, bentTube(e, `guard${r}`, [[-r * 0.6, vy, 0], [-r * 0.6, vy + r * 1.1, 0], [r * 0.6, vy + r * 1.1, 0], [r * 0.6, vy, 0]], 0.008, 0.02), m.stainless)
-    face(e, p, 0.05, 0.075, m.tagInUse, 0, body * 0.6, r + 0.002)
+    put(p, bentTube(e, `guard${r}`, [[-r * 0.6, vy, 0], [-r * 0.6, vy + r * 1.3, 0], [r * 0.6, vy + r * 1.3, 0], [r * 0.6, vy, 0]], 0.008, 0.02), m.stainless)
+    face(e, p, 0.05, 0.075, m.tagInUse, 0, body * 0.55, r + 0.002)
     return
   }
-  // The regulator on the pin-index yoke: body, contents gauge facing out, flow outlet and its knob.
-  const reg = group(p, 0, vy + r * 0.35, r * 0.3)
-  k.cyl(reg, 0.03, 0.03, 0.08, m.chrome, 0, 0, 0.04, 18).rotation.x = PI / 2
-  const gz = put(reg, lathe(e, 'gaugeBezel', [[0, 0], [0.032, 0], [0.034, 0.012], [0.032, 0.02], [0, 0.02]], 24), m.chrome, 0, 0.05, 0.06)
-  gz.rotation.x = PI / 2
-  face(e, reg, 0.054, 0.054, m.cylinderGauge, 0, 0.05, 0.081)
-  k.cyl(reg, 0.022, 0.022, 0.03, m.green, 0.05, -0.01, 0.06, 14).rotation.z = PI / 2
-  k.cyl(reg, 0.008, 0.008, 0.04, m.chrome, 0, -0.05, 0.07, 10)
-  face(e, p, 0.05, 0.075, m.tagInUse, 0, body * 0.6, r + 0.002)
+  regulator(e, p, 0, vy + 0.045, 0.035, 0, true)
+  face(e, p, 0.05, 0.075, m.tagInUse, 0, body * 0.55, r + 0.002)
 }
 
 /**
@@ -514,21 +884,64 @@ function signPanel(e: Ctx, p: Object3D, w: number, h: number, art: Material, x: 
 
 /* ---------- examination couch ---------- */
 
-/** A two-section examination couch, 1.9 × 0.62, its head raised a little, on a powder-coated frame with the paper roll. */
-export function examCouch(e: Ctx, p: Object3D) {
+/**
+ * A two-section examination couch, 1.88 × 0.6 with its top at 0.65, along local x, head at −x:
+ * a white powder-coated frame of rectangular steel tube on four legs with levelling feet and
+ * low stretchers; a seat section and a backrest raised on its gas strut (release lever at the
+ * side), each a foam pad on a ply base in healthcare vinyl with welted edges; the paper-roll
+ * holder at the head, the paper drawn along the top; and the two-step footstool beside it.
+ */
+export function examCouch(e: Ctx, p: Object3D, upholstery?: Material) {
   const { k, m } = e
-  for (const s of [-1, 1]) put(p, bentTube(e, 'couchLeg', [[-0.82, 0.0, 0], [-0.82, 0.62, 0], [0.82, 0.62, 0], [0.82, 0.0, 0]], 0.02, 0.05), m.powder, 0, 0, s * 0.25)
-  for (const x of [-0.82, 0.82]) rod(e, p, 0.016, 0.5, m.powder, x, 0.2, 0, 'z', 8)
-  k.soft(p, 1.3, 0.08, 0.62, 0.03, m.vinylSeat, 0.28, 0.68, 0)
-  const head = group(p, -0.37, 0.68, 0)
-  head.rotation.z = -0.22
-  k.soft(head, 0.6, 0.08, 0.62, 0.03, m.vinylSeat, -0.3, 0, 0)
-  put(p, drape(e, 'couchPaper', 0.5, 1.88, 0.01), m.paper, 0.0, 0.725, 0).rotation.y = PI / 2
-  rod(e, p, 0.045, 0.52, m.paper, -0.98, 0.66, 0, 'z', 18)
-  for (const s of [-1, 1]) k.box(p, 0.03, 0.06, 0.012, m.powder, -0.98, 0.64, s * 0.27)
-  // A step stool beside it.
+  const f = furnMats(e)
+  const vinyl = upholstery ?? f.vinylNavy
+  const fr = f.powderWhite
+  const top = 0.65
+  const hinge = -0.32
+  // Frame: side rails, cross rails, legs, stretchers, feet.
+  for (const z of [-0.255, 0.255]) {
+    k.soft(p, 1.82, 0.06, 0.03, 0.006, fr, 0.03, top - 0.1, z)
+    k.soft(p, 1.6, 0.03, 0.03, 0.006, fr, 0.0, 0.15, z)
+  }
+  for (const x of [-0.82, 0.86]) {
+    for (const z of [-0.255, 0.255]) {
+      k.soft(p, 0.04, top - 0.13, 0.04, 0.006, fr, x, (top - 0.13) / 2 + 0.01, z)
+      k.cyl(p, 0.02, 0.024, 0.02, f.rubber, x, 0.01, z, 14).castShadow = false
+    }
+    k.soft(p, 0.03, 0.06, 0.48, 0.006, fr, x, top - 0.1, 0)
+    k.soft(p, 0.03, 0.03, 0.48, 0.006, fr, x, 0.15, 0)
+  }
+  // The seat section's ply base and pad.
+  const seatLen = 0.94 - hinge
+  k.box(p, seatLen, 0.018, 0.56, f.powderBlack, (hinge + 0.94) / 2, top - 0.069, 0)
+  cushion(e, p, seatLen - 0.005, 0.06, 0.6, vinyl, (hinge + 0.94) / 2 + 0.0025, top - 0.03, 0, { welt: 'both' })
+  // The backrest, hinged at the seat, raised on its gas strut.
+  const back = group(p, hinge, top - 0.06, 0)
+  back.rotation.z = -0.24
+  k.box(back, 0.6, 0.018, 0.56, f.powderBlack, -0.3, -0.009, 0)
+  cushion(e, back, 0.6, 0.06, 0.6, vinyl, -0.3, 0.03, 0, { welt: 'both' })
+  // The strut from the frame up to the back's underside; the release lever by the seat's edge.
+  const strut = k.cyl(p, 0.011, 0.011, 0.24, f.nylon, hinge - 0.24, top - 0.14, 0.18, 10)
+  strut.rotation.z = -0.95
+  const rodC = k.cyl(p, 0.005, 0.005, 0.18, f.satinChrome, hinge - 0.38, top - 0.05, 0.18, 8)
+  rodC.rotation.z = -0.95
+  k.soft(p, 0.12, 0.012, 0.03, 0.006, f.nylon, hinge + 0.06, top - 0.09, 0.3)
+  // Paper: the roll on its holder at the head, the sheet over both sections.
+  const hx = hinge - 0.6 * Math.cos(0.24) - 0.05
+  const hy = top - 0.06 + 0.6 * Math.sin(0.24)
+  for (const s of [-1, 1]) k.soft(p, 0.05, 0.12, 0.012, 0.004, fr, hx - 0.02, hy - 0.02, s * 0.27)
+  rod(e, p, 0.045, 0.52, m.paper, hx - 0.035, hy - 0.06, 0, 'z', 24)
+  rod(e, p, 0.008, 0.56, f.satinChrome, hx - 0.035, hy - 0.06, 0, 'z', 8)
+  put(p, drape(e, 'couchPaper2', 0.5, seatLen - 0.02, 0.008), m.paper, (hinge + 0.94) / 2, top + 0.004, 0).rotation.y = PI / 2
+  const bp = group(p, hinge, top - 0.06, 0)
+  bp.rotation.z = -0.24
+  put(bp, drape(e, 'couchPaperB', 0.5, 0.6, 0.008), m.paper, -0.3, 0.064, 0).rotation.y = PI / 2
+  // The two-step footstool: an aluminium frame, two ribbed rubber treads.
   const st = group(p, 0.4, 0, 0.5)
-  put(st, bentTube(e, 'step', [[-0.2, 0, 0], [-0.18, 0.22, 0], [0.18, 0.22, 0], [0.2, 0, 0]], 0.012, 0.03), m.chrome, 0, 0, -0.12)
-  put(st, bentTube(e, 'step', [[-0.2, 0, 0], [-0.18, 0.22, 0], [0.18, 0.22, 0], [0.2, 0, 0]], 0.012, 0.03), m.chrome, 0, 0, 0.12)
-  k.soft(st, 0.42, 0.03, 0.3, 0.01, m.black, 0, 0.235, 0)
+  for (const s of [-1, 1]) put(st, bentTube(e, 'step2', [[0, 0.0, 0.18], [0, 0.2, 0.16], [0, 0.4, -0.02], [0, 0.0, -0.16]], 0.011, 0.03), m.aluminium, s * 0.2, 0, 0)
+  for (const [y, z] of [[0.2, 0.1], [0.4, -0.04]] as const) {
+    k.soft(st, 0.42, 0.025, 0.16, 0.006, m.aluminium, 0, y - 0.004, z)
+    k.box(st, 0.4, 0.008, 0.14, f.rubber, 0, y + 0.012, z)
+    for (let i = 0; i < 6; i++) k.box(st, 0.4, 0.004, 0.006, f.nylon, 0, y + 0.018, z - 0.06 + i * 0.024, false)
+  }
 }

@@ -6,14 +6,15 @@ import { bed, counter, credenza, cylinder, examCouch, pedestal, taskChair, wheel
 import { group, signPanel } from '../../erKit'
 import type { OpdCtx, Room } from '../ctx'
 import {
-  ahu, backlitSign, belt, carrier, cashDrawer, chemicals, chest, extinguisher, kiosk, keyCabinet, ltPanel, medicineShelves, mopSink, mopTrolley,
+  ahu, backlitSign, belt, carrier, dispTray, cashDrawer, chemicals, chest, extinguisher, kiosk, keyCabinet, ltPanel, medicineShelves, mopSink, mopTrolley,
   noteCounter, pallet, payTerminal, photocopier, pigeonholes, radioChargers, receiptPrinter, roundTable, scanner, sign, stanchion, stripCabinet,
   tokens, wallShelves, waterCooler, bulkRack, cctvWall,
 } from '../equipment/ground'
 import {
-  basin, bins, bottle, clock, computer, cupboard, desk, deskPhone, dispensers, dressingSupplies, dressingTrolley, fileCabinet, gloveBox, injectionTrolley,
+  bins, bottle, clock, computer, cupboard, desk, deskPhone, dispensers, dressingSupplies, dressingTrolley, fileCabinet, gloveBox, injectionTrolley,
   lockers, medFridge, oxygenTrolley, papers, patientChair, poster, printer, rack, sharps, stool, wallCupboard, wallScreen, workbench, baseRun, curtain,
 } from '../furniture'
+import { handWashPoint } from '../equipment/sanitary'
 import type { Fitter } from './types'
 
 /*
@@ -117,14 +118,14 @@ const hall: Fitter = (e, room) => {
   room.info(ac, { title: 'Appointment & Lift Assistance Counter', kind: 'Front office · Patient guidance', body: 'Books and reschedules consultations, prints appointment slips, and sends an attendant with patients who need help to the lifts and up to the consultation, laboratory or imaging floors.', specs: ['Appointment module on the hospital information system', 'Live doctor schedule display', 'Attendants with wheelchairs on call', 'Next to the OPD lifts'] })
 
   // Waiting seats facing the reception, clear of the way from the doors to the corridor.
-  for (const x of [-4.4, -3.2]) beamSeating(e, room.at(x, 8.45, -PI / 2), 5)
+  for (const x of [-4.4, -3.2]) beamSeating(e, room.at(x, 8.45, -PI / 2), 5, 'upholstered')
 }
 
 /* ---------- the waiting lounge ---------- */
 
 const waiting: Fitter = (e, room) => {
   // Two rows of linked seats facing the billing and report counters.
-  for (const x of [-1.3, -0.1]) beamSeating(e, room.at(x, 0.4, PI / 2), 6)
+  for (const x of [-1.3, -0.1]) beamSeating(e, room.at(x, 0.4, PI / 2), 6, 'perforated')
   // The RO water cooler and bins at the corridor end.
   const wc = room.at(-1.45, -2.95, PI / 2)
   waterCooler(e, wc)
@@ -250,7 +251,7 @@ const pharmacy: Fitter = (e, room) => {
   // The checking bench in the middle: prescriptions in trays, a label printer, a counting tray.
   const wb = room.at(2.0, -8.8, 0)
   workbench(e, wb, 1.8, 0.8, 0.9)
-  for (let i = 0; i < 3; i++) k.box(wb, 0.28, 0.06, 0.36, m.binBlue, -0.55 + i * 0.32, 0.93, -0.3)
+  for (let i = 0; i < 3; i++) dispTray(e, wb, -0.55 + i * 0.34, 0.9, -0.35, (i - 1) * 0.05, i + 1)
   k.box(wb, 0.2, 0.012, 0.12, m.whitePlastic, 0.5, 0.906, -0.25)
   receiptPrinter(e, wb, 0.6, 0.9, -0.6, 0)
   papers(e, wb, 0.15, 0.9, -0.5, 0.1)
@@ -317,7 +318,7 @@ const dressing: Fitter = (e, room) => {
   room.info(it, { title: 'Injection Trolley', kind: 'Medication', body: 'Drawers of syringes, needles, cannulas, alcohol swabs and tourniquets; the day\'s injections laid out on the top tray with the sharps box clipped to its side.', specs: ['Lockable drawers', '2, 5 and 10 ml syringes; 22–26 G needles', 'Sharps container on the trolley'] })
   // Colour-coded waste bins by the door, the hand-wash basin on the corridor wall, oxygen ready.
   bins(e, room.at(room.x0 + 0.18, -8.55, PI / 2), ['yellow', 'red', 'blue'])
-  basin(e, room.onWall('+z', -2.5))
+  handWashPoint(e, room.onWall('+z', -2.5))
   const ot = room.at(-1.65, -6.35, PI)
   oxygenTrolley(e, ot, cylinder)
   room.info(ot, { title: 'Oxygen Cylinder Trolley', kind: 'Medical gas · Emergency', body: 'A portable B-type oxygen cylinder with its regulator and flowmeter, kept charged by the door for a patient who becomes breathless or faints during a procedure.', specs: ['1.5 m³ oxygen, 150 bar', 'Pressure regulator and 0–15 L/min flowmeter', 'Checked full at every shift'] })

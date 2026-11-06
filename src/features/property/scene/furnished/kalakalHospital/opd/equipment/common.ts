@@ -1,6 +1,6 @@
-import { Group, MeshStandardMaterial, type Material, type Object3D } from 'three'
+import { CylinderGeometry, MeshStandardMaterial, type Material, type Object3D } from 'three'
 import { PI } from '../../../kit'
-import { bake, bentTube, castor, cupboardDoor, carcass, face, group, lathe, put, rod } from '../../erKit'
+import { bentTube, geo, castor, cupboardDoor, carcass, face, group, lathe, put, rod } from '../../erKit'
 import type { OpdCtx } from '../ctx'
 import { board, NAVY } from '../paints'
 
@@ -30,137 +30,18 @@ function make() {
     mopYellow: std('#f1c40f', 0.5),
     hoseRed: std('#b3161b', 0.45),
     planter: std('#45494d', 0.6),
-    leaf: std('#3e6a3a', 0.85),
+    leaf: std('#3d5f35', 0.7),
     envelope: std('#d9c18f', 0.8),
     fridge: std('#d9dcdd', 0.35, 0.3),
     dbDoor: std('#9aa1a6', 0.4, 0.4),
     lockerFront: std('#eef0ee', 0.4),
+    shell: std('#5a6b74', 0.55),
   }
 }
 export function mats(e: OpdCtx) {
   let c = cache.get(e.o)
   if (!c) cache.set(e.o, (c = make()))
   return c
-}
-
-/* ---------- sanitaryware ---------- */
-
-/** A wall-hung WC on its concealed frame: the pan, seat and lid, the dual flush plate, a health faucet. */
-export function wc(e: OpdCtx, p: Object3D) {
-  const { k, m } = e
-  const c = mats(e)
-  k.soft(p, 0.36, 0.3, 0.54, 0.12, c.vitreous, 0, 0.26, 0.28)
-  k.soft(p, 0.37, 0.03, 0.46, 0.1, c.vitreous, 0, 0.425, 0.3)
-  k.soft(p, 0.36, 0.025, 0.42, 0.1, c.vitreous, 0, 0.452, 0.28)
-  k.box(p, 0.25, 0.16, 0.012, m.chrome, 0, 1.0, 0.006, false)
-  k.box(p, 0.1, 0.12, 0.004, m.whitePlastic, -0.055, 1.0, 0.013, false)
-  k.box(p, 0.1, 0.12, 0.004, m.whitePlastic, 0.055, 1.0, 0.013, false)
-  // The health faucet (a hand spray) on its hook, beside the pan.
-  k.cyl(p, 0.02, 0.02, 0.03, m.chrome, 0.32, 0.6, 0.02, 12).rotation.x = PI / 2
-  k.soft(p, 0.035, 0.12, 0.035, 0.012, m.chrome, 0.32, 0.6, 0.05)
-  put(p, bentTube(e, 'hfHose', [[0.32, 0.54, 0.05], [0.33, 0.35, 0.06], [0.3, 0.3, 0.03]], 0.005, 0.04), m.chrome, 0, 0, 0, false)
-}
-
-/** A toilet roll holder (jumbo, white), on the wall at x. */
-export function rollHolder(e: OpdCtx, p: Object3D, x: number, y = 0.75) {
-  e.k.soft(p, 0.26, 0.28, 0.12, 0.03, e.m.whitePlastic, x, y, 0.06)
-}
-
-/** A wall-hung urinal with its sensor flush, a modesty screen at `screen` (−1, 1, 0 none) side. */
-export function urinal(e: OpdCtx, p: Object3D, screen: -1 | 0 | 1 = 1) {
-  const { k, m } = e
-  const c = mats(e)
-  k.soft(p, 0.36, 0.62, 0.32, 0.1, c.vitreous, 0, 0.82, 0.16)
-  k.box(p, 0.24, 0.3, 0.02, m.black, 0, 0.8, 0.31, false)
-  k.box(p, 0.1, 0.12, 0.05, m.chrome, 0, 1.25, 0.025)
-  k.box(p, 0.04, 0.02, 0.006, m.red, 0, 1.24, 0.052, false)
-  if (screen) k.box(p, 0.02, 0.8, 0.45, c.partition, screen * 0.36, 1.05, 0.23)
-}
-
-/**
- * A vanity counter `len` long with basins at `at` (local x): solid-surface top on brackets, an
- * undermount basin each with a sensor tap and soap dispenser, a mirror the length of it above.
- */
-export function vanity(e: OpdCtx, p: Object3D, len: number, at: number[]) {
-  const { k, m } = e
-  const c = mats(e)
-  k.box(p, len, 0.04, 0.55, m.solidSurface, 0, 0.82, 0.275)
-  k.box(p, len, 0.16, 0.02, m.solidSurface, 0, 0.74, 0.54)
-  k.box(p, len, 0.12, 0.012, m.solidSurface, 0, 0.9, 0.006)
-  for (const x of at) {
-    k.box(p, 0.42, 0.012, 0.32, m.whitePlastic, x, 0.835, 0.3, false)
-    k.box(p, 0.34, 0.004, 0.24, m.greyPlastic, x, 0.842, 0.3, false)
-    k.cyl(p, 0.02, 0.024, 0.18, m.chrome, x, 0.93, 0.08, 14)
-    rod(e, p, 0.012, 0.12, m.chrome, x, 1.01, 0.13, 'z', 10)
-    k.soft(p, 0.07, 0.17, 0.07, 0.02, m.whitePlastic, x + 0.28, 0.93, 0.08)
-  }
-  k.box(p, len - 0.1, 0.9, 0.008, c.mirror, 0, 1.55, 0.005, false)
-}
-
-/** A hand dryer on the wall, its nozzle down, at height y (its middle). */
-export function handDryer(e: OpdCtx, p: Object3D, y = 1.15) {
-  const { k, m } = e
-  k.soft(p, 0.27, 0.3, 0.17, 0.04, m.whitePlastic, 0, y, 0.085)
-  k.box(p, 0.12, 0.03, 0.06, m.greyPlastic, 0, y - 0.16, 0.1, false)
-}
-
-/** A floor drain grating, square, stainless. */
-export function drain(e: OpdCtx, p: Object3D) {
-  e.k.box(p, 0.15, 0.004, 0.15, e.m.stainless, 0, 0.014, 0, false)
-}
-
-/** A grab bar, `len` long along local x at height y, `out` off the wall, on two flanges. */
-export function grabBar(e: OpdCtx, p: Object3D, len: number, y: number, x = 0, out = 0.08) {
-  const { k, m } = e
-  rod(e, p, 0.017, len, m.stainless, x, y, out, 'x', 12)
-  for (const s of [-1, 1]) {
-    k.cyl(p, 0.035, 0.035, 0.01, m.stainless, x + s * (len / 2 - 0.02), y, 0.005, 16).rotation.x = PI / 2
-    rod(e, p, 0.012, out, m.stainless, x + s * (len / 2 - 0.02), y, out / 2, 'z', 10)
-  }
-}
-
-/**
- * A row of `n` WC cubicles of `cw` × `depth` along local x from 0, the back wall at z = 0: 13 mm
- * compact-laminate partitions on stainless feet, a front with a 0.6 m door in each (each door
- * opens inwards: a door_ part), the aluminium head rail, a WC, roll holder and (ladies) a sanitary
- * bin in each.
- */
-export function cubicles(e: OpdCtx, p: Object3D, n: number, cw: number, depth: number, name: string, opts: { ladies?: boolean; endLeft?: boolean; endRight?: boolean } = {}) {
-  const { k, m } = e
-  const c = mats(e)
-  const H = 1.85
-  const lift = 0.15
-  for (let i = 0; i <= n; i++) {
-    if ((i === 0 && !opts.endLeft) || (i === n && !opts.endRight)) continue
-    const x = i * cw
-    k.box(p, 0.013, H, depth - 0.02, c.partition, x, lift + H / 2, depth / 2)
-    k.box(p, 0.03, lift, 0.03, m.stainless, x, lift / 2, depth - 0.06)
-  }
-  k.box(p, n * cw, 0.04, 0.05, m.aluminium, (n * cw) / 2, lift + H + 0.02, depth)
-  for (let i = 0; i < n; i++) {
-    const cx = (i + 0.5) * cw
-    const dw = 0.6
-    // The front panels either side of the door.
-    for (const [a, b] of [[i * cw, cx - dw / 2], [cx + dw / 2, (i + 1) * cw]]) if (b - a > 0.01) k.box(p, b - a, H, 0.013, c.partition, (a + b) / 2, lift + H / 2, depth)
-    const node = new Group()
-    node.name = `door_${name}_cubicle${i}`
-    node.position.set(cx - dw / 2, 0, depth)
-    node.userData.openAngle = 1.35
-    node.userData.label = 'Cubicle Door'
-    p.add(node)
-    const leaf = k.box(node, dw - 0.01, H - 0.02, 0.013, c.partition, dw / 2, lift + H / 2, 0)
-    leaf.userData.front = true
-    k.box(node, 0.05, 0.02, 0.02, m.red, dw - 0.06, 1.05, 0.012, false)
-    k.box(node, 0.02, 0.1, 0.02, m.stainless, dw - 0.05, 1.05, -0.012, false)
-    bake(node, leaf)
-    wc(e, group(p, cx, 0, 0))
-    rollHolder(e, p, cx + cw / 2 - 0.2, 0.72)
-    if (opts.ladies) {
-      k.cyl(p, 0.11, 0.11, 0.35, m.whitePlastic, cx - cw / 2 + 0.16, 0.175, 0.2, 18)
-      k.cyl(p, 0.112, 0.112, 0.02, m.greyPlastic, cx - cw / 2 + 0.16, 0.36, 0.2, 18)
-    }
-    k.box(p, 0.03, 0.06, 0.06, m.chrome, cx, 1.65, depth - 0.04, false)
-  }
 }
 
 /* ---------- risers, janitor ---------- */
@@ -313,11 +194,33 @@ export function bench(e: OpdCtx, p: Object3D, len: number) {
 export function planter(e: OpdCtx, p: Object3D) {
   const { k } = e
   const c = mats(e)
-  k.box(p, 0.45, 0.55, 0.45, c.planter, 0, 0.275, 0)
-  for (let i = 0; i < 7; i++) {
-    const a = (i / 7) * PI * 2
-    const leaf = k.blob(p, 0.16, c.leaf, Math.cos(a) * 0.1, 0.75 + (i % 3) * 0.12, Math.sin(a) * 0.1, 1.6)
-    leaf.rotation.set(Math.sin(a) * 0.5, a, Math.cos(a) * 0.5)
+  // A fibreglass planter with a rolled lip, its soil top, and a snake plant (Sansevieria, the
+  // usual hospital choice: no flowers, no pollen, little water): stiff sword leaves rising from the
+  // soil, each a tapered, slightly twisted blade.
+  k.soft(p, 0.42, 0.55, 0.42, 0.03, c.planter, 0, 0.275, 0)
+  k.box(p, 0.46, 0.03, 0.46, c.planter, 0, 0.545, 0)
+  k.box(p, 0.38, 0.01, 0.38, e.m.matting, 0, 0.535, 0, false)
+  const blade = geo(e, 'sansLeaf', () => {
+    const g = new CylinderGeometry(0.001, 0.028, 1, 6, 6)
+    g.scale(1, 1, 0.25)
+    const pos = g.getAttribute('position')
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i) + 0.5
+      const tw = y * 0.6
+      const x = pos.getX(i)
+      const z = pos.getZ(i)
+      pos.setXYZ(i, x * Math.cos(tw) - z * Math.sin(tw), y, x * Math.sin(tw) + z * Math.cos(tw))
+    }
+    g.computeVertexNormals()
+    return g
+  })
+  for (let i = 0; i < 11; i++) {
+    const a = i * 2.39
+    const r = 0.03 + (i % 4) * 0.025
+    const h = 0.55 + ((i * 37) % 10) * 0.045
+    const leaf = put(p, blade, c.leaf, Math.cos(a) * r, 0.54, Math.sin(a) * r)
+    leaf.scale.set(1, h, 1)
+    leaf.rotation.set(Math.sin(a) * 0.12, a, Math.cos(a) * 0.12)
   }
 }
 
@@ -400,17 +303,38 @@ export function sofa(e: OpdCtx, p: Object3D, len = 1.8) {
 /** A dining table (w × d) for staff, with `n` stacking chairs round it. */
 export function diningSet(e: OpdCtx, p: Object3D, w: number, d: number, n = 4) {
   const { k, m } = e
-  k.box(p, w, 0.03, d, m.solidSurface, 0, 0.74, 0)
-  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) k.box(p, 0.04, 0.72, 0.04, m.powder, sx * (w / 2 - 0.06), 0.36, sz * (d / 2 - 0.06))
-  const places: [number, number, number][] = n <= 4
-    ? [[-w / 4, -d / 2 - 0.25, 0], [w / 4, -d / 2 - 0.25, 0], [-w / 4, d / 2 + 0.25, PI], [w / 4, d / 2 + 0.25, PI]]
-    : [[-w / 3, -d / 2 - 0.25, 0], [0, -d / 2 - 0.25, 0], [w / 3, -d / 2 - 0.25, 0], [-w / 3, d / 2 + 0.25, PI], [0, d / 2 + 0.25, PI], [w / 3, d / 2 + 0.25, PI]]
-  for (const [x, z, ry] of places.slice(0, n)) {
-    const ch = group(p, x, 0, z, ry + (x > 0 ? 0.08 : -0.06))
-    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) k.box(ch, 0.025, 0.45, 0.025, m.chrome, sx * 0.2, 0.225, sz * 0.19)
-    k.soft(ch, 0.44, 0.04, 0.42, 0.015, m.charcoal, 0, 0.46, 0)
-    k.soft(ch, 0.44, 0.32, 0.03, 0.012, m.charcoal, 0, 0.7, -0.2)
+  // A canteen table: a 25 mm laminate top with its rounded PVC edge on a powder-coated four-leg
+  // frame with an apron rail.
+  k.soft(p, w, 0.025, d, 0.008, m.solidSurface, 0, 0.737, 0)
+  k.box(p, w - 0.12, 0.05, 0.02, m.powder, 0, 0.7, d / 2 - 0.07)
+  k.box(p, w - 0.12, 0.05, 0.02, m.powder, 0, 0.7, -d / 2 + 0.07)
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    k.box(p, 0.04, 0.72, 0.04, m.powder, sx * (w / 2 - 0.06), 0.36, sz * (d / 2 - 0.06))
+    k.cyl(p, 0.022, 0.022, 0.01, m.black, sx * (w / 2 - 0.06), 0.005, sz * (d / 2 - 0.06), 12)
   }
+  const places: [number, number, number][] = n <= 4
+    ? [[-w / 4, -d / 2 - 0.22, 0], [w / 4, -d / 2 - 0.22, 0], [-w / 4, d / 2 + 0.22, PI], [w / 4, d / 2 + 0.22, PI]]
+    : [[-w / 3, -d / 2 - 0.22, 0], [0, -d / 2 - 0.22, 0], [w / 3, -d / 2 - 0.22, 0], [-w / 3, d / 2 + 0.22, PI], [0, d / 2 + 0.22, PI], [w / 3, d / 2 + 0.22, PI]]
+  for (const [x, z, ry] of places.slice(0, n)) cafeChair(e, group(p, x, 0, z, ry + (x > 0 ? 0.08 : -0.06)))
+}
+
+/**
+ * A canteen chair: a moulded polypropylene shell (seat and back in one, the back curving round)
+ * on a four-leg tubular steel frame with plastic glides, as in staff rooms everywhere.
+ */
+export function cafeChair(e: OpdCtx, p: Object3D) {
+  const { k, m } = e
+  const c = mats(e)
+  // The frame: two inverted U legs, front and back pairs joined under the seat.
+  for (const x of [0, 0.38]) put(p, bentTube(e, 'cafeLegs', [[-0.19, 0, 0.19], [-0.17, 0.43, 0.17], [-0.17, 0.43, -0.17], [-0.19, 0, -0.2]], 0.011, 0.04), m.chrome, x, 0, 0)
+  for (const [x, z] of [[-0.19, 0.19], [0.19, 0.19], [-0.19, -0.2], [0.19, -0.2]]) k.cyl(p, 0.013, 0.013, 0.012, m.black, x, 0.006, z, 10)
+  // The shell: the seat dished a little, the back rising from it with a lumbar curve.
+  k.soft(p, 0.44, 0.03, 0.42, 0.014, c.shell, 0, 0.455, 0.0)
+  const back = group(p, 0, 0.47, -0.2)
+  back.rotation.x = -0.14
+  put(back, bentTube(e, 'cafeBackEdge', [[-0.2, 0, 0.0], [-0.2, 0.36, -0.02], [0.2, 0.36, -0.02], [0.2, 0, 0.0]], 0.012, 0.06), c.shell, 0, 0, 0)
+  k.soft(back, 0.42, 0.34, 0.022, 0.012, c.shell, 0, 0.19, -0.01)
+  k.box(back, 0.12, 0.03, 0.004, m.black, 0, 0.28, -0.022, false)
 }
 
 /**
@@ -486,14 +410,32 @@ export function pigeonholes(e: OpdCtx, p: Object3D, cols: number, rows: number, 
 /** A 240-litre wheeled waste bin with its hinged lid, in the colour of its category, the label. */
 export function wheelieBin(e: OpdCtx, p: Object3D, colour: Material, label: string) {
   const { k, m } = e
-  k.box(p, 0.58, 0.95, 0.72, colour, 0, 0.53, 0)
-  k.box(p, 0.6, 0.05, 0.78, colour, 0, 1.03, -0.02)
-  k.box(p, 0.5, 0.04, 0.05, m.darkPlastic, 0, 0.98, -0.38)
+  // The body: an HDPE tub tapering to its foot (a four-sided turned shell, its sides flat),
+  // 580 × 730 at the rim, 1.07 m high on its wheels.
+  const body = put(p, geo(e, 'wbinBody', () => {
+    const g = new CylinderGeometry(0.5, 0.42, 0.92, 4, 1, false)
+    g.rotateY(PI / 4)
+    g.scale(0.58 / 0.707, 1, 0.72 / 0.707)
+    return g
+  }), colour, 0, 0.52, 0)
+  body.castShadow = true
+  // The rim's thick lip, the handle bar across the back, reinforcing ribs down the front.
+  for (const [w, d, x, z] of [[0.62, 0.04, 0, 0.36], [0.62, 0.04, 0, -0.36], [0.04, 0.72, 0.3, 0], [0.04, 0.72, -0.3, 0]] as const) k.box(p, w, 0.05, d, colour, x, 0.96, z)
+  rod(e, p, 0.018, 0.56, m.darkPlastic, 0, 0.94, -0.42, 'x', 12)
+  for (const s of [-1, 1]) k.box(p, 0.04, 0.06, 0.08, colour, s * 0.27, 0.94, -0.39)
+  for (const x of [-0.16, 0.16]) k.box(p, 0.03, 0.62, 0.02, colour, x, 0.56, 0.33)
+  // The lid on its hinge at the back, overhanging, its lifting lip at the front.
+  k.soft(p, 0.63, 0.04, 0.8, 0.015, colour, 0, 1.005, -0.015)
+  k.box(p, 0.3, 0.025, 0.03, colour, 0, 0.99, 0.39)
+  // The axle and two 200 mm wheels at the back, the foot at the front.
+  rod(e, p, 0.012, 0.62, m.galvanised, 0, 0.1, -0.3, 'x', 10)
   for (const s of [-1, 1]) {
-    const w = k.cyl(p, 0.1, 0.1, 0.05, m.rubber, s * 0.27, 0.1, -0.3, 16)
+    const w = put(p, lathe(e, 'wbinWheel', [[0.03, -0.025], [0.09, -0.025], [0.1, -0.015], [0.1, 0.015], [0.09, 0.025], [0.03, 0.025]], 20), m.rubber, s * 0.3, 0.1, -0.3)
     w.rotation.z = PI / 2
+    k.cyl(p, 0.035, 0.035, 0.055, m.greyPlastic, s * 0.3, 0.1, -0.3, 14).rotation.z = PI / 2
   }
-  face(e, p, 0.36, 0.26, e.o.sign(`wbin_${label}`, 288, 208, (g, w, h) => {
+  k.box(p, 0.3, 0.06, 0.06, colour, 0, 0.03, 0.26)
+  face(e, p, 0.32, 0.23, e.o.sign(`wbin_${label}`, 288, 208, (g, w, h) => {
     g.fillStyle = '#ffffff'
     g.fillRect(0, 0, w, h)
     g.fillStyle = '#111'
@@ -506,7 +448,7 @@ export function wheelieBin(e: OpdCtx, p: Object3D, colour: Material, label: stri
     g.stroke()
     g.font = `700 ${h * 0.13}px Helvetica`
     g.fillText(label, w / 2, h * 0.86)
-  }), 0, 0.68, 0.362)
+  }), 0, 0.72, 0.35).rotation.x = -0.045
 }
 
 /** A platform weighing scale for waste bags, its indicator on a post. */

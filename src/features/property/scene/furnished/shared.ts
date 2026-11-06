@@ -132,6 +132,8 @@ export class LightPool {
   private pool: PointLight[] = []
   private active: { light: PointLight; at: Vector3 }[] = []
   private zones = new Map<string, { light: PointLight; at: Vector3 }[]>()
+  /** Zones that also borrow a neighbour's nearest lamps (a room the corridor lamps outside it). */
+  private links = new Map<string, { other: string; at: Vector3; count: number }[]>()
   private root: Group
 
   constructor(root: Group, zoneOf: (light: PointLight) => string, size = 8) {
@@ -175,10 +177,21 @@ export class LightPool {
     this.zones.set(zone, list)
   }
 
-  /** Lights the zone (a room's hotspot name, or 'exterior'), strongest lamps first. */
+  /** Has `zone` also light the `count` lamps of `other` nearest `at` (when there is room in the pool). */
+  link(zone: string, other: string, at: Vector3, count = 2) {
+    const list = this.links.get(zone) ?? []
+    list.push({ other, at, count })
+    this.links.set(zone, list)
+  }
+
+  /** Lights the zone (a room's hotspot name, or 'exterior'), strongest lamps first, then any it borrows. */
   setZone(zone: string) {
     const lights = this.zones.get(zone) ?? this.zones.get('exterior') ?? []
-    this.active = [...lights].sort((a, b) => b.light.intensity * b.light.distance - a.light.intensity * a.light.distance).slice(0, this.pool.length)
+    const own = [...lights].sort((a, b) => b.light.intensity * b.light.distance - a.light.intensity * a.light.distance)
+    const borrowed = (this.links.get(zone) ?? []).flatMap(({ other, at, count }) =>
+      [...(this.zones.get(other) ?? [])].sort((a, b) => a.at.distanceToSquared(at) - b.at.distanceToSquared(at)).slice(0, count),
+    )
+    this.active = [...own, ...borrowed.filter((b) => !own.includes(b))].slice(0, this.pool.length)
     this.sync()
   }
 

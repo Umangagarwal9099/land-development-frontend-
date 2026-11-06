@@ -3,9 +3,9 @@ import { Kit, PI } from '../kit'
 import { rng } from '../textures'
 import { Tris } from '../kalakalMall/skin'
 import { box } from '../kalakalA01/building'
-import { bake, castor, face, group, makeCtx, rod, signPanel, type Ctx } from './erKit'
+import { bake, castor, face, group, makeCtx, put, rod, signPanel, type Ctx } from './erKit'
 import {
-  bed, binders, counter, crashCart, credenza, cylinder, cylinderRack, examCouch, locker, overbedTable, pedestal, supplyUnit, taskChair, visitorChair, wheelchair,
+  bed, binders, cushion, furnMats, shell, counter, crashCart, credenza, cylinder, cylinderRack, examCouch, locker, overbedTable, pedestal, supplyUnit, taskChair, visitorChair, wheelchair,
 } from './erFurniture'
 import {
   computerOnWheels, ecgCart, examLight, gasAlarm, gasPanel, headwall, ivStand, servicePendant, ultrasound, ventilator, vitalsStand, zoneValves,
@@ -539,27 +539,54 @@ function buildPerimeter(e: Ctx) {
 
 /* ---------- reception: registration, waiting, triage ---------- */
 
-/** A beam of `n` linked seats, navy vinyl on a powder-coated beam, arms between; facing local +z. */
-export function beamSeating(e: Ctx, p: Object3D, n: number) {
-  const { k, m } = e
+/**
+ * A beam of `n` linked seats (tandem seating), facing local +z: a rectangular steel beam on two
+ * T-legs with levelling feet, cast aluminium arms between the seats with PU pads, and the seats
+ * themselves, by `style`: upholstered (a cushioned seat and back in healthcare vinyl on black
+ * shells), perforated (a one-piece formed steel shell, powder-coated), or polypropylene (a
+ * moulded one-piece shell). Unless given, the style follows the floor: each department its own.
+ */
+export function beamSeating(e: Ctx, p: Object3D, n: number, style?: 'upholstered' | 'perforated' | 'polypropylene') {
+  const { k } = e
+  const f = furnMats(e)
+  const y = p.position.y
+  const kind = style ?? (y < 3 ? 'upholstered' : y < 8 ? 'upholstered' : y < 12 ? 'perforated' : 'polypropylene')
+  const vinyl = y < 3 ? f.vinylNavy : f.vinylTeal
   const pitch = 0.62
   const len = n * pitch
-  k.box(p, len, 0.06, 0.08, m.powder, 0, 0.33, -0.05)
-  for (const x of [-len / 2 + 0.25, len / 2 - 0.25]) {
-    k.box(p, 0.06, 0.3, 0.06, m.powder, x, 0.17, -0.05)
-    k.box(p, 0.08, 0.02, 0.56, m.powder, x, 0.012, -0.05)
+  // The beam and its end caps; the two T-legs with their feet and levellers.
+  k.soft(p, len - 0.02, 0.05, 0.09, 0.008, f.powderSilver, 0, 0.36, -0.06)
+  for (const s of [-1, 1]) k.box(p, 0.012, 0.045, 0.085, f.nylon, s * (len / 2 - 0.006), 0.36, -0.06)
+  for (const x of [-len / 2 + Math.min(0.5, len * 0.2), len / 2 - Math.min(0.5, len * 0.2)]) {
+    k.soft(p, 0.065, 0.32, 0.065, 0.01, f.powderSilver, x, 0.18, -0.06)
+    k.soft(p, 0.07, 0.04, 0.6, 0.012, f.powderSilver, x, 0.03, -0.06)
+    for (const z of [-0.33, 0.21]) k.cyl(p, 0.016, 0.018, 0.012, f.nylon, x, 0.006, z, 12).castShadow = false
+  }
+  // Arms: one at each end and between seats.
+  for (let i = 0; i <= n; i++) {
+    const x = -len / 2 + pitch * i
+    put(p, shell(e, 'beamArm', [[-0.22, 0.38], [-0.2, 0.6], [0.0, 0.64], [0.2, 0.62]], 0.03, 0.04, 0.006), f.castAlu, x, 0, 0)
+    k.soft(p, 0.05, 0.025, 0.36, 0.01, f.pu, x, 0.66, 0.0)
   }
   for (let i = 0; i < n; i++) {
     const x = -len / 2 + pitch * (i + 0.5)
-    k.box(p, 0.05, 0.12, 0.3, m.powder, x, 0.4, -0.05)
-    k.soft(p, 0.52, 0.07, 0.47, 0.025, m.vinylSeat, x, 0.47, 0.0)
-    const b = k.soft(p, 0.52, 0.42, 0.06, 0.025, m.vinylSeat, x, 0.77, -0.25)
-    b.rotation.x = -0.14
-  }
-  for (let i = 0; i <= n; i++) {
-    const x = -len / 2 + pitch * i
-    k.box(p, 0.03, 0.22, 0.03, m.aluminium, x, 0.55, 0.1)
-    k.box(p, 0.06, 0.025, 0.4, m.black, x, 0.665, -0.02)
+    // The seat's bracket off the beam.
+    k.box(p, 0.3, 0.04, 0.06, f.powderBlack, x, 0.4, -0.06)
+    if (kind === 'upholstered') {
+      k.soft(p, 0.52, 0.02, 0.46, 0.008, f.nylon, x, 0.425, 0.0)
+      cushion(e, p, 0.53, 0.07, 0.47, vinyl, x, 0.47, 0.01)
+      const b = group(p, x, 0.78, -0.25)
+      b.rotation.x = -0.14
+      k.soft(b, 0.51, 0.42, 0.02, 0.008, f.nylon, 0, 0, -0.04)
+      cushion(e, b, 0.52, 0.42, 0.065, vinyl, 0, 0, 0, { welt: 'none', r: 0.028 })
+      k.box(p, 0.05, 0.3, 0.025, f.powderBlack, x, 0.55, -0.27).rotation.x = -0.14
+    } else {
+      const mat = kind === 'perforated' ? f.perforated : y > 12 ? f.ppBlue : f.ppGrey
+      const t = kind === 'perforated' ? 0.004 : 0.012
+      put(p, shell(e, `beamShell${kind}`, [[0.24, 0.43], [0.2, 0.455], [0.0, 0.45], [-0.18, 0.44], [-0.24, 0.52], [-0.28, 0.72], [-0.3, 0.87]], t, 0.52, kind === 'perforated' ? 0.001 : 0.004), mat, x, 0, 0)
+      // The back's support spine behind the shell.
+      k.box(p, 0.06, 0.34, 0.02, f.powderSilver, x, 0.6, -0.27).rotation.x = -0.2
+    }
   }
 }
 

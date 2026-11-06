@@ -1,4 +1,4 @@
-import { Group, type Vector3 } from 'three'
+import { Group, MeshStandardMaterial, type Vector3 } from 'three'
 import { Lift, type Level as LiftLevel } from '../../basement/access'
 import { stairFlights } from '../../basement/access'
 import { Decals, type Ctx as BasementCtx } from '../../basement/build'
@@ -48,7 +48,13 @@ export interface Core {
 
 /** Builds the lifts and stairs into the floors' groups (`floors[level]`), the cars into their own. */
 export function buildCore(k: Kit, lighting: Lighting, floors: Group[], es: OpdCtx[]): Core {
-  const ctx: BasementCtx = { k, m: basementMaterials(k, lighting), spec: HOSPITAL_BASEMENT, lighting, shade: new Contact(), decals: new Decals(), r: rng(7711) }
+  // The basement's finishes, but a hospital car's: satin brushed stainless walls and doors (the
+  // emergency department's), and a satin-finished back panel in place of a mirror, which here
+  // would reflect only the painted sky the materials carry.
+  const er = es[0].m
+  const base = basementMaterials(k, lighting)
+  const satin = new MeshStandardMaterial({ color: '#c9cdd0', metalness: 0.6, roughness: 0.42 })
+  const ctx: BasementCtx = { k, m: { ...base, stainless: er.stainless, mirror: satin, steel: er.aluminium }, spec: HOSPITAL_BASEMENT, lighting, shade: new Contact(), decals: new Decals(), r: rng(7711) }
   const cars = new Group()
   cars.name = 'opd_lift_cars'
   const lifts = ACCESS.lifts.map((spec, i) => {
@@ -104,7 +110,11 @@ export function buildCore(k: Kit, lighting: Lighting, floors: Group[], es: OpdCt
         lift.tick(dt, rider)
         busy ||= lift.busy
       }
-      if (busy) cars.updateMatrixWorld()
+      // Cars and landing doors moved: the walker's collisions this frame must meet them where they are.
+      if (busy) {
+        cars.updateMatrixWorld()
+        for (const f of floors) f.updateMatrixWorld()
+      }
       return busy
     },
     liftNear: (p: Vector3) => lifts.find((l) => l.reachable(p)) ?? null,

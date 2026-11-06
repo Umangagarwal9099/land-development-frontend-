@@ -2,15 +2,16 @@ import type { Material, Object3D } from 'three'
 import { PI } from '../../../kit'
 import { bentTube, group, put, rod, signPanel } from '../../erKit'
 import { bed, crashCart, cylinder, examCouch, taskChair, visitorChair, wheelchair } from '../../erFurniture'
-import { ecgCart, gasPanel, ivStand, patientMonitor } from '../../erEquipment'
+import { gasPanel, ivStand, patientMonitor } from '../../erEquipment'
 import type { OpdCtx, Room } from '../ctx'
-import { echoCouch, echoImage, echoMachine, ecgTrace, stressSystem, treadmill } from '../equipment/cardiac'
-import { coilCart, consoleDesk, ctGantry, ctTable, emergencyStop, imagingMats, injector, mriMagnet, mriTable, pacsDesk } from '../equipment/imaging'
+import { echoCouch, echoImage, echoMachine, ecgMachine, ecgTrace, stressSystem, treadmill } from '../equipment/cardiac'
+import { coilCart, consoleDesk, ctGantry, ctTable, emergencyStop, imagingMats, injector, keyboard, monitor, mouse, mriMagnet, mriTable, pacsDesk, rfMesh, wallStop } from '../equipment/imaging'
 import {
   basin, bins, bpMonitor, clock, cupboard, curtain, desk, dressingSupplies, gloveBox, injectionTrolley, lockers, oxygenTrolley, papers, poster, printer, rack, sharps,
   stethoscope, stool, wallScreen,
 } from '../furniture'
 import { board, NAVY, radiation } from '../paints'
+import { bloodTube, syringe } from '../equipment/items'
 import type { Fitter } from './types'
 
 /*
@@ -65,15 +66,28 @@ function floorLine(e: OpdCtx, r: Room, x0: number, x1: number, z0: number, z1: n
   k.box(r.group, w, 0.002, z1 - z0, mat, x1, y, (z0 + z1) / 2, false)
 }
 
-/** An equipment cabinet of the MRI's technical room: 19" racks behind a perforated door, status LEDs, its label. */
+/**
+ * An equipment cabinet of the MRI's technical room, 0.6 wide × 2.0 high × 0.8 deep: the steel
+ * carcass on its plinth, the perforated front door with its swing handle and the status panel's
+ * LEDs, the vented roof, its label.
+ */
 function techCabinet(e: OpdCtx, p: Object3D, label: string, leds: number) {
   const { k, m } = e
   const im = imagingMats(e)
-  k.soft(p, 0.6, 2.0, 0.8, 0.01, im.grey, 0, 1.0, -0.4)
-  k.box(p, 0.56, 1.7, 0.01, im.dark, 0, 1.0, 0.006, false)
-  for (let i = 0; i < 22; i++) k.box(p, 0.5, 0.012, 0.004, m.black, 0, 0.25 + i * 0.07, 0.013, false)
-  for (let i = 0; i < leds; i++) k.box(p, 0.012, 0.012, 0.006, i % 4 === 3 ? im.amber : im.green, -0.2 + (i % 8) * 0.05, 1.82 - Math.floor(i / 8) * 0.04, 0.014, false)
-  k.box(p, 0.4, 0.07, 0.004, e.o.sign(`techlabel_${label}`, 256, 48, board('#ffffff', [[label, 0.56, '#1c2733']])), 0, 1.94, 0.012, false)
+  k.box(p, 0.58, 0.08, 0.76, im.dark, 0, 0.04, -0.4)
+  k.soft(p, 0.6, 1.92, 0.8, 0.008, im.grey, 0, 1.04, -0.4)
+  const perf = e.o.sign('cabinetPerf', 128, 256, (c, w, h) => {
+    c.fillStyle = '#9aa1a8'
+    c.fillRect(0, 0, w, h)
+    c.fillStyle = '#2a2e33'
+    for (let y = 6; y < h; y += 7) for (let x = 5 + ((y / 7) % 2) * 3; x < w; x += 7) c.fillRect(x, y, 3, 3)
+  }, 0.55)
+  k.box(p, 0.54, 1.6, 0.004, perf, 0, 0.98, 0.003, false)
+  k.box(p, 0.56, 0.22, 0.006, im.dark, 0, 1.9, 0.003, false)
+  for (let i = 0; i < leds; i++) k.box(p, 0.01, 0.01, 0.004, i % 5 === 4 ? im.amber : im.green, -0.22 + (i % 10) * 0.045, 1.95 - Math.floor(i / 10) * 0.035, 0.008, false)
+  k.box(p, 0.02, 0.18, 0.03, m.stainless, 0.24, 1.1, 0.018)
+  for (let i = 0; i < 6; i++) k.box(p, 0.5, 0.004, 0.02, im.reveal, 0, 2.0, -0.7 + i * 0.12, false)
+  k.box(p, 0.4, 0.06, 0.003, e.o.sign(`techlabel_${label}`, 256, 40, board('#ffffff', [[label, 0.56, '#1c2733']])), 0, 1.76, 0.008, false)
 }
 
 /** A phlebotomy-style cannulation chair: padded seat and back, two height-adjustable arm boards. */
@@ -123,6 +137,22 @@ const mri: Fitter = (e, r) => {
     body: 'The receive coils that sit close to the part being scanned, kept on a non-magnetic trolley: a flexible body array, knee and shoulder coils, a spare head coil and the foam positioning pads and wedges.',
     specs: ['Body, spine, head-neck, knee and shoulder coils', 'Aluminium trolley, MR-conditional', 'Positioning pads in washable vinyl'],
   })
+  // The RF cage shows at the door and the window: copper fingers round the door's frame, the
+  // copper mesh in the control room's window, the waveguide panel on the technical room's wall.
+  const door = r.onWall('+z', 8.3)
+  for (const s of [-1, 1]) e.k.box(door, 0.05, 2.3, 0.02, imagingMats(e).copper, s * 0.68, 1.15, 0.01)
+  e.k.box(door, 1.41, 0.05, 0.02, imagingMats(e).copper, 0, 2.3, 0.01)
+  rfMesh(e, r.onWall('+x', -23.45), 2.88, 1.08, 1.45, 0.012)
+  const wg = r.onWall('-x', -21.55)
+  e.k.box(wg, 0.7, 0.9, 0.012, imagingMats(e).copper, 0, 1.75, 0.006)
+  for (let i = 0; i < 3; i++) e.k.cyl(wg, 0.035, 0.035, 0.18, e.m.stainless, -0.2 + i * 0.2, 1.95, 0.09, 20).rotation.x = PI / 2
+  for (let i = 0; i < 4; i++) e.k.soft(wg, 0.1, 0.06, 0.05, 0.01, imagingMats(e).grey, -0.24 + i * 0.16, 1.5, 0.03)
+  r.info(wg, {
+    title: 'RF Waveguide Panel',
+    kind: 'MRI · RF shielding',
+    body: 'Where services cross the copper cage into the magnet room: waveguide tubes for the chilled water and gases and the patient-monitoring fibre, sized so no radio frequency can pass, with the filtered connector blocks for the coils and the room\'s lights.',
+    specs: ['Copper RF cage, ≥ 100 dB at 64 MHz', 'Waveguides for water, gases and fibre', 'Filtered DC lighting in the room'],
+  })
   // An MR-conditional IV pole and wheelchair, kept inside the room.
   ivStand(e, r.at(6.4, -22.0, 0.4), false)
   wheelchair(e, r.at(5.2, r.z1 - 0.45, PI))
@@ -162,9 +192,18 @@ const mriControl: Fitter = (e, r) => {
   const rep = r.onWall('+x', -23.6, 0, 0.42)
   consoleDesk(e, rep, 1.5, [e.o.his('mriReport', 'PACS · MR Spine', 'image'), e.o.his('mriRis', 'RIS · Worklist', 'table')], { intercom: false })
   taskChair(e, r.at(r.x1 - 1.1, -23.6, PI / 2))
-  // A rack of MR-safe items: pads, earplugs, headphones, the MR-conditional supplies.
-  rack(e, r.onWall('-z', 12.2, 0, 0.45), 1.0, 1.8, 0.45, 4, 'supplies')
-  plate(e, r.onWall('-z', 10.6), 'mrsafe', 0.5, 0.2, 1.75, [['MR SAFE ITEMS ONLY', 0.34, '#ffffff']], '#1f9d55')
+  // A rack of MR-safe items (pads, earplugs, headphones) by the door; the guarded magnet stop.
+  rack(e, r.onWall('+z', 10.2, 0, 0.45), 1.0, 1.8, 0.45, 4, 'supplies')
+  plate(e, r.onWall('+z', 10.2), 'mrsafe', 0.5, 0.2, 2.0, [['MR SAFE ITEMS ONLY', 0.34, '#ffffff']], '#1f9d55')
+  const quench = r.onWall('+z', 13.05)
+  wallStop(e, quench, 1.55, 'MAGNET STOP', true)
+  r.info(quench, {
+    title: 'Magnet Stop (Quench) Button',
+    kind: 'MRI · Safety',
+    body: 'Under its clear guard, the button that ramps the magnet down in seconds by venting the helium through the quench pipe to the roof: only to free someone pinned by a metal object. The scanner\'s ordinary emergency stop is on the console.',
+    specs: ['Guarded, separate from the emergency stop', 'Helium vented through the quench pipe'],
+  })
+  rfMesh(e, r.onWall('-x', -23.45), 2.88, 1.08, 1.45, 0.012)
 }
 
 const mriTech: Fitter = (e, r) => {
@@ -245,7 +284,7 @@ const mriScreening: Fitter = (e, r) => {
   curtain(e, cubicle, 1.3, r.ceiling, 0.55)
   k.box(r.group, 0.35, 0.05, 1.0, e.o.oak, r.x0 + 0.2, r.y + 0.45, -25.1)
   for (const s of [-1, 1]) k.box(r.group, 0.3, 0.43, 0.04, m.powder, r.x0 + 0.2, r.y + 0.215, -25.1 + s * 0.42)
-  cupboard(e, r.onWall('-z', -2.2, 0, 0.45), 0.8, 1.6, 0.45, { glass: true, fill: 'linen', label: 'Gown Cupboard' })
+  cupboard(e, r.onWall('+x', -21.4, 0, 0.45), 0.8, 1.8, 0.45, { glass: true, fill: 'linen', label: 'Gown Cupboard' })
   bins(e, r.onWall('+z', -1.8, 0, 0.2), ['black'])
 }
 
@@ -347,7 +386,12 @@ const ctPrep: Fitter = (e, r) => {
     body: 'A padded chair with arm boards at both sides, where a cannula is placed in the arm for the contrast injection and blood creatinine is checked beforehand.',
     specs: ['Height-adjustable arm boards', 'Wipe-clean vinyl'],
   })
-  injectionTrolley(e, r.at(r.x0 + 0.95, -0.05, 0.4))
+  const trolley = r.at(r.x0 + 0.95, -0.05, 0.4)
+  injectionTrolley(e, trolley)
+  // Laid ready on its tray: the cannulation syringes, a saline flush, a blood tube for creatinine.
+  syringe(e, trolley, -0.1, 0.94, -0.16, 0.2, 10)
+  syringe(e, trolley, -0.02, 0.94, -0.17, 0.25, 5)
+  bloodTube(e, trolley, 0.08, 0.94, -0.18, 'gold')
   const wc = r.onWall('-x', 1.95, 0, 0.5)
   cupboard(e, wc, 0.6, 0.85, 0.5, { fill: 'supplies', label: 'Cupboard', top: m.solidSurface })
   const warmer = group(wc, 0, 0.86, -0.25)
@@ -392,8 +436,8 @@ const ecg: Fitter = (e, r) => {
   examCouch(e, couch)
   const cur = r.at(r.x1 - 1.25, r.z0 + 0.05, -PI / 2)
   curtain(e, cur, r.d - 0.1, r.ceiling, 0.35)
-  const cart = r.at(r.x1 - 1.55, -0.4, PI / 2 + 0.3)
-  ecgCart(e, cart, ecgTrace(e, 'ecgRoom'))
+  const cart = r.at(r.x1 - 1.55, -0.45, PI / 2 + 0.3)
+  ecgMachine(e, cart, ecgTrace(e, 'ecgRoom'), 'ecgRoom')
   r.info(cart, {
     title: '12-lead ECG Machine',
     kind: 'Cardiac diagnostics · Electrocardiography',
@@ -481,14 +525,12 @@ const cardiacConsult: Fitter = (e, r) => {
   const dk = r.at(r.x1 - 1.15, -7.75, -PI / 2)
   desk(e, dk, 1.4, 0.75, 1)
   const scr = ecgTrace(e, 'consultReview', false)
-  const pc = group(dk, -0.3, 0.75, -0.1, PI + 0.15)
-  e.k.box(pc, 0.22, 0.012, 0.17, e.m.darkPlastic, 0, 0.006, -0.05)
-  e.k.box(pc, 0.045, 0.24, 0.025, e.m.darkPlastic, 0, 0.13, -0.09)
-  e.k.box(pc, 0.55, 0.33, 0.02, e.m.black, 0, 0.33, -0.07)
-  e.k.box(pc, 0.53, 0.3, 0.004, scr, 0, 0.335, -0.058, false)
+  monitor(e, dk, -0.3, 0.75, 0.12, PI + 0.15, 0.55, 0.33, scr)
+  keyboard(e, dk, -0.25, 0.75, -0.17, PI)
+  mouse(e, dk, -0.58, 0.75, -0.18)
   stethoscope(e, dk, 0.35, 0.75, 0.05, 0.4)
   bpMonitor(e, dk, 0.5, 0.75, -0.2, PI)
-  papers(e, dk, -0.05, 0.75, 0.15, PI)
+  papers(e, dk, 0.12, 0.75, -0.08, PI)
   taskChair(e, r.at(r.x1 - 0.45, -7.75, -PI / 2))
   visitorChair(e, r.at(r.x0 + 1.3, -8.15, PI / 2))
   visitorChair(e, r.at(r.x0 + 1.3, -7.45, PI / 2))

@@ -12,8 +12,9 @@ import {
 import { apronRack, bodyBox, calibrationSyringe, ceilingTube, chestStand, generatorConsole, spirometer, ultrasoundCart, visionChart, xrayTable } from '../equipment/radiology'
 import {
   basin, bins, bottle, bpMonitor, clock, computer, cupboard, curtain, desk, dispensers, examCouch, gloveBox, medFridge, papers, patientChair, poster, printer,
-  rack, scale, sharps, stadiometer, stethoscope, stool, wallScreen,
+  labStool, rack, roundStool, scale, sharps, stadiometer, stethoscope, wallScreen,
 } from '../furniture'
+import { barcodeScanner, phlebotomyKit } from '../equipment/items'
 import { board, NAVY, radiation, tokenScreen } from '../paints'
 import type { Fitter } from './types'
 
@@ -37,9 +38,9 @@ function hygiene(e: OpdCtx, room: Room, side: Parameters<Room['onWall']>[0], alo
   gloveBox(e, w, 0.42, 1.2, 0.07, 0)
 }
 
-/** A lab bench's operator: a lab stool tucked in under its knee space. */
-function labStool(e: OpdCtx, p: Object3D, x: number, z: number) {
-  stool(e, group(p, x, 0, z))
+/** A lab bench's operator: the shared lab stool (gas lift, foot ring) tucked in at its knee space. */
+function benchStool(e: OpdCtx, p: Object3D, x: number, z: number) {
+  labStool(e, group(p, x, 0, z, PI + 0.2))
 }
 
 /* ---------- general health check-up ---------- */
@@ -91,11 +92,13 @@ function station(e: OpdCtx, room: Room, side: Parameters<Room['onWall']>[0], alo
   k.box(t, 0.4, 0.82, 0.42, m.hpl, 0, 0.43, 0)
   k.box(t, 0.44, 0.03, 0.46, m.solidSurface, 0, 0.855, 0)
   k.box(t, 0.36, 0.004, 0.003, m.reveal, 0, 0.6, 0.212, false)
-  tubeRack(e, t, -0.08, 0.87, 0.1, 6, 2, 0.1, 30 + n)
-  phlebotomyTray(e, t, 0.04, 0.87, -0.1, 0.2)
-  labelPrinter(e, t, 0.12, 0.87, 0.12, -0.4)
+  tubeRack(e, t, -0.11, 0.87, 0.12, 6, 2, 0.1, 30 + n)
+  phlebotomyTray(e, t, 0.02, 0.87, -0.1, 0.2)
+  phlebotomyKit(e, t, 0.13, 0.87, 0.1, -0.3)
+  labelPrinter(e, t, 0.14, 0.87, -0.12, -0.4)
+  barcodeScanner(e, t, -0.15, 0.87, -0.12, 0.3)
   sharps(e, group(g, 0.68, 0, 0), 1.3)
-  stool(e, group(g, 0.42, 0, 1.08))
+  roundStool(e, group(g, 0.42, 0, 1.08))
   bins(e, group(g, -0.68, 0, 0.2), ['yellow', 'red'])
   // Privacy screens: laminate panels on feet, 1.6 m high, out from the wall.
   for (const [s, on] of [[-1, screens[0]], [1, screens[1]]] as const) {
@@ -128,7 +131,7 @@ const bloodCollection: Fitter = (e, room) => {
   const pts = room.onWall('-z', room.x0 + 1.45)
   pneumaticStation(e, pts)
   room.info(pts, { title: 'Pneumatic Tube Station', kind: 'Sample transport', body: 'Sends sealed sample carriers straight to the laboratory\'s receiving room in under a minute, so blood never waits on a corridor.', specs: ['Carrier 110 mm, soft-landing receiver', 'Point-to-point dispatch to station 212', 'Leak-proof bags inside every carrier'] })
-  const disp = room.onWall('-z', room.x0 + 2.45, 0, 0.6)
+  const disp = room.onWall('-z', room.x0 + 2.3, 0, 0.6)
   bench(e, disp, 0.9, { d: 0.6 })
   for (let i = 0; i < 3; i++) tubeRack(e, disp, -0.25 + i * 0.25, 0.9, -0.3, 8, 3, 0, 50 + i)
   tubeTray(e, disp, 0.0, 0.9, -0.52)
@@ -150,7 +153,7 @@ const ultrasoundRoom: Fitter = (e, room) => {
     body: 'A premium cart-based ultrasound scanner for abdominal, obstetric, small-parts, vascular and musculoskeletal examinations: a 21.5" OLED monitor on an articulated arm, a touch panel over the control deck, and convex, linear and phased-array transducers in their holders.',
     specs: ['Transducers: convex 1–5 MHz, linear 4–15 MHz, phased array 1–5 MHz', 'B-mode, colour and power Doppler, PW/CW Doppler, elastography', '21.5" monitor, 12" touch panel', 'DICOM worklist and PACS export; thermal printer'],
   })
-  stool(e, room.at(room.x1 - 1.25, room.cz + 0.35))
+  roundStool(e, room.at(room.x1 - 1.3, room.cz - 0.45))
   // The patient's own screen on the wall at the couch's foot, and the curtain at its head.
   wallScreen(e, room.onWall('+z', room.x1 - 0.6), 0.55, 1.95, o.his('usPatient', 'IMAGE', 'image'))
   curtain(e, group(room.group, room.x1 - 2.25, room.y, room.z1 - 0.75), 2.2, room.ceiling, 0.6)
@@ -257,14 +260,21 @@ const xray: Fitter = (e, room) => {
   })
   room.info(stand, { title: 'Upright Chest Stand', kind: 'Digital radiography · Wall bucky', body: 'Holds the second flat-panel detector upright for chest, spine and erect abdominal views; the carriage travels to the patient\'s height and the hand grips steady them.', specs: ['Detector travel 0.3–1.8 m', 'Removable grid, 180 cm SID', 'Patient hand grips'] })
   apronRack(e, room.onWall('+x', room.z0 + 1.0))
-  // The changing corner by the window: a curtain on an L of track, a chair inside.
-  curtain(e, group(room.group, room.x0 + 1.05, room.y, room.z0, -PI / 2), 1.05, room.ceiling, 1)
-  curtain(e, group(room.group, room.x0, room.y, room.z0 + 1.05), 1.0, room.ceiling, 0.9)
-  patientChair(e, room.at(room.x0 + 0.45, room.z0 + 0.45, PI / 4))
-  const sg = room.onWall('+x', room.cz - 0.2)
+  // The façade's windows are closed inside by a lead-lined dry lining (2 mm Pb bonded to the
+  // plasterboard) on its studs, full height to the ceiling, its skirting and the warning on it.
+  const lt = 0.09
+  e.k.box(room.group, lt, room.ceiling, room.d, e.m.paint, room.x0 + lt / 2, room.y + room.ceiling / 2, room.cz)
+  e.k.box(room.group, 0.012, 0.1, room.d, e.m.skirting, room.x0 + lt + 0.006, room.y + 0.05, room.cz, false)
+  signPanel(e, room.onWall('-x', room.cz + 0.6, 0, lt), 0.42, 0.14, o.sign('leadlinedWall', 420, 140, board('#f7d117', [['LEAD-LINED WALL · 2 mm Pb', 0.36, '#111111']])), 0, 1.7, 0, 0, 0.006)
+  // The changing corner: a curtain on an L of track off the lined wall, a chair inside.
+  const cx0 = room.x0 + lt
+  curtain(e, group(room.group, cx0 + 1.05, room.y, room.z0, -PI / 2), 1.05, room.ceiling, 1)
+  curtain(e, group(room.group, cx0, room.y, room.z0 + 1.05), 1.0, room.ceiling, 0.9)
+  patientChair(e, room.at(cx0 + 0.42, room.z0 + 0.42, PI / 4))
+  const sg = room.onWall('+x', room.z0 + 2.95)
   signPanel(e, sg, 0.32, 0.4, o.sign('radiation', 320, 400, radiation(['CAUTION', 'X-RAY RADIATION', 'Pregnant women: inform staff'])), 0, 1.6, 0, 0, 0.006)
   signPanel(e, sg, 0.42, 0.14, o.sign('leadlined', 420, 140, board('#f7d117', [['LEAD-LINED ROOM · 2 mm Pb', 0.36, '#111111']])), 0, 1.25, 0, 0, 0.006)
-  dispensers(e, room.onWall('+x', room.z1 - 1.55), 1.2)
+  dispensers(e, room.onWall('+x', room.z0 + 2.25), 1.2)
 }
 
 /* ---------- biochemistry ---------- */
@@ -283,7 +293,7 @@ const biochemistry: Fitter = (e, room) => {
   semiAuto(e, sa)
   room.info(sa, { title: 'Semi-automatic Chemistry Analyser', kind: 'Biochemistry · Photometer', body: 'A flow-cell photometer for low-volume and special tests, and the back-up when the main analyser is down for maintenance.', specs: ['340–700 nm, 8 filters', 'End-point, kinetic and fixed-time methods', '32 µl flow cell, Peltier 37 °C'] })
   computer(e, b, 0.3, 0.9, -0.35, 0, o.his('bioLis', 'LIS · BIOCHEMISTRY', 'table'))
-  labStool(e, b, -1.6, 0.4)
+  benchStool(e, b, -1.6, 0.4)
   const chem = room.at(room.x0 + 1.15, room.z0 + 0.85)
   chemAnalyser(e, chem)
   room.info(chem, {
@@ -294,7 +304,7 @@ const biochemistry: Fitter = (e, room) => {
   const fr = room.onWall('-x', room.z0 + 1.45, 0, 0.62)
   medFridge(e, fr, 'Reagent Refrigerator', 1.75, 0.6)
   room.info(fr, { title: 'Reagent Refrigerator', kind: 'Cold chain', body: 'Stores reagent cassettes, calibrators and controls at 2–8 °C.', specs: ['2–8 °C, alarmed and data-logged'] })
-  hygiene(e, room, '-x', room.z1 - 0.35, ['yellow', 'red'])
+  hygiene(e, room, '-x', room.z0 + 2.25, ['yellow', 'red'])
 }
 
 /* ---------- haematology ---------- */
@@ -303,7 +313,7 @@ const haematology: Fitter = (e, room) => {
   const { o } = e
   const b = room.onWall('+x', room.cz, 0, 0.75)
   bench(e, b, room.d - 0.1, { sink: 1.65, drawers: -0.3 })
-  const big = top(b, -1.5)
+  const big = top(b, -1.45, -0.02)
   haemAnalyser(e, big, true)
   room.info(big, {
     title: '5-part Haematology Analyser', kind: 'Haematology · Automated cell counter',
@@ -316,12 +326,12 @@ const haematology: Fitter = (e, room) => {
   const coag = top(b, 0.35)
   coagAnalyser(e, coag)
   room.info(coag, { title: 'Coagulation Analyser', kind: 'Haematology · Haemostasis', body: 'Measures clotting times on citrated plasma by optical and mechanical clot detection: PT/INR for patients on warfarin, APTT, fibrinogen and D-dimer.', specs: ['PT/INR, APTT, fibrinogen, TT, D-dimer', '120 tests/hour, 4 measuring channels', 'Reagent wells at 15 °C'] })
-  tubeRoller(e, top(b, 0.95))
+  tubeRoller(e, top(b, 0.95, -0.22))
   const s = room.onWall('-z', room.x0 + 1.3, 0, 0.75)
   bench(e, s, 2.55, { knee: [-1.27, -0.55] })
   const mic = microscope(e, s, -0.9, 0.9, -0.3)
   room.info(mic, { title: 'Binocular Microscope', kind: 'Haematology · Peripheral smear', body: 'For reviewing stained blood smears that the analyser flags: cell morphology, parasites, a manual differential.', specs: ['Objectives 10×, 40×, 100× oil', 'LED Köhler illumination', 'Mechanical stage'] })
-  labStool(e, s, -0.9, 0.35)
+  benchStool(e, s, -0.9, 0.35)
   const st = top(s, -0.15)
   slideStainer(e, st)
   room.info(st, { title: 'Automated Slide Stainer', kind: 'Haematology · Staining', body: 'Stains blood smears with Leishman/May-Grünwald-Giemsa reproducibly, batch after batch.', specs: ['Up to 60 slides/batch', 'Programmable dip times', 'Sealed reagent baths'] })
@@ -341,6 +351,7 @@ const sampleReceiving: Fitter = (e, room) => {
   const lis = computer(e, c, -0.4, 0.9, -0.3, PI, o.his('rcvLis', 'ACCESSIONING · BARCODE', 'form'))
   computer(e, c, 0.35, 0.9, -0.3, PI, o.his('rcvTat', 'TAT MONITOR', 'table'))
   labelPrinter(e, c, 0.05, 0.9, -0.12, PI)
+  barcodeScanner(e, c, 0.22, 0.9, -0.14, PI + 0.3)
   for (let i = 0; i < 2; i++) tubeRack(e, c, -0.55 + i * 1.0, 0.9, -0.15, 8, 2, 0, 60 + i)
   room.info(lis, {
     title: 'Sample Accessioning Workstation', kind: 'Laboratory information system',
@@ -387,7 +398,7 @@ const reagentStore: Fitter = (e, room) => {
   k.box(ms, 0.3, 0.38, 0.08, m.sharps, 0, 1.45, 0.04)
   k.box(ms, 0.26, 0.32, 0.04, m.paper, 0, 1.47, 0.07)
   signPanel(e, ms, 0.3, 0.08, o.sign('msds', 300, 80, board('#111111', [['MSDS', 0.6, '#f7d117']])), 0, 1.72, 0.0, 0, 0.006)
-  poster(e, room.onWall('+z', room.x0 + 1.25), 'Chemical Spill Procedure', '#e2b21c')
+  poster(e, room.onWall('-z', room.x0 + 0.4), 'Chemical Spill Procedure', '#e2b21c', 0.36, 0.5, 1.65)
   for (let i = 0; i < 3; i++) bottle(e, bal, -0.25 + i * 0.07, 0.78, -0.45, 0.2, 0.04, m.clearPlastic, m.blue)
 }
 
@@ -403,13 +414,13 @@ const centrifugeRoom: Fitter = (e, room) => {
   vortex(e, b, -0.75, 0.9, -0.25)
   vortex(e, b, -0.55, 0.9, -0.25)
   for (let i = 0; i < 3; i++) tubeRack(e, b, 0.4 + i * 0.3, 0.9, -0.35, 6, 3, 0, 80 + i)
-  labStool(e, b, 0.8, 0.35)
+  benchStool(e, b, 0.8, 0.35)
   for (let i = 0; i < 4; i++) bottle(e, b, 1.6 + (i % 2) * 0.08, 0.9, -0.5 - Math.floor(i / 2) * 0.08, 0.16, 0.025, e.m.clearPlastic, e.m.whitePlastic)
   const a = room.onWall('-z', room.x1 - 1.0, 0, 0.7)
   bench(e, a, 1.9, { d: 0.7, knee: [-0.95, 0.4] })
   for (let i = 0; i < 2; i++) tubeRack(e, a, -0.6 + i * 0.35, 0.9, -0.3, 8, 2, 0, 90 + i)
   vortex(e, a, 0.6, 0.9, -0.3)
-  labStool(e, a, -0.3, 0.35)
+  benchStool(e, a, -0.3, 0.35)
   const fc = room.onWall('+x', room.z1 - 1.85, 0, 0.8)
   floorCentrifuge(e, fc)
   room.info(fc, { title: 'Refrigerated Floor Centrifuge', kind: 'Sample processing', body: 'For large batches and temperature-sensitive samples (ammonia, coagulation, hormones), spun cold so the analytes keep.', specs: ['Up to 4,700 rpm, 4,100 g', '−10 to +40 °C, pre-cooling', 'Swing-out rotor 4 × 48 tubes', 'Imbalance and lid interlocks'] })
@@ -437,10 +448,10 @@ const clinicalPath: Fitter = (e, room) => {
   bench(e, m2, 1.8, { knee: [-0.9, 0.2] })
   const mic = microscope(e, m2, -0.35, 0.9, -0.3)
   room.info(mic, { title: 'Microscope · Urine & Stool Microscopy', kind: 'Clinical pathology', body: 'For the urine sediment (cells, casts, crystals) and stool for ova, cysts and occult blood.', specs: ['Objectives 10×, 40×', 'Phase-contrast condenser'] })
-  labStool(e, m2, -0.35, 0.35)
+  benchStool(e, m2, -0.35, 0.35)
   // The stool sample hatch: a stainless pass box in the corridor wall.
-  passBox(e, room.onWall('+z', room.x1 - 0.55), 1.0)
-  hygiene(e, room, '+z', room.x0 + 0.5, ['yellow', 'red'])
+  passBox(e, room.onWall('+z', room.x0 + 0.42), 1.0)
+  hygiene(e, room, '-x', room.z1 - 0.6, ['yellow', 'red'])
 }
 
 /* ---------- microbiology ---------- */
@@ -453,7 +464,7 @@ const microbiology: Fitter = (e, room) => {
     body: 'Cultures and specimens are opened and handled only here: a curtain of HEPA-filtered air flows in at the front and down over the work, protecting the worker, the sample and the room. The electric loop sterilizer replaces the Bunsen flame inside.',
     specs: ['Class II type A2, 1.2 m work zone', 'Inflow ≥ 0.5 m/s, downflow 0.3 m/s', 'HEPA filters 99.995% at 0.3 µm', 'Airflow alarm; UV off while in use'],
   })
-  stool(e, room.at(room.x0 + 1.15, room.z0 + 1.45))
+  labStool(e, room.at(room.x0 + 1.2, room.z0 + 1.45, -PI / 2))
   medFridge(e, room.onWall('-x', room.z1 - 1.85, 0, 0.62), 'Media Refrigerator', 1.75, 0.6)
   const inc = room.onWall('+x', room.z0 + 0.45, 0, 0.65)
   incubator(e, inc, 0.95, 'Incubator Door')
@@ -473,7 +484,6 @@ const microbiology: Fitter = (e, room) => {
   const cc = top(b, 0.42, -0.1)
   colonyCounter(e, cc)
   room.info(cc, { title: 'Colony Counter', kind: 'Microbiology', body: 'Counts the colonies on a culture plate under a magnifier over a lit stage.', specs: ['LED back-lit stage', '1.7× magnifier, digital tally'] })
-  labStool(e, b, -0.3, 0.35)
   hygiene(e, room, '+z', room.x0 + 0.35, ['yellow', 'red', 'blue'])
 }
 
@@ -501,7 +511,7 @@ const serology: Fitter = (e, room) => {
   elisaWasher(e, wa)
   room.info(wa, { title: 'Microplate Washer', kind: 'Serology · Enzyme immunoassay', body: 'Washes the plates between the steps of an ELISA with an even, gentle stream, so results are reproducible.', specs: ['8- and 12-way manifold', 'Residual volume < 2 µl/well', 'Wash and waste bottles with level sensing'] })
   shaker(e, top(w, 0.1))
-  labStool(e, w, 0.0, 0.35)
+  benchStool(e, w, 0.0, 0.35)
   medFridge(e, room.onWall('+x', room.z1 - 0.95, 0, 0.62), 'Kit Refrigerator', 0.85, 0.6)
   hygiene(e, room, '+z', room.x0 + 0.35, ['yellow', 'red'])
 }
