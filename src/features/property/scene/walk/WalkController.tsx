@@ -5,8 +5,8 @@ import { useStageStore } from '../../../../store/stage'
 import { useWalkStore, walkInput, type LiftStatus, type WalkPrompt } from '../../../../store/walk'
 import type { Basement } from '../furnished/basement'
 import { setListener, unlockSound } from '../furnished/basement/sound'
-import type { WalkArea } from '../furnished/shared'
-import { isButton, isDoor, isDrawer, isOpenable, isSpinner, isSwitch, operate } from '../openables'
+import type { LiftHost, WalkArea } from '../furnished/shared'
+import { isButton, isDoor, isDrawer, isInfo, isOpenable, isSpinner, isSwitch, operate } from '../openables'
 import { Character } from './character'
 import { Collider } from './collider'
 import { FollowCamera } from './followCamera'
@@ -28,6 +28,7 @@ function describe(o: Object3D): WalkPrompt {
   const open = !!o.userData.open
   const verb = open ? 'Close' : 'Open'
   if (isButton(n)) return { verb: (o.userData.verb as string | undefined) ?? 'Press', label: (o.userData.label as string | undefined) ?? 'Button' }
+  if (isInfo(n)) return { verb: 'About', label: (o.userData.info as { title?: string } | undefined)?.title ?? 'Equipment' }
   // A part can name itself and its two actions (a bed's backrest: Raise / Lower).
   const verbs = o.userData.verbs as [string, string] | undefined
   if ((isDoor(n) || isDrawer(n)) && typeof o.userData.label === 'string') return { verb: verbs ? verbs[open ? 1 : 0] : verb, label: o.userData.label }
@@ -49,13 +50,18 @@ function describe(o: Object3D): WalkPrompt {
   return { verb, label: 'Item' }
 }
 
-/** A door or drawer's own position to reach for: the middle of its front panel. */
+/**
+ * A door or drawer's own position to reach for: the middle of its front panel. A large piece of
+ * equipment marks where it is used from (its console, its controls) with `userData.reach`.
+ */
 function grip(o: Object3D) {
   let front: Object3D = o
+  let reach: Object3D | null = null
   o.traverse((c) => {
     if (c.userData.front) front = c
+    if (c.userData.reach) reach = c
   })
-  return front
+  return reach ?? front
 }
 
 const v = new Vector3()
@@ -86,7 +92,9 @@ function frontCentre(front: Object3D, out: Vector3) {
  * moves the walker and poses the character. Doors and drawers go through the same `operate` and
  * animator as a tap in the camera view, so the two modes share their state.
  */
-export function WalkController({ root, area, setZone, rooms, basement }: { root: Object3D; area: WalkArea; setZone: (zone: string) => void; rooms: Map<string, string>; basement?: Basement }) {
+export function WalkController({
+  root, area, setZone, rooms, basement, lifts,
+}: { root: Object3D; area: WalkArea; setZone: (zone: string) => void; rooms: Map<string, string>; basement?: Basement; lifts?: LiftHost }) {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
   const camera = useThree((s) => s.camera) as PerspectiveCamera
@@ -243,10 +251,10 @@ export function WalkController({ root, area, setZone, rooms, basement }: { root:
       if (k === 'KeyE') walkInput.interact = true
       else if (k === 'Space') walkInput.jump = true
       else if (k === 'KeyV') useWalkStore.getState().toggleView()
-      // At a lift: G, 1 and 2 choose the ground floor, B1 and B2 on its panel.
+      // At a lift: G (or 0) chooses the ground floor; a number, that floor, or the basement of
+      // that number on a lift that goes down rather than up (see the frame loop).
       else if (k === 'KeyG' || k === 'Digit0' || k === 'Numpad0') walkInput.liftButton = 'G'
-      else if (k === 'Digit1' || k === 'Numpad1') walkInput.liftButton = 'B1'
-      else if (k === 'Digit2' || k === 'Numpad2') walkInput.liftButton = 'B2'
+      else if (/^(Digit|Numpad)[1-9]$/.test(k)) walkInput.liftButton = `#${k.slice(-1)}`
       else if (k === 'Escape' && !document.pointerLockElement) useWalkStore.getState().stop()
       keys.current.add(k)
     }
@@ -276,9 +284,9 @@ export function WalkController({ root, area, setZone, rooms, basement }: { root:
     const delta = Math.min(rawDelta, 0.1)
     const { walker, collider, targets, rig, leaves } = session
     // The lifts run first: a walker in a car rides it, and the camera with them.
-    if (basement) {
+    if (lifts) {
       const y0 = walker.position.y
-      basement.tick(delta, walker.position)
+      lifts.tick(delta, walker.position)
       const rode = walker.position.y - y0
       if (rode) rig.carry(rode)
     }
@@ -401,8 +409,10 @@ export function WalkController({ root, area, setZone, rooms, basement }: { root:
         if (basement.setBelow(next)) state.gl.shadowMap.needsUpdate = true
         useWalkStore.getState().setBelow(next)
       }
+    }
+    if (lifts) {
       // The lift the walker rides, for its panel on screen.
-      const lift = basement.liftNear(walker.position)
+      const lift = lifts.liftNear(walker.position)
       const status: LiftStatus | null = lift ? { ...lift.status, floors: lift.levels.map((l) => l.name) } : null
       const key = status ? `${status.floor}|${status.dir}|${status.moving}|${status.lit.join()}` : ''
       if (key !== liftKey.current) {
@@ -411,7 +421,10 @@ export function WalkController({ root, area, setZone, rooms, basement }: { root:
       }
       // A button pressed on the screen's panel: the walker presses the real one in the car.
       if (walkInput.liftButton) {
-        const node = lift?.carButton(walkInput.liftButton) ?? null
+        // A number key names a floor above ground on a lift that serves one, else the basement.
+        const raw = walkInput.liftButton
+        const cmd = raw.startsWith('#') ? (lift?.levels.some((l) => l.name === raw.slice(1)) ? raw.slice(1) : `B${raw.slice(1)}`) : raw
+        const node = lift?.carButton(cmd) ?? null
         // oxlint-disable-next-line react/immutability -- walkInput is the controls' shared, per-frame input
         walkInput.liftButton = null
         if (node) {

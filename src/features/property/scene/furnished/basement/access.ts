@@ -379,10 +379,10 @@ export class Lift {
     const dmat = new MeshStandardMaterial({ map: this.display.tex, emissiveMap: this.display.tex, emissive: '#ffffff', emissiveIntensity: 1.1, roughness: 0.3 })
     ctx.lighting.glow(dmat, 1)
     face(g, f, 0.16, 0.07, dmat, pa, 1.66, po - 0.01, true)
+    // A button for every level the lift serves, the highest at the top, the lowest at 1.34 m.
+    const n = this.levels.length
     const rows: [string, string, string, number, number][] = [
-      ['G', 'G', 'Ground Floor', 0, 1.5],
-      ['B1', 'B1', 'Basement 1', 0, 1.42],
-      ['B2', 'B2', 'Basement 2', 0, 1.34],
+      ...this.levels.map((l, i): [string, string, string, number, number] => [l.name, l.name, levelLabel(l.name), 0, 1.34 + (n - 1 - i) * 0.08]),
       ['open', '◀▶', 'Door Open', -0.045, 1.22],
       ['close', '▶◀', 'Door Close', 0.045, 1.22],
       ['alarm', '🔔', 'Alarm', -0.045, 1.1],
@@ -683,10 +683,17 @@ export class Lift {
   }
 }
 
+/** What a car button's level is called: G, a basement, or a numbered floor above. */
+function levelLabel(name: string) {
+  if (name === 'G') return 'Ground Floor'
+  if (name.startsWith('B')) return `Basement ${name.slice(1)}`
+  return `${['First', 'Second', 'Third', 'Fourth', 'Fifth'][Number(name) - 1] ?? name} Floor`
+}
+
 /* ---------- the stair ---------- */
 
 /** One storey of the dog-leg stair, from level `upper` down to `lower`, into `p`. */
-function stairFlights(ctx: Ctx, p: Object3D, s: StairSpec, upper: number, lower: number) {
+export function stairFlights(ctx: Ctx, p: Object3D, s: StairSpec, upper: number, lower: number) {
   const { m } = ctx
   const z = s.zone
   const entryAxis = axisOf(s.entry)

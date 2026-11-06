@@ -99,9 +99,19 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
     model.syncLights?.()
     // Below ground, the services overhead come and go as the camera enters the level or rises out of it.
     if (model.basement?.frame(state.camera)) state.invalidate()
+    if (model.frame?.(state.camera)) state.invalidate()
     // Lifts finish what they were doing (walking, the walk controller runs them with the walker).
-    if (model.basement && !useWalkStore.getState().active && model.basement.tick(delta, null)) state.invalidate()
+    const lifts = model.lifts ?? model.basement
+    if (lifts && !useWalkStore.getState().active && lifts.tick(delta, null)) state.invalidate()
   })
+
+  // The model is told which floor is looked at, so it can show that floor's fittings and hotspots.
+  const activeLevel = useViewerStore((s) => s.activeLevel)
+  const viewRoom = roomView ? selectedMesh : null
+  useEffect(() => {
+    model.setView?.({ level: activeLevel, walking: walkingNow, room: viewRoom })
+    invalidate()
+  }, [model, activeLevel, walkingNow, viewRoom, invalidate])
 
   const daylight = useStageStore((s) => s.daylight)
   useEffect(() => {
@@ -145,7 +155,7 @@ function Furnished({ design, model, selectedMesh, hoveredMesh = null, roomView =
     <>
       <primitive object={model.root} />
       {walkingNow && model.walk && (!model.basement || basementReady) && (
-        <WalkController root={model.root} area={model.walk} setZone={setWalkZone} rooms={roomNames} basement={model.basement} />
+        <WalkController root={model.root} area={model.walk} setZone={setWalkZone} rooms={roomNames} basement={model.basement} lifts={model.lifts ?? model.basement} />
       )}
     </>
   )

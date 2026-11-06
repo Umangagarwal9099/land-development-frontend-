@@ -85,6 +85,8 @@ function ShaderWarmup() {
   const scene = useThree((s) => s.scene)
   const camera = useThree((s) => s.camera)
   const invalidate = useThree((s) => s.invalidate)
+  // In development, scripted checks can ask for a frame after moving the camera themselves.
+  if (import.meta.env.DEV) Object.assign(window, { __invalidate: invalidate, __scene: scene, __gl: gl, __cam: camera })
   const setCompiling = useStageStore((s) => s.setCompiling)
   useLayoutEffect(() => {
     let live = true

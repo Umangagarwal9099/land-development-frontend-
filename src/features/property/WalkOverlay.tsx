@@ -49,6 +49,9 @@ function Joystick() {
 
 /** Every floor the lifts serve, top down, as the selector names them. */
 const FLOORS = [
+  { id: '3', name: 'Third Floor' },
+  { id: '2', name: 'Second Floor' },
+  { id: '1', name: 'First Floor' },
   { id: 'G', name: 'Ground Floor' },
   { id: 'B1', name: 'Basement 1' },
   { id: 'B2', name: 'Basement 2' },
@@ -58,7 +61,7 @@ const FLOORS = [
  * The lift's floor selector, shown as soon as the walker steps into the car (or its doorway): every
  * floor, the one the car is at marked, the one chosen lit. A tap or click here is the walker
  * pressing that button on the car's own panel, so the lift answers exactly as it would to a hand
- * on it; on a keyboard G, 1 and 2 do the same.
+ * on it; on a keyboard G and the floor's number do the same.
  */
 function LiftPanel() {
   const lift = useWalkStore((s) => s.lift)

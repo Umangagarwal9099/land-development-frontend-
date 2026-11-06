@@ -18,6 +18,7 @@ import { useMediaStore } from '../../store/media'
 import { useStageStore } from '../../store/stage'
 import { useViewerStore } from '../../store/viewer'
 import { useWalkStore } from '../../store/walk'
+import { EquipmentCard } from './EquipmentCard'
 import { PropertyOverview, RoomDetails } from './PropertyPanels'
 import { RoomViewer } from './RoomViewer'
 import { WALKABLE } from './scene/furnished/walkable'
@@ -94,6 +95,7 @@ function PropertyScreen({ property, plotNumber, onBack, backLabel }: { property:
         {roomInView && <RoomViewer key="room-viewer" property={property} room={roomInView} onSelectRoom={openRoom} onClose={closeRoomView} />}
       </AnimatePresence>
       {walking && <WalkOverlay title={property.name} />}
+      <EquipmentCard />
 
       {/* The house view's chrome steps aside while a room is open. */}
       <motion.div

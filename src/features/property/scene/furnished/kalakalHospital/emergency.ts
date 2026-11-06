@@ -411,7 +411,7 @@ function buildResus(e: Ctx, b: Bay) {
 /* ---------- the nurses' station ---------- */
 
 /** A flat-screen monitor, keyboard and mouse at a workstation; its front towards local +z. */
-function workstation(e: Ctx, p: Object3D, x: number, y: number, z: number, ry: number, screen: Material) {
+export function workstation(e: Ctx, p: Object3D, x: number, y: number, z: number, ry: number, screen: Material) {
   const { k, m } = e
   const g = new Group()
   g.position.set(x, y, z)
@@ -467,7 +467,7 @@ function buildStation(e: Ctx) {
 
 
 /** A linen trolley: stainless frame, a blue bag on one side, folded linen on shelves on the other. */
-function linenTrolley(e: Ctx, p: Object3D) {
+export function linenTrolley(e: Ctx, p: Object3D) {
   const { k, m } = e
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     castor(e, p, sx * 0.4, sz * 0.22, 0.04)
@@ -489,7 +489,7 @@ function linenTrolley(e: Ctx, p: Object3D) {
  * A clinical hand-wash station on a wall: solid-surface vanity, a deep basin, a sensor tap; the
  * soap, alcohol rub and paper towel dispensers over it, the poster, a pedal bin.
  */
-function handwash(e: Ctx, p: Object3D) {
+export function handwash(e: Ctx, p: Object3D) {
   const { k, m } = e
   k.box(p, 0.9, 0.12, 0.55, m.solidSurface, 0, 0.86, 0.275)
   k.box(p, 0.9, 0.08, 0.03, m.solidSurface, 0, 0.76, 0.535)
@@ -540,7 +540,7 @@ function buildPerimeter(e: Ctx) {
 /* ---------- reception: registration, waiting, triage ---------- */
 
 /** A beam of `n` linked seats, navy vinyl on a powder-coated beam, arms between; facing local +z. */
-function beamSeating(e: Ctx, p: Object3D, n: number) {
+export function beamSeating(e: Ctx, p: Object3D, n: number) {
   const { k, m } = e
   const pitch = 0.62
   const len = n * pitch

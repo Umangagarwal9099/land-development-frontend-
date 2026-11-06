@@ -1,5 +1,5 @@
-import { Group, MeshStandardMaterial, PointLight, Vector3, type Object3D, type MeshBasicMaterial, type MeshStandardMaterialParameters, type Texture } from 'three'
-import type { Basement } from './basement'
+import { Group, MeshStandardMaterial, PointLight, Vector3, type Camera, type Object3D, type MeshBasicMaterial, type MeshStandardMaterialParameters, type Texture } from 'three'
+import type { Basement, Lift } from './basement'
 import { Kit } from './kit'
 import type { Paint } from './textures'
 
@@ -28,6 +28,29 @@ export interface FurnishedModel {
   walk?: WalkArea
   /** Basement parking levels under the building, built the first time one is visited. */
   basement?: Basement
+  /** Lifts a walker can ride, when the design has any besides the basement's (which they include). */
+  lifts?: LiftHost
+  /**
+   * Told what is being looked at: the floor chosen on the level rail (null for the whole
+   * building), whether someone is walking, and the room open in the room viewer.
+   */
+  setView?: (view: ModelView) => void
+  /** Each frame, with the camera: returns whether anything it shows or hides changed. */
+  frame?: (camera: Camera) => boolean
+}
+
+export interface ModelView {
+  level: number | null
+  walking: boolean
+  room: string | null
+}
+
+/** The lifts of a design, run each frame: the walker rides them and uses their panels. */
+export interface LiftHost {
+  /** Advances every lift by dt; `walker` (their feet), when walking, rides them. Returns whether any is moving. */
+  tick: (dt: number, walker: Vector3 | null) => boolean
+  /** The lift the walker is in or stepping into, whose panel they can use. */
+  liftNear: (p: Vector3) => Lift | null
 }
 
 /**

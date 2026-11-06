@@ -2,13 +2,14 @@ import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, type
 import { GOLD } from '../../../../../lib/palette'
 import { Basement, openingsOf } from '../basement'
 import { Kit } from '../kit'
-import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shared'
+import { LightPool, Lighting, type FurnishedModel, type LiftHost, type WalkArea } from '../shared'
 import { Contact } from '../kalakalMall/contact'
 import { Planting } from '../kalakalMall/foliage'
 import { HOSPITAL_BASEMENT } from './basement'
 import { buildBuilding } from './building'
 import { ER_ROOM } from './emergency'
 import { hospitalMaterials } from './materials'
+import { buildOpd } from './opd'
 import { CANOPY, DRIVE, EMERGENCY, ER, GARDEN, GL, L1, LANE, MAIN, PARK, PLAN_CENTRE_Z, PLOT, RAMP, TOWER, WALK, YARD } from './plan'
 import { buildContext, buildSite, SITE } from './site'
 
@@ -69,6 +70,8 @@ export function buildKalakalHospital(context = true): FurnishedModel {
   const ctx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact(), openings: context ? openingsOf(HOSPITAL_BASEMENT) : undefined }
 
   buildBuilding(ctx, building)
+  // The outpatient department, fitted out floor by floor behind the façades (property view only).
+  const opd = context ? buildOpd(ctx, building) : undefined
   buildSite(ctx, site)
   if (context) buildContext(ctx, site)
   else root.position.z = -PLAN_CENTRE_Z
@@ -92,11 +95,13 @@ export function buildKalakalHospital(context = true): FurnishedModel {
     site.add(g)
     highlights.set(name, mat)
   }
+  for (const [name, mat] of opd?.highlights ?? []) highlights.set(name, mat)
 
   // The emergency department's lamps light it alone, while it is viewed or walked through.
   const er = root.getObjectByName('emergency_department')
   const within = (o: Object3D | null): boolean => !!o && (o === er || within(o.parent))
-  const pool = new LightPool(root, (l) => (er && within(l) ? ER_ROOM : 'exterior'), 6)
+  // The OPD's lamps carry their room's zone (or their floor's circulation, or its overview).
+  const pool = new LightPool(root, (l) => (er && within(l) ? ER_ROOM : ((l.userData.zone as string | undefined) ?? 'exterior')), 6)
   // Two basement parking levels, built the first time a visitor goes below ground (not on the master plan).
   const basement = context ? new Basement(root, k, lighting, pool, HOSPITAL_BASEMENT, SITE, highlights) : undefined
   // On foot from the road: up the entrance walk towards the main doors.
@@ -106,7 +111,9 @@ export function buildKalakalHospital(context = true): FurnishedModel {
     bounds: { x0: PLOT.x0, x1: PLOT.x1, z0: PLOT.z0, z1: PLOT.z1 },
     zoneAt: (x, y, z) => {
       const below = basement?.zoneAt(y) ?? 'exterior'
-      return below === 'exterior' && er && inEmergency(x, y, z) ? ER_ROOM : below
+      if (below !== 'exterior') return below
+      if (er && inEmergency(x, y, z)) return ER_ROOM
+      return opd?.zoneAt(x, y, z) ?? 'exterior'
     },
   }
   // Glass, metal and stone reflect the design's own sky (see kalakalMall/surfaces.ts).
@@ -126,13 +133,29 @@ export function buildKalakalHospital(context = true): FurnishedModel {
     c.windowGlass.opacity = day ? 0.6 : 0.32
   }
   setSky(false)
+  // The lifts a walker can ride: the main lobby's down to the basements, and the OPD's up through it.
+  const lifts: LiftHost | undefined = opd && {
+    tick: (dt, walker) => {
+      const a = basement?.tick(dt, walker) ?? false
+      const b = opd.lifts.tick(dt, walker)
+      return a || b
+    },
+    liftNear: (p) => basement?.liftNear(p) ?? opd.lifts.liftNear(p),
+  }
+  const zone = (z: string) => {
+    const z2 = opd ? opd.zone(z) : z
+    return basement?.zone(z2) ?? z2
+  }
   return {
     root,
     highlights,
     walk,
     setDaylight: (day) => (lighting.set(day), setSky(day)),
-    setZone: (z) => pool.setZone(basement?.zone(z) ?? z),
+    setZone: (z) => pool.setZone(zone(z)),
     syncLights: () => pool.sync(),
     basement,
+    lifts,
+    setView: (v) => opd?.setView(v),
+    frame: opd?.frame,
   }
 }

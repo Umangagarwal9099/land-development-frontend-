@@ -55,6 +55,12 @@ export interface Floor {
   level: number
   /** Name of the group node for this floor inside the model, e.g. "floor_G". */
   groupName: string
+  /**
+   * For a floor of a building with floors above it: the height the building is cut at to look
+   * into it (below its ceilings), and the plan box [x0, z0, x1, z1] the camera frames it by.
+   */
+  cutY?: number
+  focus?: [number, number, number, number]
 }
 
 export interface Dimensions {

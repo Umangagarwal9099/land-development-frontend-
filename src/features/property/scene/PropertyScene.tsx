@@ -252,6 +252,23 @@ function usePropertyCamera(property: Property, site: Site, radius: number, basem
       const b = basement.box
       const sphere = new Sphere(new Vector3((b.x0 + b.x1) / 2, y, (b.z0 + b.z1) / 2), Math.hypot(b.x1 - b.x0, b.z1 - b.z0) * 0.42)
       void frameSphere(controls, sphere, { polar: 46, smoothTime: 1.1 })
-    } else if (was !== null) void goToPreset(undefined, 1.1)
-  }, [controls, basement, activeLevel, site, goToPreset])
+    } else if (was !== null && !property.floors.some((f) => f.level === activeLevel && f.focus)) void goToPreset(undefined, 1.1)
+  }, [controls, basement, activeLevel, site, goToPreset, property.floors])
+
+  // A floor of a building with floors above it: the building is cut away above it (RoomSection)
+  // and the camera looks down into it from above its front; back to the building, the first view.
+  const lastUpper = useRef<number | null>(null)
+  useEffect(() => {
+    if (!controls) return
+    const floor = activeLevel !== null && activeLevel >= 0 ? property.floors.find((f) => f.level === activeLevel && f.focus) : undefined
+    const was = lastUpper.current
+    lastUpper.current = floor ? activeLevel : null
+    // A room opening flies to it itself.
+    if (useViewerStore.getState().roomViewId) return
+    if (floor?.focus && floor.cutY !== undefined) {
+      const [x0, z0, x1, z1] = floor.focus
+      const sphere = new Sphere(new Vector3((x0 + x1) / 2, floor.cutY - 2.4, (z0 + z1) / 2), Math.hypot(x1 - x0, z1 - z0) * 0.46)
+      void frameSphere(controls, sphere, { polar: 40, smoothTime: 1.1 })
+    } else if (was !== null && activeLevel === null) void goToPreset(undefined, 1.1)
+  }, [controls, activeLevel, property.floors, goToPreset])
 }

@@ -254,7 +254,13 @@ export function drawer(e: Ctx, p: Object3D, x: number, y: number, z: number, s: 
   k.box(part, bw, 0.008, bd, m.melamine, 0, by + 0.004, -t - bd / 2, false)
   // A lip behind the front's top edge closes the gap above it, as a drawer's rail does.
   k.box(part, s.w - 0.01, 0.03, 0.02, m.melamine, 0, s.h / 2 - 0.016, -t - 0.01, false)
-  s.fill?.(group(part, 0, by + 0.008, -t), bw - 0.03, bd - 0.02, bh - 0.02)
+  // What is in it: drawn only while the drawer is open (see ModelRoot's animator), merged apart.
+  let contents: Group | null = null
+  if (s.fill) {
+    contents = group(part, 0, by + 0.008, -t, 0, 'contents')
+    s.fill(contents, bw - 0.03, bd - 0.02, bh - 0.02)
+    contents.removeFromParent()
+  }
   // The pull.
   const hy = s.h / 2 - Math.min(0.045, s.h * 0.3)
   if ((s.handle ?? 'bar') === 'bar') {
@@ -269,6 +275,11 @@ export function drawer(e: Ctx, p: Object3D, x: number, y: number, z: number, s: 
   const front = put(part, panel(e, s.w - 0.004, s.h - 0.004, t, 0.004), s.front, 0, 0, -t / 2)
   front.userData.front = true
   bake(part, front)
+  if (contents) {
+    mergeStatic(contents, NONE)
+    contents.visible = false
+    part.add(contents)
+  }
   return part
 }
 

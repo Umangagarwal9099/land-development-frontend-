@@ -12,6 +12,7 @@ import { signLine, type LetterTone } from '../kalakalHotel/building'
 import { box, fbox, fplane, onFace, type Face } from '../kalakalA01/building'
 import { buildEmergency } from './emergency'
 import type { HospitalMaterials } from './materials'
+import { insideOpd, levelAt } from './opd/plan'
 import {
   BACK_Z, BODY, CANOPY, COURT, EMERGENCY, ER, footprint, GL, L1, LINK, MAIN, outline, PARAPET, ROOF, STOREYS, TOWER, UPPER, WING,
 } from './plan'
@@ -101,6 +102,32 @@ class Parts {
 
 /* ---------- façade systems ---------- */
 
+/**
+ * In the property view the outpatient department is built in full behind the glass (opd/): where
+ * it stands, the façades draw no painted room behind their windows. Set while the building is
+ * built; null on the master plan, where every window shows its painted room.
+ */
+let fittedBehind: ((x: number, z: number, y: number) => boolean) | null = null
+
+/** The runs of s0 … s1 along a face, at depth d, with no real interior behind them on the storey from y. */
+function painted(f: Face, s0: number, s1: number, y: number, d: number): R[] {
+  if (!fittedBehind) return [[s0, s1]]
+  const out: R[] = []
+  const step = 0.1
+  let start: number | null = null
+  for (let s = s0; s <= s1 + 1e-6; s += step) {
+    const [x, z] = onFace(f, Math.min(s, s1), d)
+    const open = !fittedBehind(x, z, y + 1.5)
+    if (open && start === null) start = s
+    if ((!open || s + step > s1 + 1e-6) && start !== null) {
+      const end = open ? s1 : s
+      if (end - start > 0.05) out.push([start, end])
+      start = null
+    }
+  }
+  return out
+}
+
 /** Depth of the cladding: the windows' reveals. */
 const WALL_D = 0.3
 /** How far the white bands stand proud, and how far they run past a corner to meet the next face's. */
@@ -146,7 +173,7 @@ function punched(p: Parts, f: Face, storeys: R[], top: number, seed: number, col
       fbox(p.band, f, [a - 0.05, b + 0.05], [sill - 0.06, sill], [-0.2, 0.05])
       p.ward.tint = lit(r)
       const [b0, b1] = [i * bay, (i + 1) * bay]
-      fplane(p.ward, f, [b0, b1], [y, next], -0.9, (s, yy) => [(s - b0) / bay, (yy - y) / (next - y)])
+      for (const run of painted(f, b0, b1, y, -0.9)) fplane(p.ward, f, run, [y, next], -0.9, (s, yy) => [(s - b0) / bay, (yy - y) / (next - y)])
     }
     fbox(p.wall, f, [prev, f.len], [sill, head], [-WALL_D, 0])
   }
@@ -178,7 +205,7 @@ function ribbon(p: Parts, f: Face, storeys: R[], top: number, seed: number, wrap
     for (let j = 0; j < (rooms ? bays : 0); j++) {
       p.ward.tint = lit(r)
       const [b0, b1] = [j * bw, (j + 1) * bw]
-      fplane(p.ward, f, [b0, b1], [y, next], -0.8, (s, yy) => [(s - b0) / bw, (yy - y) / (next - y)])
+      for (const run of painted(f, b0, b1, y, -0.8)) fplane(p.ward, f, run, [y, next], -0.8, (s, yy) => [(s - b0) / bw, (yy - y) / (next - y)])
     }
   }
   // The last band rises to `top` as the parapet; a run of ground floor alone stops under the next band.
@@ -214,7 +241,7 @@ function curtain(p: Parts, f: Face, y0: number, y1: number, lines: number[], see
   const floors = [y0, ...lines, y1]
   for (let i = 0; i < floors.length - 1; i++) {
     const [a, b] = [floors[i], floors[i + 1]]
-    fplane(p.lounge, f, [0, f.len], [a, b], -1.6, (s, y) => [s / 8 + i * 0.29, (y - a) / (b - a)])
+    for (const run of painted(f, 0, f.len, a, -1.6)) fplane(p.lounge, f, run, [a, b], -1.6, (s, y) => [s / 8 + i * 0.29, (y - a) / (b - a)])
   }
 }
 
@@ -288,7 +315,7 @@ function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[
 }
 
 /** The ground floor of the back: cladding, roller shutters to the stores, louvred plant rooms, the staff door. */
-function serviceFront(p: Parts, f: Face, shutters: number[], louvres: number[], door: number) {
+function serviceFront(p: Parts, f: Face, shutters: number[], louvres: number[], door: number, walk?: { ctx: HospitalCtx; parent: Object3D }) {
   const top = L1 - 0.35
   const solid: R[] = []
   let s = 0
@@ -309,13 +336,28 @@ function serviceFront(p: Parts, f: Face, shutters: number[], louvres: number[], 
     fbox(p.skirt, f, [c + 1.75, c + 2.0], [0, 1.0], [0, 0.25])
   }
   for (const c of louvres) for (let y = GL + 1.2; y < GL + 3.2; y += 0.12) fbox(p.louvre, f, [c - 1.1, c + 1.1], [y, y + 0.05], [0.01, 0.07])
-  // The staff door: a glazed pair under a small canopy.
+  // The staff door: a glazed pair under a small canopy. With the OPD fitted behind it, the door
+  // out of its south corridor (and the fire stair beside it): a pair of automatic leaves.
   fbox(p.wall, f, [door - 0.9, door + 0.9], [GL + 2.4, top], [-WALL_D, 0])
-  fplane(p.glass, f, [door - 0.85, door + 0.85], [GL, GL + 2.4], -0.15)
-  for (const e of [door - 0.85, door, door + 0.85]) fbox(p.frame, f, [e - 0.03, e + 0.03], [GL, GL + 2.4], [-0.18, -0.1])
-  fplane(p.hall, f, [door - 0.9, door + 0.9], [GL, GL + 2.4], -2, (ss, y) => [0.4 + ss / 30, (y - GL) / 4.8])
-  for (const e of [door - 0.9, door + 0.84]) fbox(p.inner, f, [e, e + 0.06], [GL, GL + 2.4], [-2, -0.15])
-  fbox(p.inner, f, [door - 0.9, door + 0.9], [GL + 2.4, GL + 2.46], [-2, -0.15])
+  if (walk) {
+    for (const side of [-1, 1]) {
+      const leaf = new Group()
+      leaf.name = `autoleaf_staff_${side}`
+      const [lx, lz] = onFace(f, door + side * 0.42, -0.13)
+      walk.ctx.k.box(leaf, Math.abs(f.u[0]) * 0.84 + 0.03, 2.38, Math.abs(f.u[1]) * 0.84 + 0.03, walk.ctx.c.windowGlass, 0, 0, 0, false)
+      for (const e of [-0.42, 0.42]) walk.ctx.k.box(leaf, Math.abs(f.u[1]) * 0.05 + 0.04, 2.38, Math.abs(f.u[0]) * 0.05 + 0.04, walk.ctx.c.silver, f.u[0] * e, 0, f.u[1] * e)
+      leaf.position.set(lx, GL + 1.2, lz)
+      leaf.userData.slide = [f.u[0] * side * 0.8, 0, f.u[1] * side * 0.8]
+      walk.parent.add(leaf)
+    }
+    for (const e of [door - 0.85, door + 0.85]) fbox(p.frame, f, [e - 0.03, e + 0.03], [GL, GL + 2.4], [-0.18, -0.1])
+  } else {
+    fplane(p.glass, f, [door - 0.85, door + 0.85], [GL, GL + 2.4], -0.15)
+    for (const e of [door - 0.85, door, door + 0.85]) fbox(p.frame, f, [e - 0.03, e + 0.03], [GL, GL + 2.4], [-0.18, -0.1])
+    fplane(p.hall, f, [door - 0.9, door + 0.9], [GL, GL + 2.4], -2, (ss, y) => [0.4 + ss / 30, (y - GL) / 4.8])
+    for (const e of [door - 0.9, door + 0.84]) fbox(p.inner, f, [e, e + 0.06], [GL, GL + 2.4], [-2, -0.15])
+    fbox(p.inner, f, [door - 0.9, door + 0.9], [GL + 2.4, GL + 2.46], [-2, -0.15])
+  }
   fbox(p.band, f, [door - 1.4, door + 1.4], [GL + 2.75, GL + 2.9], [0, 1.4])
   fbox(p.skirt, f, [0, f.len], [0, GL + 0.45], [0, 0.02])
 }
@@ -331,7 +373,8 @@ function buildFaces(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   // The tower's front: three bays of windows over the outpatient entrance.
   const tower = eastFace(TOWER.z1, TOWER.x0, TOWER.x1)
   punched(p, tower, STOREYS.slice(1), PARAPET, 13, 3)
-  lobbyFront(p, tower, L1 - 0.95, 7, [tower.len / 2], 0)
+  // In the property view the outpatient hall is built in full behind the glass (opd/).
+  lobbyFront(p, tower, L1 - 0.95, 7, [tower.len / 2], 0, fittedBehind ? { ctx, parent, fitted: true } : undefined)
   fbox(p.wall, tower, [0, tower.len], [L1 - 0.95, L1], [-WALL_D, 0])
   // The returns either side of the link: full height in front of it, above its roof behind.
   punched(p, northFace(TOWER.x1, LINK.z1, TOWER.z1), STOREYS, PARAPET, 17, 1)
@@ -356,7 +399,8 @@ function buildFaces(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   if (fitted) buildEmergency(ctx, parent)
   const back = westFace(BODY.z0, BODY.x0, BODY.x1)
   ribbon(p, back, STOREYS.slice(1), PARAPET, 43)
-  serviceFront(p, back, [3.0, 7.0], [12, 16], 21)
+  // The staff door at the back of the OPD's south corridor, beside the fire stair's foot.
+  serviceFront(p, back, [3.0, 7.0], [12, 16], 19.9, fittedBehind ? { ctx, parent } : undefined)
   // Behind the link's roof, the body's face between the returns.
   ribbon(p, eastFace(BACK_Z, LINK.x0, LINK.x1), STOREYS.filter(([y]) => y >= LINK.roof - 1e-6), PARAPET, 47, 0)
   // The light court, from its podium garden up.
@@ -537,8 +581,10 @@ function buildRoof(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   const hole = rect(COURT.x0, COURT.x1, COURT.z0, COURT.z1)
   slab(parent, outline(), ROOF - 0.3, ROOF, [c.roofDeck, c.wall], [hole], true, 'roof')
   // Stair and lift overruns, rendered like the walls.
+  // Stair and lift overruns: the OPD's core and its fire stair, the north wing's plant room, the main lobby's core.
   for (const [ox0, ox1, oz0, oz1, h] of [
-    [-10.8, -5.6, -24.6, -19.4, 4.2],
+    [-11.6, -1.9, -2.5, 4.0, 3.8],
+    [-11.6, -7.1, -25.8, -19.5, 3.4],
     [8.2, 13.2, -4.0, 1.2, 4.6],
     [2.6, 7.8, 5.2, 9.8, 3.6],
   ] as const) {
@@ -553,12 +599,13 @@ function buildRoof(ctx: HospitalCtx, p: Parts, parent: Object3D) {
     box(p.skirt, [x - 1.3, x + 1.3], [ROOF, ROOF + 0.3], [-24.5, -19.3])
     shade.rect(x, ROOF + 0.005, -21.9, 2.8, 5.4, 0, 0.5)
   }
-  // Two cooling towers, their fan stacks on top.
-  for (const x of [-9.4, -5.2]) {
-    box(p.louvre, [x - 1.7, x + 1.7], [ROOF + 0.3, ROOF + 3.3], [-3.4, 0])
-    for (let y = ROOF + 0.6; y < ROOF + 2.4; y += 0.14) box(p.frame, [x - 1.72, x + 1.72], [y, y + 0.05], [-3.42, -3.35])
-    k.cyl(parent, 1.2, 1.3, 0.9, c.plantDark, x, ROOF + 3.75, -1.7, 32)
-    shade.rect(x, ROOF + 0.005, -1.7, 3.8, 3.8, 0, 0.5)
+  // Two cooling towers over the north wing, beside the court, their fan stacks on top.
+  for (const z of [-15.7, -11.7]) {
+    const x = 10.4
+    box(p.louvre, [x - 1.7, x + 1.7], [ROOF + 0.3, ROOF + 3.3], [z - 1.7, z + 1.7])
+    for (let y = ROOF + 0.6; y < ROOF + 2.4; y += 0.14) box(p.frame, [x - 1.72, x + 1.72], [y, y + 0.05], [z + 1.68, z + 1.75])
+    k.cyl(parent, 1.2, 1.3, 0.9, c.plantDark, x, ROOF + 3.75, z, 32)
+    shade.rect(x, ROOF + 0.005, z, 3.8, 3.8, 0, 0.5)
   }
   // Water tanks over the court's south side.
   for (const z of [-15, -10.5]) {
@@ -603,12 +650,14 @@ function solid(parent: Object3D, xs: R, ys: R, zs: R, mat: Material) {
 }
 
 export function buildBuilding(ctx: HospitalCtx, parent: Object3D) {
+  fittedBehind = ctx.onPlan ? null : (x, z, y) => insideOpd(levelAt(y), x, z)
   const p = new Parts()
   buildFaces(ctx, p, parent)
   buildCanopies(ctx, p, parent)
   buildRoof(ctx, p, parent)
   buildCourt(ctx, parent)
   p.build(ctx, parent)
+  fittedBehind = null
   // The lobby's light, and the outpatient hall's.
   for (const [x, z] of [[(MAIN.x0 + MAIN.x1) / 2, MAIN.lobby - 3], [(TOWER.x0 + TOWER.x1) / 2, TOWER.z1 - 3]]) {
     const l = ctx.lighting.light(new PointLight('#ffe2bc', 6, 12, 2), 0.15)

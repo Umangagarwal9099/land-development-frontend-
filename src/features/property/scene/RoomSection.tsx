@@ -100,6 +100,7 @@ export function RoomSection({
   view,
   eye,
   reveal,
+  cut,
 }: {
   room: Box3 | null
   focus: Box3 | null
@@ -111,6 +112,8 @@ export function RoomSection({
   eye?: EntryView
   /** Set by the hotspot: space beyond the room kept in the cut (not walkable), such as a passage. */
   reveal?: Box3
+  /** With no room open: the height a chosen floor is cut at, everything above it falling away. */
+  cut?: number
 }) {
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
@@ -119,7 +122,13 @@ export function RoomSection({
 
   const planes = useMemo(() => Array.from({ length: 6 }, () => new Plane()), [])
   const outer = useMemo(() => site.clone().expandByScalar(40), [site])
-  const current = useRef(outer.clone())
+  // The whole site, or (a floor chosen) the site cut off at that floor.
+  const open = useMemo(() => {
+    const b = outer.clone()
+    if (cut !== undefined) b.max.y = cut
+    return b
+  }, [outer, cut])
+  const current = useRef(open.clone())
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const anim = useRef<{ from: Box3; to: Box3; fovFrom: number; fovTo: number; t: number; done?: () => void } | null>(null)
   // Camera lens, limits and Reset View of the whole-property view, restored when the room closes.
@@ -247,7 +256,7 @@ export function RoomSection({
       controls.maxPolarAngle = polar
       controls.setBoundary(new Box3(new Vector3(site.min.x, 0, site.min.z), new Vector3(site.max.x, 14, site.max.z)))
       useStageStore.getState().setHome(home)
-      void animateTo(outer, fov)
+      void animateTo(open, fov)
       home?.()
     }
     return () => {
@@ -255,6 +264,13 @@ export function RoomSection({
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [controls, volume, collider])
+
+  // Choosing a floor (or the whole building again) with no room open: the cut falls or rises to it.
+  useEffect(() => {
+    if (volume || saved.current) return
+    void animateTo(open, camera.fov)
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   return null
 }

@@ -1,5 +1,5 @@
 import { Html } from '@react-three/drei'
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Box3, Vector3, type Object3D } from 'three'
 import type { Room } from '../../../api/types'
 
@@ -26,7 +26,10 @@ export function RoomPins({
   isVisible: (obj: Object3D) => boolean
   onOpen: (room: Room) => void
 }) {
-  const pins = useMemo<Pin[]>(() => {
+  // Measured after the commit's effects, so the model has already shown or hidden the hotspots of
+  // the floor being looked at (see FurnishedModel's view effect).
+  const [pins, setPins] = useState<Pin[]>([])
+  useEffect(() => {
     root.updateWorldMatrix(true, true)
     const out: Pin[] = []
     for (const room of rooms) {
@@ -39,7 +42,7 @@ export function RoomPins({
       const y = Math.max(box.max.y, box.min.y + 2.2) + 0.35
       out.push({ room, position: [c.x, y, c.z] })
     }
-    return out
+    setPins(out)
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [root, rooms, version])
 

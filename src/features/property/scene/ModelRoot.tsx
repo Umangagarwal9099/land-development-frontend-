@@ -16,7 +16,7 @@ import { GltfModel } from './GltfModel'
 import { PlaceholderBuilding } from './PlaceholderBuilding'
 import { RoomPins } from './RoomPins'
 import { RoomSection } from './RoomSection'
-import { isDoor, isDrawer, isOpenable, isSpinner, isSwitch, operate } from './openables'
+import { isDoor, isDrawer, isInfo, isOpenable, isSign, isSpinner, isSwitch, operate } from './openables'
 
 // A pointer that moved more than this many pixels between down and up was a drag, not a tap.
 const TAP_TOLERANCE_PX = 8
@@ -155,14 +155,42 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
    * section box (clipped geometry is still hit by the raycaster). Only that surface may open a
    * door or drawer, so a tap on a worktop never opens the cupboard beneath it.
    */
-  const firstSurface = (e: ThreeEvent<PointerEvent | MouseEvent>) =>
-    e.intersections.find((i) => isVisibleInScene(i.object) && gl.clippingPlanes.every((p) => p.distanceToPoint(i.point) >= -0.001))?.object
-  const openableAt = (e: ThreeEvent<PointerEvent | MouseEvent>) =>
-    e.object === firstSurface(e) ? findNamedAncestor(e.object, isOpenable) : null
+  const surfaces = (e: ThreeEvent<PointerEvent | MouseEvent>) =>
+    e.intersections.filter((i) => isVisibleInScene(i.object) && gl.clippingPlanes.every((p) => p.distanceToPoint(i.point) >= -0.001))
+  const firstSurface = (e: ThreeEvent<PointerEvent | MouseEvent>) => surfaces(e)[0]?.object
+  /**
+   * What a tap at the first surface operates. An equipment's information volume (info_*) encloses
+   * it without being seen: a door or drawer of the equipment met inside the volume is operated
+   * rather than the volume; any other surface of it opens its information.
+   */
+  const openableAt = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
+    const hits = surfaces(e)
+    if (!hits.length || e.object !== hits[0].object) return null
+    const first = findNamedAncestor(hits[0].object, isOpenable)
+    if (!first || !isInfo(first.name)) return first
+    const solid = hits.find((h) => !isInfo(findNamedAncestor(h.object, isOpenable)?.name ?? ''))
+    const inner = solid ? findNamedAncestor(solid.object, isOpenable) : null
+    return inner ?? first
+  }
+  /** A sign under the pointer that leads to a room (goto_*), and the room it names. */
+  const signAt = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
+    const hits = surfaces(e)
+    if (!hits.length || e.object !== hits[0].object) return null
+    const sign = findNamedAncestor(hits[0].object, isSign)
+    const room = sign ? roomsByMesh.get(sign.userData.target as string) : undefined
+    return room ?? null
+  }
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     // Walking has its own reach: nothing operates from across the house at a click.
     if (!interactive || walking || e.delta > TAP_TOLERANCE_PX) return
+    // A direction sign takes the viewer into the room it points to.
+    const signed = signAt(e)
+    if (signed) {
+      e.stopPropagation()
+      openRoom(signed)
+      return
+    }
     const openable = openableAt(e)
     if (openable) {
       e.stopPropagation()
@@ -194,7 +222,7 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
   const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
     if (!interactive || walking || e.pointerType !== 'mouse') return
     if (e.object === firstSurface(e)) {
-      const openable = findNamedAncestor(e.object, isOpenable)
+      const openable = openableAt(e) ?? findNamedAncestor(e.object, isSign)
       if (openable !== hoveredOpenable?.node) setHoveredOpenable(openable ? { node: openable, box: frontBox(openable) } : null)
     }
     if (!picking) return
@@ -254,6 +282,7 @@ export function ModelRoot({ property, site, interactive, onReady }: { property: 
         view={selectedObject?.userData.view as 'overview' | 'eye' | undefined}
         eye={entryView}
         reveal={roomViewId ? revealBox : undefined}
+        cut={roomViewId || walking ? undefined : property.floors.find((f) => f.level === activeLevel)?.cutY}
       />
 
       {/* In the room viewer its title names the room instead. */}
@@ -382,7 +411,11 @@ function OpenableAnimator({ root, version }: { root: Object3D; version: number }
       } else {
         target.copy(part.userData.closedPos as Vector3)
         if (open) target.add(step.fromArray(part.userData.slide as number[]))
-        if (part.position.distanceToSquared(target) < 1e-8) continue
+        // A drawer's contents are drawn only while it is open or moving.
+        const contents = part.getObjectByName('contents')
+        const shut = part.position.distanceToSquared(target) < 1e-8
+        if (contents) contents.visible = !!open || !shut
+        if (shut) continue
         part.position.set(MathUtils.damp(part.position.x, target.x, 7, delta), MathUtils.damp(part.position.y, target.y, 7, delta), MathUtils.damp(part.position.z, target.z, 7, delta))
       }
       moved = true
