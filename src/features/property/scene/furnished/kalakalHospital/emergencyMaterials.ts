@@ -216,7 +216,7 @@ const patientBoard: Paint = (g, w, h) => {
   g.fillStyle = '#ffffff'
   g.font = SANS(h * 0.05, 600)
   g.textBaseline = 'middle'
-  g.fillText('ED Tracking Board · Kallakal Hospital', w * 0.02, h * 0.045)
+  g.fillText('ED Tracking Board · Terranova Hospital', w * 0.02, h * 0.045)
   g.fillStyle = '#dfe5ec'
   g.fillRect(0, h * 0.09, w, h * 0.06)
   const tags = ['#d7262e', '#f08a24', '#f2c71b', '#3aa655', '#3aa655', '#f2c71b', '#f08a24', '#3aa655']

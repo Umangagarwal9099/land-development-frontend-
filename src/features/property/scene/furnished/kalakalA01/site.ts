@@ -355,7 +355,7 @@ function buildPylon(ctx: A01Ctx, p: Object3D) {
 /* ---------- surroundings ---------- */
 
 const CROSS = 33 * FT
-/** The plot and what is shown round it: the HMDA road in front, the cross road behind, Kallakal Mall's plot to the south. */
+/** The plot and what is shown round it: the HMDA road in front, the cross road behind, Terranova Mall's plot to the south. */
 export const SITE = { minX: PLOT.x0 - 10, maxX: PLOT.x1 + 8, minZ: PLOT.z0 - CROSS - 2, maxZ: PLOT.z1 + 26 }
 
 /**
@@ -382,7 +382,7 @@ export function buildContext(ctx: A01Ctx, p: Object3D) {
   ground(ctx, p, rect(SITE.minX, SITE.maxX, PLOT.z0 - CROSS, PLOT.z0 - 1.5), 0.02, c.asphalt)
   ground(ctx, p, rect(SITE.minX, SITE.maxX, PLOT.z0 - 1.5, PLOT.z0), 0.15, c.interlock)
   ground(ctx, p, rect(SITE.minX, SITE.maxX, SITE.minZ, PLOT.z0 - CROSS), 0.02, c.fallow)
-  // Kallakal Mall's plot to the south and open ground to the north.
+  // Terranova Mall's plot to the south and open ground to the north.
   ground(ctx, p, rect(SITE.minX, PLOT.x0, PLOT.z0, zf), 0.02, c.fallow)
   ground(ctx, p, rect(PLOT.x1, SITE.maxX, PLOT.z0, zf), 0.02, c.fallow)
 }

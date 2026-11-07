@@ -456,7 +456,7 @@ function buildMain(ctx: HospitalCtx, p: Parts, parent: Object3D) {
 
 /* ---------- canopies and signs ---------- */
 
-export const NAME = 'KALLAKAL HOSPITAL'
+export const NAME = 'TERRANOVA HOSPITAL'
 /** Navy letters, lit blue at night; the emergency's red. */
 export const NAVY: LetterTone = { face: '#1c3966', emissive: '#3b78ff', intensity: 0.6, side: '#9aa3ad' }
 const RED: LetterTone = { face: '#c8161d', emissive: '#ff2a22', intensity: 1.3, side: '#b4b8bc' }

@@ -346,7 +346,7 @@ export type Finish = keyof typeof PAINTERS
 
 /*
  * Painting is the costly part of building a model, and the designs share most of their finishes
- * (the hotel, Kallakal Square and the hospital all build on the mall's palette). So every painted
+ * (the hotel, Terranova Square and the hospital all build on the mall's palette). So every painted
  * surface and relief map is made once per session and shared: models get clones, which share the
  * image and, in three.js, its single GPU upload (reference-counted, so disposing one model's
  * clones leaves the others' intact).

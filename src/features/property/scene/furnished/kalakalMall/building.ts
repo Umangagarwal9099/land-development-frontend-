@@ -440,11 +440,25 @@ const GLYPHS: Record<string, Glyph> = {
     },
   },
   L: { width: 0.62, shape: () => poly([[0, 0], [0.62, 0], [0.62, 0.2], [0.2, 0.2], [0.2, 1], [0, 1]]) },
+  T: { width: 0.7, shape: () => poly([[0.25, 0], [0.45, 0], [0.45, 0.81], [0.7, 0.81], [0.7, 1], [0, 1], [0, 0.81], [0.25, 0.81]]) },
+  N: { width: 0.78, shape: () => poly([[0, 0], [0.19, 0], [0.19, 0.62], [0.58, 0], [0.78, 0], [0.78, 1], [0.59, 1], [0.59, 0.38], [0.2, 1], [0, 1]]) },
+  V: { width: 0.8, shape: () => poly([[0.3, 0], [0.5, 0], [0.8, 1], [0.59, 1], [0.4, 0.3], [0.21, 1], [0, 1]]) },
+  O: {
+    width: 0.9,
+    shape: () => {
+      const s = new Shape()
+      s.absellipse(0.45, 0.5, 0.45, 0.5, 0, PI * 2, false, 0)
+      const hole = new Shape()
+      hole.absellipse(0.45, 0.5, 0.25, 0.31, 0, PI * 2, true, 0)
+      s.holes.push(hole)
+      return s
+    },
+  },
 }
 const TRACK = 0.13
 const SPACE = 0.38
 
-export const MALL_NAME = 'KALLAKAL MALL'
+export const MALL_NAME = 'TERRANOVA MALL'
 
 /** Width of a line of channel letters at cap height 1. */
 export const textWidth = (text: string) =>

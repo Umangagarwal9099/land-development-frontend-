@@ -4,7 +4,7 @@ import type { Point2 } from '../../../../../api/types'
  * Commercial Plot A-03, Kallakal: 125′ of frontage (north → south) × 294′6″ deep (west → east),
  * 4,090 sq yd, facing east onto the HMDA master plan road on NH-44. The 60 ft main avenue runs
  * along its north side (it is a corner plot), the 33 ft cross road behind it, and Plot A-04
- * (Kallakal Hotel) lies to the south.
+ * (Terranova Hotel) lies to the south.
  *
  * Site frame, as for the other Kallakal designs: +z east (the road), +x north, y up, origin at
  * the plot centre. The reference hospital, built here as B2 + G + 3, is far longer along its front than the

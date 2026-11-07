@@ -228,13 +228,13 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
   // D-65, the corner plot at the head of block D, carries the first fully modelled home.
   plots.find((p) => p.id === 'plot_65')!.unit = { kind: 'villa', name: 'Residence D-65', propertySlug: 'kalakal-d65', design: 'kalakal-d65' }
   // A-02, the commercial plot north of the avenue's mouth, carries the mall.
-  plots.find((p) => p.id === 'plot_2')!.unit = { kind: 'commercial', name: 'Kallakal Mall', propertySlug: 'kalakal-mall', design: 'kalakal-mall' }
-  // A-04, the deep commercial plot at the south end of the frontage, carries Kallakal Hotel.
-  plots.find((p) => p.id === 'plot_4')!.unit = { kind: 'commercial', name: 'Kallakal Hotel', propertySlug: 'kalakal-hotel', design: 'kalakal-hotel' }
-  // A-01, the commercial plot at the north end of the frontage, carries Kallakal Square, the car park with shops.
-  plots.find((p) => p.id === 'plot_1')!.unit = { kind: 'commercial', name: 'Kallakal Square', propertySlug: 'kalakal-a01', design: 'kalakal-a01' }
-  // A-03, the corner plot south of the avenue's mouth, carries Kallakal Hospital.
-  plots.find((p) => p.id === 'plot_3')!.unit = { kind: 'commercial', name: 'Kallakal Hospital', propertySlug: 'kalakal-hospital', design: 'kalakal-hospital' }
+  plots.find((p) => p.id === 'plot_2')!.unit = { kind: 'commercial', name: 'Terranova Mall', propertySlug: 'kalakal-mall', design: 'kalakal-mall' }
+  // A-04, the deep commercial plot at the south end of the frontage, carries Terranova Hotel.
+  plots.find((p) => p.id === 'plot_4')!.unit = { kind: 'commercial', name: 'Terranova Hotel', propertySlug: 'kalakal-hotel', design: 'kalakal-hotel' }
+  // A-01, the commercial plot at the north end of the frontage, carries Terranova Square, the car park with shops.
+  plots.find((p) => p.id === 'plot_1')!.unit = { kind: 'commercial', name: 'Terranova Square', propertySlug: 'kalakal-a01', design: 'kalakal-a01' }
+  // A-03, the corner plot south of the avenue's mouth, carries Terranova Hospital.
+  plots.find((p) => p.id === 'plot_3')!.unit = { kind: 'commercial', name: 'Terranova Hospital', propertySlug: 'kalakal-hospital', design: 'kalakal-hospital' }
 
   // Keep planting within landscaped parks; road edges and the avenue median stay clear.
   const trees = [

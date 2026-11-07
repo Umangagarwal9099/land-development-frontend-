@@ -211,7 +211,7 @@ const sheer: Paint = (g, w, h) => {
 /* ---------- materials ---------- */
 
 /**
- * Kallakal Hotel's finishes: the mall's palette (glass, aluminium, paving, asphalt, planting, lamps,
+ * Terranova Hotel's finishes: the mall's palette (glass, aluminium, paving, asphalt, planting, lamps,
  * car parts, sky reflections), plus the white GRC, polished plaza stone and black mesh of
  * the reference design.
  */

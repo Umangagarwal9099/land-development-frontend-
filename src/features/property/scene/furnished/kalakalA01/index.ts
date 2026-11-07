@@ -14,7 +14,7 @@ import { buildContext, buildSite, SITE } from './site'
 export { SITE }
 
 /*
- * Kallakal Square on commercial Plot A-01: an exterior model of the client's reference design, a
+ * Terranova Square on commercial Plot A-01: an exterior model of the client's reference design, a
  * multi-storey car park over ground-floor shops. A G+3 block along the road, its decks screened
  * in staggered timber slat panels, with a glazed drum holding the helical ramp standing proud of
  * the front under a deep black crown, the main entrance at its foot; a cream stair tower and a

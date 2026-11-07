@@ -33,7 +33,7 @@ const FOOT = 0.8
 const B2FOOT = -4.1
 
 export const MALL_BASEMENT: BasementSpec = {
-  name: 'Kallakal Mall',
+  name: 'Terranova Mall',
   box: { x0: X0, x1: X1, z0: Z0, z1: Z1 },
   colX: [-16.9, -10.9, -5.9, -2.5, 4.0, 11.5, 15.5, 19.4],
   colZ: [SC, -18.8, -10.7, -2.6, 5.5, NC],

@@ -15,7 +15,7 @@ import { buildSkin } from './skin'
 export { SITE }
 
 /*
- * Kallakal Mall on commercial Plot A-02, Kallakal: an exterior model of the G+2 mall in the client's
+ * Terranova Mall on commercial Plot A-02, Kallakal: an exterior model of the G+2 mall in the client's
  * reference design, its faceted aluminium and glass skin, entrance link, media screen and name
  * fitted to the 222′3″ × 150′ east-facing plot with its forecourt, parking, fire drives and
  * service yard. See plan.ts for how the reference was fitted to the plot.

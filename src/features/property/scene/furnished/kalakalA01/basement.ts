@@ -2,7 +2,7 @@ import type { BasementSpec } from '../basement'
 import { BLOCK, GL, L1, PORTAL_H, PORTALS, SLAB } from './plan'
 
 /*
- * Kallakal Square's two basement car-park levels, B1 and B2, under the block, the connector behind
+ * Terranova Square's two basement car-park levels, B1 and B2, under the block, the connector behind
  * it and the forecourt in front: 48.6 × 36.2 m inside the retaining walls, 1 m inside the plot.
  * Aisles run south–north (along x), parallel to the block, with cross aisles at both ends.
  *
@@ -35,7 +35,7 @@ const BAND = { z0: PORTALS[0].z0, z1: PORTALS[1].z1 }
 const LOBBY_WALL = BLOCK.z1 + 0.15
 
 export const A01_BASEMENT: BasementSpec = {
-  name: 'Kallakal Square',
+  name: 'Terranova Square',
   box: { x0: X0, x1: X1, z0: Z0, z1: Z1 },
   colX: [W[1], -7.0, 1.1, 9.2, E[0], E[1]],
   colZ: [-18.6, -12.6, 0.0, 10.8],

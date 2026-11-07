@@ -55,7 +55,7 @@ const sideText: Paint = (g, w, h) => {
   g.fillText('AMBULANCE', w * 0.4, h * 0.24)
   g.fillStyle = '#1c3966'
   g.font = SANS(h * 0.11, 700)
-  g.fillText('KALLAKAL HOSPITAL', w * 0.4, h * 0.73)
+  g.fillText('TERRANOVA HOSPITAL', w * 0.4, h * 0.73)
   g.font = SANS(h * 0.08, 600)
   g.fillStyle = '#2b2b2b'
   g.fillText('EMERGENCY  24 × 7   ·   040 2345 6789', w * 0.4, h * 0.88)

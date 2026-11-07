@@ -1,7 +1,7 @@
 import type { Point2 } from '../../../../../api/types'
 
 /*
- * Kallakal Hotel on commercial Plot A-04, Kallakal: 124′3″ of frontage (north → south) × 340′7″
+ * Terranova Hotel on commercial Plot A-04, Kallakal: 124′3″ of frontage (north → south) × 340′7″
  * deep (west → east), 4,676 sq yd, facing east onto the HMDA master plan road on NH-44, with the
  * 33 ft cross road behind it, Plot A-03 to the north and the site boundary to the south.
  *

@@ -12,7 +12,7 @@ import { buildContext, buildSite, SITE } from './site'
 export { SITE }
 
 /*
- * Kallakal Hotel on commercial Plot A-04: an exterior model of the client's reference design, a
+ * Terranova Hotel on commercial Plot A-04: an exterior model of the client's reference design, a
  * G+2 ring of curved glass pavilions with white slab bands round a lamp-lit plaza (the lobby and
  * restaurant below, guest rooms above), its white sweeping wall and black mesh capsules grown
  * over with creepers, fitted to the front of the 124′3″ × 340′7″ east-facing plot, with the

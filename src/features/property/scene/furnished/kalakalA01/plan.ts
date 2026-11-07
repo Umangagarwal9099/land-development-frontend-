@@ -3,7 +3,7 @@ import type { Point2 } from '../../../../../api/types'
 /*
  * Commercial Plot A-01, Kallakal: 166′1″ of frontage (north → south) × 165′5″ deep (west → east),
  * 3,022 sq yd, facing east onto the HMDA master plan road on NH-44, with the 33 ft cross road
- * behind it and Plot A-02 (Kallakal Mall) to the south.
+ * behind it and Plot A-02 (Terranova Mall) to the south.
  *
  * Site frame, as for the mall and the hotel: +z east (the road), +x north, y up, origin at the
  * plot centre. The reference design, a multi-storey car park with shops below, is fitted to the

@@ -807,7 +807,7 @@ export function signLine(ctx: HotelCtx, text: string, cap: number, depth: number
   return g
 }
 
-export const NAME = 'KALLAKAL HOTEL'
+export const NAME = 'TERRANOVA HOTEL'
 
 /** The name along the canopy's edge over the entrance, letter by letter round the curve. */
 function buildSignage(ctx: HotelCtx, parent: Object3D) {

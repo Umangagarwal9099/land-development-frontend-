@@ -604,7 +604,7 @@ function buildHelix(ctx: A01Ctx, parent: Object3D) {
   k.cyl(parent, rIn, rIn, PARAPET - 0.3 - L1, c.slabEdge, DRUM.x, (PARAPET - 0.3 + L1) / 2, DRUM.z, 48)
 }
 
-export const NAME = 'KALLAKAL SQUARE'
+export const NAME = 'TERRANOVA SQUARE'
 
 /** The name on the crown over the entrance, letter by letter round the curve. */
 function buildCrownName(ctx: A01Ctx, parent: Object3D) {

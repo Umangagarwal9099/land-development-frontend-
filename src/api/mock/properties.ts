@@ -281,7 +281,7 @@ function basementArea(floor: Floor, level: -1 | -2, [lengthFt, widthFt]: [number
 }
 
 /**
- * Kallakal Mall on commercial Plot A-02, Kallakal: the G+2 mall of the client's reference design,
+ * Terranova Mall on commercial Plot A-02, Kallakal: the G+2 mall of the client's reference design,
  * modelled in 3D (features/property/scene/furnished/kalakalMall) as an exterior with its grounds.
  * Areas map to the model's amenity_* hotspots.
  */
@@ -313,9 +313,9 @@ function kalakalMall(): Property {
       ['Two-way ramp up to B1', 'Fire pump room', 'Lift lobby and two fire stairs']),
   ]
   return {
-    id: 'p_kalakal_mall', slug: 'kalakal-mall', name: 'Kallakal Mall', type: 'commercial', location: 'Kallakal, NH-44',
+    id: 'p_kalakal_mall', slug: 'kalakal-mall', name: 'Terranova Mall', type: 'commercial', location: 'Kallakal, NH-44',
     tagline: 'A G+2 shopping mall in a faceted skin, on the HMDA road frontage',
-    thumbnailUrl: placeholderImage('Kallakal Mall', 210, 800, 500),
+    thumbnailUrl: placeholderImage('Terranova Mall', 210, 800, 500),
     stats: [{ label: 'Plot', value: '3,704 sq yd' }, { label: 'Floors', value: 'B2 + G + 2' }, { label: 'Facing', value: 'East' }],
     description:
       'A shopping mall on commercial Plot A-02 in Kallakal, facing east onto the 250 ft HMDA master plan road. Two blocks wrapped in a skin of faceted aluminium and dark glass meet at a lower, double-height glazed entrance under a white canopy; the taller south block carries the name and the north block a curved media screen. A raised forecourt, drop-off and visitor parking lie in front, with a basement car park, loading bays and fire-access drives behind and to either side.',
@@ -352,7 +352,7 @@ function kalakalMall(): Property {
 }
 
 /**
- * Kallakal Hotel on commercial Plot A-04, Kallakal: the client's reference design, a G+2 ring of
+ * Terranova Hotel on commercial Plot A-04, Kallakal: the client's reference design, a G+2 ring of
  * curved glass pavilions round a lamp-lit plaza, modelled in 3D
  * (features/property/scene/furnished/kalakalHotel) as an exterior with its grounds. Areas map to
  * the model's amenity_* hotspots.
@@ -379,9 +379,9 @@ function kalakalHotel(): Property {
       ['Transformer and DG set in a fenced yard', 'Unbroken back wall, no rear access', 'Rain trees on a planted strip'], ['Substation', 'Service access']),
   ]
   return {
-    id: 'p_kalakal_hotel', slug: 'kalakal-hotel', name: 'Kallakal Hotel', type: 'commercial', location: 'Kallakal, NH-44',
+    id: 'p_kalakal_hotel', slug: 'kalakal-hotel', name: 'Terranova Hotel', type: 'commercial', location: 'Kallakal, NH-44',
     tagline: 'A boutique hotel of curved glass pavilions round a lamp-lit plaza, on the HMDA road frontage',
-    thumbnailUrl: placeholderImage('Kallakal Hotel', 160, 800, 500),
+    thumbnailUrl: placeholderImage('Terranova Hotel', 160, 800, 500),
     stats: [{ label: 'Plot', value: '4,676 sq yd' }, { label: 'Floors', value: 'G + 3' }, { label: 'Facing', value: 'East' }],
     description:
       'A hotel on Plot A-04 in Kallakal, facing east onto the 250 ft HMDA master plan road. Three curved, fully glazed G+2 wings with white slab edges wrap a circular lamp-lit plaza that opens to the road: the lobby, reception and all-day restaurant on the ground floor, guest rooms behind sheer curtains on the two floors above. Behind the centre a G+3 rear wing, glazed and banded to match and a storey taller, holds more guest rooms either side of a corridor over a banquet and dining floor. The south wing ends in a glass corner and a white curved fin, the centre wing holds the entrance under a cantilevered roof, and the north wing stands behind a white wall that sweeps up out of the plaza, pierced by two arches. Three black mesh capsules grown over with creepers rise above the roofs. The plot runs 104 m deep, holding the guests\' car park behind the rear wing and the utility yard, walled off from the cross road behind; cars come in by an entry road down the south side and leave by an exit road up the north side.',
@@ -412,7 +412,7 @@ function kalakalHotel(): Property {
 }
 
 /**
- * Kallakal Square on commercial Plot A-01, Kallakal: the client's reference design, a multi-storey
+ * Terranova Square on commercial Plot A-01, Kallakal: the client's reference design, a multi-storey
  * car park over ground-floor shops with a glazed ramp drum, modelled in 3D
  * (features/property/scene/furnished/kalakalA01) as an exterior with its grounds. Areas map to
  * the model's amenity_* hotspots.
@@ -448,9 +448,9 @@ function kalakalA01(): Property {
       ['Two-way ramp up to B1', 'Fire pump room', 'Two lifts and a stair to the drum lobby']),
   ]
   return {
-    id: 'p_kalakal_a01', slug: 'kalakal-a01', name: 'Kallakal Square', type: 'commercial', location: 'Kallakal, NH-44',
+    id: 'p_kalakal_a01', slug: 'kalakal-a01', name: 'Terranova Square', type: 'commercial', location: 'Kallakal, NH-44',
     tagline: 'Shops and a multi-storey car park behind a timber screen, with a glazed ramp drum, on the HMDA road frontage',
-    thumbnailUrl: placeholderImage('Kallakal Square', 160, 800, 500),
+    thumbnailUrl: placeholderImage('Terranova Square', 160, 800, 500),
     stats: [{ label: 'Plot', value: '3,022 sq yd' }, { label: 'Floors', value: 'B2 + G + 3' }, { label: 'Facing', value: 'East' }],
     description:
       'A commercial building on Plot A-01 in Kallakal, facing east onto the 250 ft HMDA master plan road: shops on the ground floor and three parking decks above. The long block runs parallel to the road, its decks screened in vertical thermowood slats hung in staggered panels, some flush, some forward, with mid-grey infill panels and open bays among them between exposed concrete slab edges. A fully glazed drum holding the helical ramp stands proud of the front under a deep black crown with black returns either side, the main entrance at its foot. A cream stair tower with a tall glazed slit and a dark grey lift core close the north end. Traffic runs one way round the block: cars come in off the HMDA road down a drive along the south boundary to the portals in the block\'s south end, cross behind the block on a connector and leave by an exit road along the north boundary. The back of the plot is walled the full width, with no gate onto the cross road.',
@@ -489,7 +489,7 @@ function kalakalA01(): Property {
 }
 
 /**
- * Kallakal Hospital on commercial Plot A-03, Kallakal: the client's reference design, a B2 + G + 3
+ * Terranova Hospital on commercial Plot A-03, Kallakal: the client's reference design, a B2 + G + 3
  * hospital in white cladding and blue-grey glass, modelled in 3D
  * (features/property/scene/furnished/kalakalHospital) as an exterior with its grounds. Areas map
  * to the model's amenity_* hotspots.
@@ -853,9 +853,9 @@ function kalakalHospital(): Property {
       ['Two-way ramp up to B1', 'Fire pump room', 'Bed lift and stair to the main lobby']),
   ]
   return {
-    id: 'p_kalakal_hospital', slug: 'kalakal-hospital', name: 'Kallakal Hospital', type: 'commercial', location: 'Kallakal, NH-44',
+    id: 'p_kalakal_hospital', slug: 'kalakal-hospital', name: 'Terranova Hospital', type: 'commercial', location: 'Kallakal, NH-44',
     tagline: 'A four-storey multispecialty hospital on the HMDA road, its outpatient department fitted out on every floor',
-    thumbnailUrl: placeholderImage('Kallakal Hospital', 205, 800, 500),
+    thumbnailUrl: placeholderImage('Terranova Hospital', 205, 800, 500),
     stats: [{ label: 'Plot', value: '4,090 sq yd' }, { label: 'Floors', value: 'B2 + G + 3' }, { label: 'Facing', value: 'East' }],
     description:
       'A hospital on Plot A-03 in Kallakal, the corner plot facing east onto the 250 ft HMDA master plan road with the 60 ft main avenue along its north side. From the road: a white tower with a grid of punched windows over the outpatient entrance; a lower glazed link; the main block, a blue-grey curtain wall held in a deep white frame whose top band carries the blue cross and the name, with a porte-cochère over the drop-off in front of the main entrance; and the end of the north wing in white bands and ribbon glazing. Behind the fronts the building is one deep block round a light court with a podium garden. The outpatient department occupies the south tower and the body on all four floors, around the court: on the ground floor the outpatient hall with the main reception, enquiry, appointment and lift-assistance counters, the waiting lounge with billing and report collection, the pharmacy and its store, the dressing and injection room, vaccination, insurance and administration; on the first floor nine specialty consultation rooms (general medicine, cardiology, neurology, orthopaedics, dermatology, obstetrics and gynaecology, paediatrics, ENT and general surgery) with vitals, a dressing room, the nurses\' station and medical records; on the second the laboratory (blood collection, sample receiving, haematology, biochemistry, microbiology, serology, clinical pathology) with digital X-ray, ultrasound, pulmonary function and health check-ups; and on the third MRI, CT, ECG, 2D echo and stress testing with radiologists\' reporting. Two stretcher lifts and the OPD stair stand behind the outpatient entrance, a fire stair at the back; corridors ring the court, glazed onto it on the upper floors. The emergency department and the main lobby keep the ground floor\'s north side. Traffic runs one way round: in by the entry drive along the south boundary, either along the drop-off lane in front or on to the covered basement ramp, parking and utility yard behind, and out by the exit road down the north side, past the emergency entrance\'s drive-through ambulance bay. The back is walled off from the cross road.',

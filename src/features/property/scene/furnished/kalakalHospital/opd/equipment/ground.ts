@@ -583,7 +583,7 @@ export function wallShelves(e: OpdCtx, p: Object3D, w: number, d: number, ys: nu
 export function backlitSign(e: OpdCtx, p: Object3D, w: number, h: number, y: number) {
   const { k, m } = e
   k.box(p, w + 0.08, h + 0.08, 0.06, e.o.navy, 0, y, 0.03)
-  const lit = e.o.screen('g_brand', 1536, Math.round((1536 * h) / w), board(NAVY, [['KALLAKAL HOSPITAL', 0.4, '#ffffff'], ['OUTPATIENT DEPARTMENT  ·  बाह्य रोगी विभाग', 0.17, '#c7d3e6', 500]], { cross: true }), 0.55)
+  const lit = e.o.screen('g_brand', 1536, Math.round((1536 * h) / w), board(NAVY, [['TERRANOVA HOSPITAL', 0.4, '#ffffff'], ['OUTPATIENT DEPARTMENT  ·  बाह्य रोगी विभाग', 0.17, '#c7d3e6', 500]], { cross: true }), 0.55)
   face(e, p, w, h, lit, 0, y, 0.0605)
   k.box(p, w + 0.04, 0.012, 0.012, m.ledLine, 0, y - h / 2 - 0.04, 0.07, false)
 }

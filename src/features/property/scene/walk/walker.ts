@@ -5,7 +5,7 @@ export const RADIUS = 0.2
 export const HEIGHT = 1.58
 /** The capsule starts this far above the feet, so a stair tread is stepped onto, not walked into. */
 const STEP = 0.3
-export const WALK_SPEED = 1.25
+export const WALK_SPEED = 2
 const ACCEL = 8
 const GRAVITY = 9.8
 const JUMP_SPEED = 2.6

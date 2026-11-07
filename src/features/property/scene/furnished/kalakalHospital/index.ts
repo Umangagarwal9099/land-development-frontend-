@@ -16,7 +16,7 @@ import { buildContext, buildSite, SITE } from './site'
 export { SITE }
 
 /*
- * Kallakal Hospital on commercial Plot A-03: an exterior model of the client's reference design, a
+ * Terranova Hospital on commercial Plot A-03: an exterior model of the client's reference design, a
  * B2 + G + 3 hospital in white cladding and blue-grey glass. From the road: a white tower of
  * punched windows over the outpatient entrance, a lower glazed link, the main block's curtain
  * wall in a deep white frame with the blue cross and the name across its top and the

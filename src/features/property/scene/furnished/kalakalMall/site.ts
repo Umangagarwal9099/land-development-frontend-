@@ -1,7 +1,7 @@
 import { ExtrudeGeometry, Mesh, PointLight, Shape, type Material, type Object3D } from 'three'
 import type { Point2 } from '../../../../../api/types'
 import { PI } from '../kit'
-import { channelLetters, MALL_NAME, podiumOutline, PORTALS, type MallCtx } from './building'
+import { channelLetters, MALL_NAME, podiumOutline, PORTALS, textWidth, type MallCtx } from './building'
 import { parkedCar } from '../car'
 import { hedge, lawn, shrub, SPECIES, tree } from './foliage'
 import { BAYS, BX0, BX1, clipHalf, DRIVE, ENTRY_X, FRONTAGE_Z, FT, GL, PLAZA_Z, PLOT, REAR_Z } from './plan'
@@ -409,9 +409,9 @@ function buildPylon(ctx: SiteCtx, p: Object3D) {
   bx(ctx, p, [x - 1.05, x + 1.05], [0.3, 6.4], [z - 0.3, z + 0.3], c.frame)
   bx(ctx, p, [x - 0.9, x + 0.9], [0.8, 5.2], [z + 0.3, z + 0.32], c.pylonPanel)
   bx(ctx, p, [x - 1.05, x + 1.05], [5.35, 6.4], [z + 0.3, z + 0.33], c.plantDark)
-  // The name in two lines on the head, KALLAKAL over MALL.
+  // The name in two lines on the head, TERRANOVA over MALL.
   MALL_NAME.split(' ').forEach((line, i) => {
-    const name = channelLetters(c, line, 0.26, 0.05)
+    const name = channelLetters(c, line, Math.min(0.26, 1.7 / textWidth(line)), 0.05)
     name.position.set(x, 5.98 - i * 0.42, z + 0.33)
     p.add(name)
   })

@@ -2,7 +2,7 @@ import { Vector3 } from 'three'
 import type { Point2 } from '../../../../../api/types'
 
 /*
- * Kallakal Mall on commercial Plot A-02, Kallakal: 222′3″ deep (west → east) × 150′ of frontage
+ * Terranova Mall on commercial Plot A-02, Kallakal: 222′3″ deep (west → east) × 150′ of frontage
  * (north → south), 3,704 sq yd, facing east onto the HMDA master plan road on NH-44, with the
  * 60 ft main avenue along its south side and the 33 ft cross road behind it.
  *

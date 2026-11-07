@@ -24,7 +24,7 @@ const XE = 9.7
 const XP = 15.7
 
 export const HOSPITAL_BASEMENT: BasementSpec = {
-  name: 'Kallakal Hospital',
+  name: 'Terranova Hospital',
   box: { x0: W0, x1: W1, z0: -44.55, z1: 20.85 },
   colX: [XW, -5.1, 3.0, XE, XP - 0.3],
   colZ: [-39.55, -33.95, -28.05, -23.05, -12.05, -1.05, 3.95, 8.95, 14.95],
