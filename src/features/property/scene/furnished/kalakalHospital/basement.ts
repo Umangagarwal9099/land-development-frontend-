@@ -1,4 +1,5 @@
 import type { BasementSpec } from '../basement'
+import { MAIN_LIFTS } from './opd/plan'
 import { RAMP } from './plan'
 
 /*
@@ -11,7 +12,10 @@ import { RAMP } from './plan'
  *           under the drop-off lane, falls west to B2.
  *   access: a bed lift and a stair from B2 up to the back of the main entrance lobby, where they
  *           open beside each other facing the doors; a fire stair at the back by the yard; the fire
- *           pump room on B2, the LT electrical room on B1.
+ *           pump room on B2, the LT electrical room on B1. The main block's three lifts (two bed
+ *           lifts and the staff lift, B2 to the third floor) come down through the double row in
+ *           the middle, their doors on the cross aisle in front of it (built by the building, see
+ *           opd/core.ts; `shafts` keeps the bays and columns clear of them).
  *   grid:   8.1 m along the bands (three bays between columns), 16 m clear spans across them on
  *           deep beams; columns stand between bays at the back and front of each row.
  */
@@ -69,6 +73,7 @@ export const HOSPITAL_BASEMENT: BasementSpec = {
     lifts: [{ x: 3.3, z: 7.55, w: 1.6, d: 2.3, door: '+z' }],
     stair: { zone: { x0: 4.6, x1: 9.5, z0: 5.2, z1: 8.75 }, entry: '+x', door: '+z', at: 8.9 },
   },
+  shafts: [{ x0: MAIN_LIFTS.x0 - 0.1, x1: MAIN_LIFTS.x1 + 0.1, z0: MAIN_LIFTS.z0 - 0.1, z1: MAIN_LIFTS.z1 + 0.1 }],
   occupancy: 0.74,
   seed: 4401,
 }

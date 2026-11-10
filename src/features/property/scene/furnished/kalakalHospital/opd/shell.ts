@@ -9,7 +9,7 @@ import { bake, bentTube, face, put, signPanel } from '../erKit'
 import { COURT, ROOF } from '../plan'
 import { inward, Room, type OpdCtx } from './ctx'
 import { lampFace, magnet, radiation, roomPlate, board } from './paints'
-import { CEILING, CORE_WALL, FIRE_STAIR, LEVELS, LIFTS, STAIR, WALL, circulationZone, roomMesh, type Dir, type DoorSpec, type Glazing, type RoomSpec } from './plan'
+import { CEILING, CORE_WALL, FIRE_STAIR, LEVELS, LIFTS, MAIN_LIFTS, MAIN_STAIR, STAIR, WALL, circulationZone, roomMesh, type Dir, type DoorSpec, type Glazing, type RoomSpec } from './plan'
 
 type R = [number, number]
 const PI = Math.PI
@@ -36,6 +36,8 @@ export interface WallRun {
   t: number
   pos?: RoomSpec
   neg?: RoomSpec
+  /** Only above the lower of the two ceilings either side (the spaces are open to each other below). */
+  bulkhead?: boolean
 }
 
 const sidesOf = (r: RoomSpec): Seg[] => {
@@ -48,8 +50,13 @@ const sidesOf = (r: RoomSpec): Seg[] => {
   ]
 }
 
-const joins = (r: RoomSpec) => r.kind === 'circulation' || r.kind === 'public'
+const flows = (r: RoomSpec) => r.kind === 'circulation' || r.kind === 'public'
+/** Two spaces with no wall between them: circulation and public spaces, or two parts of one restricted zone. */
+const joins = (a: RoomSpec, b: RoomSpec) => (flows(a) && flows(b)) || (a.kind === 'restricted' && b.kind === 'restricted')
 const opened = (r: RoomSpec, side: Dir, m: number) => !!r.open?.includes(side) || !!r.gaps?.some((g) => g.side === side && g.from <= m && m <= g.to)
+const closed = (r: RoomSpec | undefined, side: Dir | undefined) => !!r && !!side && !!r.closed?.includes(side)
+/** A room's clear height. */
+export const heightOf = (r: RoomSpec | undefined) => r?.height ?? CEILING
 
 /**
  * Every wall on the floor: wherever a room's side meets another room or nothing, unless the
@@ -82,14 +89,17 @@ export function wallRuns(e: OpdCtx): WallRun[] {
       }
       const facade = e.plan.facade.some((f) => f.axis === axis && Math.abs(f.c - c) < 0.08 && f.from - 0.01 <= m && m <= f.to + 0.01)
       let wall = !facade
-      if (pos && neg && joins(pos.room) && joins(neg.room)) wall = false
+      if (pos && neg && joins(pos.room, neg.room)) wall = false
       if ((pos && opened(pos.room, pos.side, m)) || (neg && opened(neg.room, neg.side, m))) wall = false
+      if (!facade && (closed(pos?.room, pos?.side) || closed(neg?.room, neg?.side))) wall = true
       if (!wall) {
+        // Two spaces open to each other under ceilings of different heights: a bulkhead between them.
+        if (!facade && pos && neg && heightOf(pos.room) !== heightOf(neg.room)) runs.push({ axis, c, a: p, b: q, t: WALL, pos: pos.room, neg: neg.room, bulkhead: true })
         cur = null
         continue
       }
       const t = pos?.room.thick?.includes(pos.side) || neg?.room.thick?.includes(neg.side) ? CORE_WALL : WALL
-      if (cur && cur.b === p && cur.t === t && cur.pos === pos?.room && cur.neg === neg?.room) cur.b = q
+      if (cur && !cur.bulkhead && cur.b === p && cur.t === t && cur.pos === pos?.room && cur.neg === neg?.room) cur.b = q
       else runs.push((cur = { axis, c, a: p, b: q, t, pos: pos?.room, neg: neg?.room }))
     }
   }
@@ -112,10 +122,10 @@ export interface Shell {
   highlights: Map<string, MeshBasicMaterial>
 }
 
-/** The top of a wall: the core's go up to the slab over them (shafts), the rest stop above the ceiling. */
-function wallTop(e: OpdCtx, t: number) {
+/** The top of a wall: the core's go up to the slab over them (shafts), the rest stop above the higher ceiling either side. */
+function wallTop(e: OpdCtx, run: WallRun) {
   const next = e.level < 3 ? LEVELS[e.level + 1] : ROOF
-  return t >= CORE_WALL ? next - 0.3 : e.y + CEILING + 0.06
+  return run.t >= CORE_WALL ? next - 0.3 : e.y + Math.max(heightOf(run.pos), heightOf(run.neg)) + 0.06
 }
 
 /** Builds a floor's shell into e.root and returns its rooms, ready for their fitters. */
@@ -141,13 +151,15 @@ export function buildShell(e: OpdCtx): Shell {
     const inset: Record<Dir, number> = { '-x': 0, '+x': 0, '-z': 0, '+z': 0 }
     const exterior: Dir[] = []
     for (const s of sidesOf(spec)) {
-      const mine = runs.filter((w) => w.axis === s.axis && Math.abs(w.c - s.c) < 0.005 && w.b > s.a && w.a < s.b && (s.pos ? w.pos === spec : w.neg === spec))
+      const mine = runs.filter((w) => !w.bulkhead && w.axis === s.axis && Math.abs(w.c - s.c) < 0.005 && w.b > s.a && w.a < s.b && (s.pos ? w.pos === spec : w.neg === spec))
       if (mine.length) inset[s.side] = Math.max(...mine.map((w) => w.t)) / 2
       const mid = (s.a + s.b) / 2
       if (e.plan.facade.some((f) => f.axis === s.axis && Math.abs(f.c - s.c) < 0.08 && f.from <= mid && mid <= f.to)) exterior.push(s.side)
     }
     const quiet = !!spec.quiet
-    const room = new Room(e, spec, inset, exterior, quiet ? circulationZone(e.level) : roomMesh(e.level, spec.id), quiet ? circulationZone(e.level) : roomMesh(e.level, spec.id))
+    // A room's parts (its washroom, its entry) are lit and walked as the room itself.
+    const name = quiet ? circulationZone(e.level) : roomMesh(e.level, spec.part ?? spec.id, spec.dept)
+    const room = new Room(e, spec, inset, exterior, name, name)
     rooms.set(spec, room)
   }
 
@@ -158,7 +170,7 @@ export function buildShell(e: OpdCtx): Shell {
   for (const [spec, room] of rooms) {
     for (const s of sidesOf(spec)) {
       const onSide = (at: number) =>
-        runs.find((w) => w.axis === s.axis && Math.abs(w.c - s.c) < 0.005 && w.a <= at && at <= w.b && (w.pos === spec || w.neg === spec))
+        runs.find((w) => !w.bulkhead && w.axis === s.axis && Math.abs(w.c - s.c) < 0.005 && w.a <= at && at <= w.b && (w.pos === spec || w.neg === spec))
       for (const d of spec.doors ?? []) {
         if (d.side !== s.side) continue
         const run = onSide(d.at)
@@ -179,19 +191,34 @@ export function buildShell(e: OpdCtx): Shell {
       }
     }
   }
-  // The lift landings: openings for the doors of each car in the bank's corridor wall.
-  const lifts = e.plan.rooms.find((r) => r.id === 'lifts')
-  if (lifts) {
-    const run = runs.find((w) => w.axis === 'x' && Math.abs(w.c - LIFTS.x0) < 0.005 && (w.pos === lifts || w.neg === lifts))
-    if (run) {
+  // The lift landings: openings for the doors of each car in its bank's lobby wall (the OPD's
+  // face the south corridor, along x = LIFTS.x0; the main block's the lift lobby, along z = ZL).
+  const banks = [
+    { id: 'lifts', axis: 'x' as const, c: LIFTS.x0, at: LIFTS.cars.map((c) => c.z) },
+    { id: 'mainLifts', axis: 'z' as const, c: MAIN_LIFTS.z0, at: MAIN_LIFTS.cars.map((c) => c.x) },
+  ]
+  for (const bank of banks) {
+    const lifts = e.plan.rooms.find((r) => r.id === bank.id)
+    if (!lifts) continue
+    for (const at of bank.at) {
+      const run = runs.find((w) => w.axis === bank.axis && Math.abs(w.c - bank.c) < 0.005 && (w.pos === lifts || w.neg === lifts) && w.a <= at && at <= w.b)
+      if (!run) continue
       if (!cuts.has(run)) cuts.set(run, [])
-      for (const car of LIFTS.cars) cuts.get(run)!.push({ a: car.z - 0.62, b: car.z + 0.62, sill: 0, head: 2.3 })
+      cuts.get(run)!.push({ a: at - 0.62, b: at + 0.62, sill: 0, head: 2.3 })
     }
   }
 
   // Build every run, cut for its openings, with its skirtings and its linings either side.
   for (const run of runs) {
-    const top = wallTop(e, run.t)
+    const top = wallTop(e, run)
+    if (run.bulkhead) {
+      // Plasterboard down from the higher ceiling to the lower one, over the opening.
+      const low = e.y + Math.min(heightOf(run.pos), heightOf(run.neg))
+      const half = run.t / 2
+      if (run.axis === 'x') box(paint, [run.c - half, run.c + half], [low, top], [run.a, run.b])
+      else box(paint, [run.a, run.b], [low, top], [run.c - half, run.c + half])
+      continue
+    }
     const own = (cuts.get(run) ?? []).sort((p, q) => p.a - q.a)
     // Solid spans between openings run full height; over and under each opening, the wall above its head and below its sill.
     const pieces: { a: number; b: number; y0: number; y1: number; floor: boolean }[] = []
@@ -233,8 +260,8 @@ export function buildShell(e: OpdCtx): Shell {
   const ceilingMats = new Map<Room, MeshStandardMaterial>()
   for (const [spec, room] of rooms) {
     const [x0, x1, z0, z1] = spec.rect
-    const shaft = spec.id === 'lifts' || ((spec.id === 'stair' || spec.id === 'firestair') && e.level > 0)
-    if (!shaft) {
+    const shaft = spec.well === 'lift' || (spec.well === 'stair' && e.level > 0)
+    if (!shaft && spec.floor !== 'none') {
       const mat = o.floor[spec.floor ?? 'vinyl']
       box(floorOf(mat), [x0, x1], [y, y + 0.012], [z0, z1])
     }
@@ -245,23 +272,27 @@ export function buildShell(e: OpdCtx): Shell {
     room.circuit.glows.push(mat)
     ceilingMats.set(room, mat)
     const t = new Tris()
-    box(t, [x0, x1], [y + CEILING, y + CEILING + 0.015], [z0, z1])
+    const h = heightOf(spec)
+    box(t, [x0, x1], [y + h, y + h + 0.015], [z0, z1])
     t.mesh(mat, room.group, `ceiling_${spec.id}`, false)
   }
   for (const f of e.plan.facade) {
     // Which side of the line the OPD is on.
     const mid = (f.from + f.to) / 2
     const probe = (d: number): [number, number] => (f.axis === 'x' ? [f.c + d, mid] : [mid, f.c + d])
-    const inside = (d: number) => e.plan.rooms.some((r) => {
+    const inside = (d: number) => e.plan.rooms.find((r) => {
       const [px, pz] = probe(d)
       return px > r.rect[0] && px < r.rect[1] && pz > r.rect[2] && pz < r.rect[3]
     })
+    const within = inside(0.2) ?? inside(-0.2)
     const s = inside(0.2) ? 1 : inside(-0.2) ? -1 : 0
     if (!s) continue
     const next = e.level < 3 ? LEVELS[e.level + 1] : ROOF
+    const from = y + heightOf(within)
+    if (from >= next - 0.31) continue
     const off: R = s > 0 ? [f.c, f.c + 0.04] : [f.c - 0.04, f.c]
-    if (f.axis === 'x') box(board, off, [y + CEILING, next - 0.3], [f.from, f.to])
-    else box(board, [f.from, f.to], [y + CEILING, next - 0.3], off)
+    if (f.axis === 'x') box(board, off, [from, next - 0.3], [f.from, f.to])
+    else box(board, [f.from, f.to], [from, next - 0.3], off)
   }
 
   paint.mesh(m.paint, e.root, 'opd_walls')
@@ -277,6 +308,8 @@ export function buildShell(e: OpdCtx): Shell {
       rect(STAIR.x0 + 0.01, STAIR.x1 - 0.1, STAIR.z0 + 0.1, STAIR.z1 - 0.1),
       rect(FIRE_STAIR.x0 + 0.01, FIRE_STAIR.x1 - 0.1, FIRE_STAIR.z0 + 0.01, FIRE_STAIR.z1 - 0.1),
       rect(LIFTS.x0 + 0.1, LIFTS.x1 - 0.1, LIFTS.z0 + 0.1, LIFTS.z1 - 0.1),
+      rect(MAIN_LIFTS.x0 + 0.1, MAIN_LIFTS.x1 - 0.1, MAIN_LIFTS.z0 + 0.1, MAIN_LIFTS.z1 - 0.1),
+      rect(MAIN_STAIR.x0 + 0.1, MAIN_STAIR.x1 - 0.1, MAIN_STAIR.z0 + 0.01, MAIN_STAIR.z1 - 0.1),
     ]
     if (e.level >= 2) holes.push(rect(COURT.x0, COURT.x1, COURT.z0, COURT.z1))
     slab(e.root, e.plan.plate, y - 0.3, y, o.concrete, holes, false, `opd_slab_${e.level}`)
@@ -291,10 +324,10 @@ export function buildShell(e: OpdCtx): Shell {
   // Hotspots: the floor of every room a visitor can open, faintly lit when chosen.
   const highlights = new Map<string, MeshBasicMaterial>()
   for (const room of rooms.values()) {
-    if (room.spec.quiet) continue
+    if (room.spec.quiet || room.spec.part) continue
     const g = new Group()
     g.name = room.mesh
-    g.userData.height = CEILING - 0.1
+    g.userData.height = room.ceiling - 0.1
     // Rooms whose middle is taken by a machine open from their door, looking along it.
     const eye = ENTRY[`${e.level}:${room.spec.id}`]
     if (eye) g.userData.eye = { from: [eye[0], y + eye[1], eye[2]], to: [eye[3], y + eye[4], eye[5]] }
@@ -474,6 +507,19 @@ function buildGlazing(e: OpdCtx, room: Room, g: Glazing, run: WallRun) {
   // Frame round the opening.
   for (const s of [-1, 1]) k.box(G, 0.04, h, t + 0.02, o.frame, s * (len / 2 - 0.02), g.sill + h / 2, 0)
   k.box(G, len, 0.04, t + 0.02, o.frame, 0, g.head - 0.02, 0)
+  if (kind === 'teller') {
+    // A cash counter's screen: a ledge through the wall, laminated security glass to the head
+    // with a round speech grille at face height and a recessed deal tray under it at the ledge.
+    k.box(G, len, 0.04, t + 0.5, m.solidSurface, 0, g.sill + 0.02, 0)
+    k.box(G, len - 0.08, g.head - g.sill - 0.12, 0.016, o.screenGlass, 0, (g.sill + 0.06 + g.head - 0.04) / 2, 0, false)
+    for (const s of [-1, 1]) k.box(G, 0.03, g.head - g.sill - 0.08, 0.04, m.aluminium, s * (len / 2 - 0.06), (g.sill + g.head) / 2, 0, false)
+    const grille = k.cyl(G, 0.07, 0.07, 0.02, m.stainless, 0, g.sill + 0.55, 0, 24)
+    grille.rotation.x = PI / 2
+    for (let i = -2; i <= 2; i++) k.box(G, 0.1, 0.006, 0.024, m.black, 0, g.sill + 0.55 + i * 0.018, 0, false)
+    k.box(G, 0.36, 0.035, t + 0.36, m.stainless, 0, g.sill + 0.0, 0)
+    k.box(G, 0.32, 0.01, t + 0.32, m.black, 0, g.sill + 0.02, 0, false)
+    return
+  }
   if (kind === 'hatch') {
     // A transaction counter through the wall: a solid-surface ledge, a low glass screen over it.
     k.box(G, len, 0.04, t + 0.5, m.solidSurface, 0, g.sill + 0.02, 0)
@@ -504,7 +550,7 @@ function overhead(e: OpdCtx, room: Room, ceiling: boolean) {
     lamps(room)
     return
   }
-  const yc = room.y + CEILING
+  const yc = room.y + room.ceiling
   const light = spec.light ?? (spec.kind === 'service' ? 'service' : spec.ceiling === 'board' ? 'lounge' : 'clinical')
   const panel = m.ledPanel.clone()
   e.lighting.glow(panel, 1)

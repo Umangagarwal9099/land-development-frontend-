@@ -257,8 +257,9 @@ export function buildStorey(ctx: Ctx, level: Level, site: Site): Storey {
 
   // Floor and soffit, open where ramps pass through and over the lift and stair core.
   const core = spec.access.rect
-  group.add(slabSurface(box, [...below.map((r) => rampRect(r)), core], y, m.floor, false))
-  const ceiling = slabSurface(box, [...above.map((r) => rampRect(r)), core], soffit, m.soffit, true)
+  const shafts = spec.shafts ?? []
+  group.add(slabSurface(box, [...below.map((r) => rampRect(r)), core, ...shafts], y, m.floor, false))
+  const ceiling = slabSurface(box, [...above.map((r) => rampRect(r)), core, ...shafts], soffit, m.soffit, true)
   ceiling.name = 'ceiling'
   overhead.add(ceiling)
 
@@ -277,7 +278,7 @@ export function buildStorey(ctx: Ctx, level: Level, site: Site): Storey {
   // Columns, beams on the grid lines under the slab.
   const cols = columns(spec, level)
   buildColumns(ctx, group, level, cols, y, H)
-  const holes = [...above.map((r) => rampRect(r)), core]
+  const holes = [...above.map((r) => rampRect(r)), core, ...shafts]
   const BW = 0.4
   const BD = 0.6
   for (const z of spec.colZ) {

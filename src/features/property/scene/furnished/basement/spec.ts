@@ -103,6 +103,8 @@ export interface LiftSpec {
   door: Dir
   /** Which side of the doors (across them) the call buttons are on; +1 unless something stands there. */
   call?: 1 | -1
+  /** The capacity plate in the car, two lines (13 persons, 1000 kg unless given). */
+  plate?: [string, string]
 }
 
 /**
@@ -143,6 +145,12 @@ export interface BasementSpec {
   aisles: AisleSpec[]
   rooms: RoomSpec[]
   access: AccessSpec
+  /**
+   * Lift shafts of the building above that come down through the car park beside the access core
+   * (built by the building, which opens their landings onto an aisle): bays and columns keep clear
+   * of them, and the slabs and beams are left open over them.
+   */
+  shafts?: Rect[]
   /** Share of bays with a car in them. */
   occupancy: number
   seed: number
@@ -217,6 +225,7 @@ export function obstacles(spec: BasementSpec, level: Level): Rect[] {
     ...rampsIn(spec, level).map((r) => rampRect(r)),
     ...spec.cores.map((c) => c.rect),
     spec.access.rect,
+    ...(spec.shafts ?? []),
     ...spec.rooms.filter((r) => r.levels.includes(level)).map((r) => r.rect),
   ]
 }

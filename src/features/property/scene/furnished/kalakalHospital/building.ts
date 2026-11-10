@@ -250,13 +250,16 @@ function curtain(p: Parts, f: Face, y0: number, y1: number, lines: number[], see
  * floor, silver mullions with a transom, and automatic sliding doors at each of `doors` (centres
  * along the face) with their operator housings and mats.
  */
-function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[], offset: number, walk?: { ctx: HospitalCtx; parent: Object3D; fitted?: boolean }) {
+function lobbyFront(p: Parts, f: Face, top: number, deep: number, doors: number[], offset: number, walk?: { ctx: HospitalCtx; parent: Object3D; fitted?: boolean; shell?: boolean }) {
   // A fitted hall (the emergency department) is modelled in full behind the glass: no backdrop,
-  // ceiling or floor of its own.
+  // ceiling or floor of its own. A hall whose walls and ceiling are the interior's (the main
+  // lobby, see opd/plan.ts) keeps only its floor and the backdrop behind the core.
   if (!walk?.fitted) {
     fplane(p.hall, f, [0, f.len], [GL, top], -deep, (s, y) => [(s + offset) / 20, (y - GL) / (top - GL)])
-    fbox(p.ceiling, f, [0, f.len], [top - 0.02, top], [-deep, -0.15])
-    for (const s of [0, f.len - 0.12]) fbox(p.inner, f, [s, s + 0.12], [GL, top], [-deep, -0.15])
+    if (!walk?.shell) {
+      fbox(p.ceiling, f, [0, f.len], [top - 0.02, top], [-deep, -0.15])
+      for (const s of [0, f.len - 0.12]) fbox(p.inner, f, [s, s + 0.12], [GL, top], [-deep, -0.15])
+    }
   }
   if (!walk) {
     fbox(p.floor, f, [0, f.len], [GL, GL + 0.012], [-deep, -0.15])
@@ -450,7 +453,7 @@ function buildMain(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   // The first floor's edge, white, over the lobby's glass, and the lobby itself.
   box(p.wall, [x0 + pier, x1 - pier], [L1 - 0.65, L1 + 0.4], [lobby, glass])
   const lb = eastFace(lobby, x0 + pier, x1 - pier)
-  lobbyFront(p, lb, L1 - 0.65, 8, [lb.len / 2], 4, ctx.openings ? { ctx, parent } : undefined)
+  lobbyFront(p, lb, L1 - 0.65, 8, [lb.len / 2], 4, ctx.openings ? { ctx, parent, shell: true } : undefined)
   buildName(ctx, parent)
 }
 
@@ -581,20 +584,23 @@ function buildRoof(ctx: HospitalCtx, p: Parts, parent: Object3D) {
   const hole = rect(COURT.x0, COURT.x1, COURT.z0, COURT.z1)
   slab(parent, outline(), ROOF - 0.3, ROOF, [c.roofDeck, c.wall], [hole], true, 'roof')
   // Stair and lift overruns, rendered like the walls.
-  // Stair and lift overruns: the OPD's core and its fire stair, the north wing's plant room, the main lobby's core.
+  // Stair and lift overruns: the OPD's core and its fire stair, the north wing's plant room, the
+  // main lobby's core, the main block's lift bank and its stair.
   for (const [ox0, ox1, oz0, oz1, h] of [
     [-11.6, -1.9, -2.5, 4.0, 3.8],
     [-11.6, -7.1, -25.8, -19.5, 3.4],
     [8.2, 13.2, -4.0, 1.2, 4.6],
     [2.6, 7.8, 5.2, 9.8, 3.6],
+    [-1.9, 3.9, -1.25, 2.3, 4.2],
+    [-4.45, 1.95, -25.8, -20.35, 3.4],
   ] as const) {
     box(p.wall, [ox0, ox1], [ROOF, ROOF + h], [oz0, oz1])
     box(p.coping, [ox0 - 0.05, ox1 + 0.05], [ROOF + h, ROOF + h + 0.08], [oz0 - 0.05, oz1 + 0.05])
     shade.rect((ox0 + ox1) / 2, ROOF + 0.005, (oz0 + oz1) / 2, ox1 - ox0 + 1, oz1 - oz0 + 1, 0, 0.45)
   }
-  // Air-handling units in a row along the back, on plinths.
-  for (let i = 0; i < 4; i++) {
-    const x = 1 + i * 3.4
+  // Air-handling units in a row along the back, on plinths, beside the main stair's head.
+  for (let i = 0; i < 3; i++) {
+    const x = 3.6 + i * 3.4
     box(p.louvre, [x - 1.2, x + 1.2], [ROOF + 0.3, ROOF + 2.3], [-24.4, -19.4])
     box(p.skirt, [x - 1.3, x + 1.3], [ROOF, ROOF + 0.3], [-24.5, -19.3])
     shade.rect(x, ROOF + 0.005, -21.9, 2.8, 5.4, 0, 0.5)

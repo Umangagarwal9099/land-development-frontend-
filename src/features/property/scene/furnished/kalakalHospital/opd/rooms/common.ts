@@ -125,10 +125,10 @@ const riser: Fitter = (e, room) => {
 
 /** The floor's departments, for the directory totem in the link. */
 const DIRECTORY: Record<number, string[]> = {
-  0: ['Main Reception & Enquiry', 'Pharmacy', 'Billing · Report Collection', 'Dressing & Injection', 'Vaccination', 'Insurance & TPA', 'Lifts to floors 1–3'],
-  1: ['Consultations 101–109', 'Dressing & Examination 110', 'Vitals & Pre-consultation', 'Nurses\' Station', 'Medical Records', 'Waiting Lounge'],
-  2: ['Blood Sample Collection', 'Laboratories 210–219', 'Digital X-ray 209', 'Ultrasound 205 · PFT 206', 'Health Check-up 201', 'Waiting Lounge'],
-  3: ['MRI · CT', 'ECG · 2D Echo · TMT', 'Cardiac Consultation 311', 'Imaging Reporting', 'Waiting Lounge'],
+  0: ['OPD Reception & Enquiry', 'Vaccination · OPD Insurance', 'Main Reception & Admissions →', 'Patient Services · Billing · Pharmacy →', 'Main lifts to wards, ICU, theatres'],
+  1: ['OPD Consultations 101–103', 'Inpatient Rooms 101–107 →', 'Nurses\' Station →', 'Relatives\' Lounge →'],
+  2: ['Digital X-ray 208–209', 'International Patient Wing →', 'ICU & Ventilator Rooms →', 'ICU Relatives\' Waiting →'],
+  3: ['CT Scan 307–308', 'Operation Theatres 1–3 →', 'Pre-op · Recovery (PACU) →', 'OT Relatives\' Waiting →'],
 }
 
 const link: Fitter = (e, room) => {
@@ -259,9 +259,9 @@ const loungeFront: Fitter = (e, room) => {
 /* ---------- the floors' reception halls ---------- */
 
 const RECEPTION: Record<number, { title: string; sub: string; screen: [string, [string, string][]]; his: [string, string]; len: number }> = {
-  1: { title: 'FIRST FLOOR RECEPTION', sub: 'Consultation desk · Tokens · Appointments', screen: ['Consultations', [['GM-014', 'Room 101'], ['CA-006', 'Room 102'], ['NE-002', 'Room 103'], ['OR-011', 'Room 104'], ['DE-007', 'Room 105']]], his: ['OPD Registration · Consultation tokens', 'Appointments · Today'], len: 2.6 },
-  2: { title: 'DIAGNOSTICS REGISTRATION & HELP DESK', sub: 'Test booking · Billing · Report collection', screen: ['Diagnostics', [['L-023', 'Sample collection'], ['X-008', 'X-ray · 209'], ['U-005', 'Ultrasound · 205'], ['P-002', 'PFT · 206'], ['H-001', 'Health check · 201']]], his: ['LIS · Test booking & billing', 'Reports · Dispatch status'], len: 2.8 },
-  3: { title: 'IMAGING & CARDIAC RECEPTION', sub: 'MRI · CT · ECG · 2D Echo · TMT · Appointments', screen: ['Imaging & Cardiac', [['CT-05', 'CT · 308'], ['MR-03', 'MRI · 312'], ['EC-11', 'ECG · 305'], ['EH-04', 'Echo · 304'], ['TM-02', 'TMT · 310']]], his: ['RIS · Scan scheduling', 'MRI safety screening'], len: 2.6 },
+  1: { title: 'OPD CONSULTATION RECEPTION', sub: 'Consultation desk · Tokens · Appointments', screen: ['Consultations', [['GM-014', 'Room 101'], ['CA-006', 'Room 102'], ['NE-002', 'Room 103'], ['GM-015', 'Room 101'], ['CA-007', 'Room 102']]], his: ['OPD Registration · Consultation tokens', 'Appointments · Today'], len: 2.6 },
+  2: { title: 'X-RAY REGISTRATION & HELP DESK', sub: 'X-ray booking · Billing · Report collection', screen: ['Digital X-ray', [['X-008', 'X-ray · 209'], ['X-009', 'X-ray · 209'], ['X-010', 'X-ray · 209'], ['R-004', 'Report desk'], ['X-011', 'X-ray · 209']]], his: ['RIS · X-ray booking & billing', 'Reports · Dispatch status'], len: 2.8 },
+  3: { title: 'CT SCAN RECEPTION', sub: 'CT booking · Contrast consent · Appointments', screen: ['CT Scan', [['CT-05', 'CT · 308'], ['CT-06', 'CT · 308'], ['CT-07', 'CT · 308'], ['CT-08', 'CT · 308'], ['R-002', 'Report desk']]], his: ['RIS · Scan scheduling', 'Contrast safety screening'], len: 2.6 },
 }
 
 /**
@@ -287,20 +287,20 @@ const reception: Fitter = (e, room) => {
   deskPhone(e, g, -0.1, 0.765, 0.15, PI)
   printer(e, g, half - 0.35, 0.765, -0.05, PI)
   if (room.level === 3) {
-    // The MRI safety questionnaire on its clipboard, the preparation leaflets in their holder.
+    // The contrast safety questionnaire on its clipboard, the preparation leaflets in their holder.
     k.box(g, 0.24, 0.006, 0.33, m.paper, -half + 0.4, 1.125, 0.6, false)
     k.box(g, 0.25, 0.008, 0.35, e.o.oak, -half + 0.4, 1.12, 0.6, false)
     for (let i = 0; i < 3; i++) k.box(g, 0.1, 0.22, 0.02, [m.blue, m.green, m.purple][i], -0.6 + i * 0.12, 1.24, 0.62)
   }
   if (room.level === 2) for (let i = 0; i < 3; i++) k.box(g, 0.24, 0.32, 0.02, m.vacuum, half - 1.2 + i * 0.05, 0.9, -0.2 + i * 0.03, false)
   room.info(g, {
-    title: room.level === 1 ? 'First Floor Reception & Consultation Desk' : room.level === 2 ? 'Diagnostics Registration & Help Desk' : 'Imaging & Cardiac Reception',
+    title: room.level === 1 ? 'OPD Consultation Reception' : room.level === 2 ? 'X-ray Registration & Help Desk' : 'CT Scan Reception',
     kind: 'Reception counter',
     body: room.level === 1
       ? 'Where patients for the floor\'s consultations check in: the clerks confirm the appointment, take the consultation fee if it was not paid downstairs, issue the token for the doctor\'s room and send the patient for vitals before the consultation.'
       : room.level === 2
-        ? 'Test booking and billing for walk-in and referred patients, sample-collection tokens, help with fasting and preparation instructions, and the collection of printed reports.'
-        : 'Scheduling and arrival for MRI, CT and cardiac tests: the MRI safety questionnaire is completed here with the patient, preparation instructions are explained, and patients are sent to changing and screening.',
+        ? 'X-ray booking and billing for walk-in and referred patients, X-ray tokens, help with preparation, and the collection of printed reports and films.'
+        : 'Scheduling and arrival for CT scans: the contrast safety questionnaire and consent are completed here with the patient, renal function and allergies checked, and preparation instructions explained.',
     specs: ['Solid-surface counter with a transaction ledge at 1.1 m and a 0.8 m wheelchair section', 'Two hospital information system workstations, token and label printers', 'Card and UPI payment terminals'],
   })
   // The sign over it, on the stair's wall.

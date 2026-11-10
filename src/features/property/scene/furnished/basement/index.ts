@@ -74,6 +74,11 @@ export class Basement {
   private overheads = new Map<Level, { group: Group; soffit: number }>()
   private earths: Group[] = []
   lifts: Lift[] = []
+  /**
+   * Called once as the levels are built, before their static parts merge: the building above
+   * adds what it brings down into the car park (its own lift shafts and landings) to each level.
+   */
+  readonly onBuild: ((at: (level: Level) => Group) => void)[] = []
   private view: BasementView = null
   private below = false
   private shadowCasters: Mesh[] = []
@@ -138,6 +143,7 @@ export class Basement {
       this.links.push(s)
     }
     this.root.add(this.ground, this.cars)
+    for (const add of this.onBuild) add((level) => this.storeys.get(level)!)
     // Merge the static parts of each part separately, so each shows and hides on its own.
     for (const g of [...this.overheads.values()].map((o) => o.group)) mergeStatic(g, LIVE)
     for (const g of this.earths) mergeStatic(g, LIVE)

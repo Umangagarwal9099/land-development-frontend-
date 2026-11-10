@@ -134,9 +134,52 @@ export const ashLaminate: Paint = (g, w, h) => {
   }
 }
 
+/**
+ * Wood-look luxury vinyl plank (the international suites, the counselling room): warm oak planks
+ * 180 mm wide in staggered lengths, each its own tone, with fine grain and dark hairline joints.
+ * The canvas covers 1.2 m square at true scale.
+ */
+export const woodPlank: Paint = (g, w, h) => {
+  const r = rng(8123)
+  const plankW = w * (0.18 / 1.2)
+  const tones = ['#b98c5f', '#a97c50', '#c49a6c', '#b08356', '#9f7449', '#bf9466']
+  for (let col = 0; col * plankW < w + 1; col++) {
+    let y = -r() * h
+    while (y < h) {
+      const len = h * (0.5 + r() * 0.75)
+      g.fillStyle = tones[Math.floor(r() * tones.length)]
+      g.fillRect(col * plankW, y, plankW, len)
+      // Grain: long, gently wandering strokes, a few knots.
+      for (let i = 0; i < 9; i++) {
+        g.strokeStyle = `rgba(${70 + r() * 30},${45 + r() * 20},${25 + r() * 10},${0.06 + r() * 0.1})`
+        g.lineWidth = 0.6 + r() * 1.4
+        g.beginPath()
+        let x = col * plankW + r() * plankW
+        g.moveTo(x, y)
+        for (let t = y; t <= y + len; t += len / 10) {
+          x += (r() - 0.5) * 2.2
+          g.lineTo(Math.min(col * plankW + plankW - 1, Math.max(col * plankW + 1, x)), t)
+        }
+        g.stroke()
+      }
+      if (r() < 0.25) {
+        g.fillStyle = 'rgba(70,45,25,0.25)'
+        g.beginPath()
+        g.ellipse(col * plankW + r() * plankW, y + r() * len, 2 + r() * 3, 4 + r() * 5, 0, 0, Math.PI * 2)
+        g.fill()
+      }
+      g.fillStyle = 'rgba(40,25,15,0.55)'
+      g.fillRect(col * plankW, y, plankW, 1.2)
+      y += len
+    }
+    g.fillStyle = 'rgba(40,25,15,0.5)'
+    g.fillRect(col * plankW, 0, 1.2, h)
+  }
+}
+
 /* ---------- signage ---------- */
 
-type Line = [text: string, size: number, colour: string, weight?: number]
+type Line =[text: string, size: number, colour: string, weight?: number]
 
 /** Lines of type centred on a ground, sizes as shares of the height; long lines are narrowed to fit. */
 function setLines(g: CanvasRenderingContext2D, w: number, h: number, lines: Line[], x0 = 0, x1 = w, align: CanvasTextAlign = 'center') {

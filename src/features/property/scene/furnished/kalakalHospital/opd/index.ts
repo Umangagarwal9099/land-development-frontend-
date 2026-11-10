@@ -20,7 +20,7 @@ export { insideOpd } from './plan'
  */
 
 /** Parts kept whole when a floor merges: everything that moves, is operated, or is found by name. */
-const LIVE = /^(door_|drawer_|switch_|spin_|room_|button_|liftdoor_|liftcar_|info_|goto_|autoleaf_)/
+const LIVE = /^(door_|drawer_|switch_|spin_|room_|button_|liftdoor_|liftcar_|info_|goto_|autoleaf_|void_|live_)/
 /** Of those, the ones shown only on the floor being looked at (they cost a draw call or two each). */
 const LOCAL = /^(door_|drawer_|switch_|info_|goto_)/
 /** Pieces smaller than this (radius, m) are a floor's fittings rather than its structure. */
@@ -40,6 +40,8 @@ export interface Opd {
   frame: (camera: Camera) => boolean
   /** The OPD room (or circulation) a walker at (x, y, z) is in, as a light zone; null outside it. */
   zoneAt: (x: number, y: number, z: number) => string | null
+  /** What the main block's lifts bring down into the car park, by basement level. */
+  basement: Map<-1 | -2, Group>
 }
 
 export function buildOpd(ctx: HospitalCtx, parent: Object3D): Opd {
@@ -60,6 +62,7 @@ export function buildOpd(ctx: HospitalCtx, parent: Object3D): Opd {
     es.push(e)
     const shell = buildShell(e)
     for (const [name, mat] of shell.highlights) highlights.set(name, mat)
+    for (const room of shell.rooms) e.byId.set(room.spec.id, room)
     for (const room of shell.rooms) {
       const fit = FITTERS[room.spec.fit]
       if (!fit) continue
@@ -67,7 +70,7 @@ export function buildOpd(ctx: HospitalCtx, parent: Object3D): Opd {
         fit(e, room)
       } catch (err) {
         // A fitter's fault leaves its room empty rather than the hospital unbuilt.
-        console.error(`OPD: fitting ${room.spec.id} on floor ${plan.label} failed`, err)
+        console.error(`Hospital: fitting ${room.spec.id} on floor ${plan.label} failed`, err)
       }
     }
     rooms.push(shell.rooms)
@@ -117,7 +120,7 @@ export function buildOpd(ctx: HospitalCtx, parent: Object3D): Opd {
   let view: ModelView = { level: null, walking: false, room: null }
   let walkLevel: number | null = null
   const levelOfRoom = (mesh: string | null) => {
-    const m = mesh ? /^room_opd_(g|\d)_/.exec(mesh) : null
+    const m = mesh ? /^room_(?:opd|main)_(g|\d)_/.exec(mesh) : null
     return m ? (m[1] === 'g' ? 0 : Number(m[1])) : null
   }
   const focus = () => (view.walking ? walkLevel : (levelOfRoom(view.room) ?? (view.level !== null && view.level >= 0 ? view.level : null)))
@@ -143,6 +146,7 @@ export function buildOpd(ctx: HospitalCtx, parent: Object3D): Opd {
     rooms,
     highlights,
     lifts: core.host,
+    basement: core.basement,
     setView: (v) => {
       view = v
       if (!v.walking) {
@@ -154,7 +158,7 @@ export function buildOpd(ctx: HospitalCtx, parent: Object3D): Opd {
     },
     zone: (z) => {
       // Walking into a floor brings its fittings out.
-      const m = /^(?:room_opd_|opd_)(g|\d)_/.exec(z)
+      const m = /^(?:room_(?:opd|main)_|opd_)(g|\d)_/.exec(z)
       if (view.walking && m) {
         const level = m[1] === 'g' ? 0 : Number(m[1])
         if (level !== walkLevel) {
@@ -192,8 +196,8 @@ export function buildOpd(ctx: HospitalCtx, parent: Object3D): Opd {
  */
 function overviewLamps(e: OpdCtx, g: Group) {
   const spots: [number, number][] = e.level === 0
-    ? [[-7, 7.5], [0.5, 1], [-6, -10], [2.5, -9], [0, -19.4], [-9.5, -12]]
-    : [[-7, 7.5], [6, 8.5], [-6, -10], [9, -12], [4, -22.5], [12, -2]]
+    ? [[-7, 7.5], [0.5, 3], [-6, -10], [0.3, -10], [0, -19.4], [-9.5, -12], [6, 11]]
+    : [[-7, 7.5], [6, 8.5], [-6, -10], [9, -12], [4, -22.5], [12, -2], [1, -2.3]]
   for (const [x, z] of spots) {
     const l = e.lighting.light(new PointLight('#fff2e2', 7, 15, 1.6), 0.6)
     l.position.set(x, e.y + CEILING - 0.4, z)

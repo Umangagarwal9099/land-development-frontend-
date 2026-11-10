@@ -395,7 +395,8 @@ export class Lift {
       this.carButtons.set(cmd, b)
     }
     // The capacity plate.
-    const plate = ctx.m.painted('liftplate', 256, 128, board(['13 PERSONS', '1000 KG'], 'none', '#3a3d40'))
+    const words = this.spec.plate ?? ['13 PERSONS', '1000 KG']
+    const plate = ctx.m.painted(`liftplate_${words.join('_')}`, 256, 128, board(words, 'none', '#3a3d40'))
     face(g, f, 0.16, 0.08, plate, pa, 0.95, po - 0.01, true)
   }
 

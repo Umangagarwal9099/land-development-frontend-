@@ -16,36 +16,36 @@ import { CEILING, STAIR } from './plan'
 /** Hanging signs per floor: where (plan x, z), which way they face (across a corridor along x or z), the rooms they show. */
 const HANGING: Record<number, { x: number; z: number; along: 'x' | 'z'; rooms: string[] }[]> = {
   0: [
-    { x: -6.0, z: -1.2, along: 'z', rooms: ['dressing', 'admin', 'pharmacy'] },
-    { x: 0.6, z: -4.6, along: 'x', rooms: ['pharmacy', 'billing', 'reports'] },
-    { x: -6.0, z: -15.0, along: 'z', rooms: ['vaccination', 'admin', 'pharmacyStore'] },
+    { x: -6.0, z: -1.2, along: 'z', rooms: ['security', 'insurance', 'vaccination'] },
+    { x: 0.35, z: -4.6, along: 'x', rooms: ['services', 'ipdInsurance', 'pharmacy'] },
+    { x: 1.0, z: -19.4, along: 'x', rooms: ['pharmacy', 'records', 'adminOffice'] },
   ],
   1: [
     { x: -6.0, z: -1.2, along: 'z', rooms: ['medicine', 'cardiology', 'neurology'] },
-    { x: 0.6, z: -4.6, along: 'x', rooms: ['vitals', 'records', 'ent'] },
-    { x: 1.0, z: -19.4, along: 'x', rooms: ['orthopaedics', 'gynaecology', 'paediatrics'] },
-    { x: 8.96, z: -12.0, along: 'z', rooms: ['surgery', 'dressingExam', 'doctors'] },
+    { x: 0.35, z: -4.6, along: 'x', rooms: ['nurses', 'r105', 'exam'] },
+    { x: -2.0, z: -19.4, along: 'x', rooms: ['r101', 'r102', 'dirty'] },
+    { x: 8.96, z: -12.0, along: 'z', rooms: ['r103', 'r104', 'doctors'] },
   ],
   2: [
-    { x: -6.0, z: -1.2, along: 'z', rooms: ['xray', 'xrayControl', 'bloodCollection'] },
-    { x: 0.6, z: -4.6, along: 'x', rooms: ['bloodCollection', 'pft', 'ultrasound'] },
-    { x: 1.0, z: -19.4, along: 'x', rooms: ['centrifuge', 'microbiology', 'serology'] },
-    { x: 8.96, z: -12.0, along: 'z', rooms: ['haematology', 'biochemistry', 'receiving'] },
+    { x: -6.0, z: -1.2, along: 'z', rooms: ['xray', 'xrayControl'] },
+    { x: 0.35, z: -4.6, along: 'x', rooms: ['icuWaiting', 'intlLounge', 'counselling'] },
+    { x: 8.96, z: -8.0, along: 'z', rooms: ['icuStation', 'isolation', 'icu4'] },
+    { x: 4.0, z: -19.4, along: 'x', rooms: ['vent1', 'vent2', 'icuStation'] },
   ],
   3: [
-    { x: -6.0, z: -1.2, along: 'z', rooms: ['ct', 'ctControl', 'ctPrep'] },
-    { x: 0.6, z: -4.6, along: 'x', rooms: ['ctPrep', 'ecg', 'echo'] },
-    { x: -2.6, z: -19.4, along: 'x', rooms: ['mriScreening', 'mri', 'mriControl'] },
-    { x: 8.96, z: -12.0, along: 'z', rooms: ['tmt', 'cardiacConsult', 'equipment'] },
+    { x: -6.0, z: -1.2, along: 'z', rooms: ['ct', 'ctControl'] },
+    { x: 0.35, z: -4.6, along: 'x', rooms: ['transfer', 'preop', 'pacu'] },
+    { x: 8.96, z: -12.0, along: 'z', rooms: ['pacu', 'dirtyOt', 'cssd'] },
+    { x: 4.0, z: -19.4, along: 'x', rooms: ['changeM', 'changeF', 'cssd'] },
   ],
 }
 
-/** What each floor's board lists under its name. */
+/** What each floor's OPD board lists under its name. */
 const DEPARTMENTS: Record<number, string[]> = {
-  0: ['Main Reception · Appointments · Billing', 'Pharmacy · Report Collection', 'Dressing & Injection · Vaccination'],
-  1: ['Specialty Consultations 101 – 109', 'Dressing & Examination · Vitals', 'Nurses\' Station · Medical Records'],
-  2: ['Blood Collection · Laboratory', 'Digital X-ray · Ultrasound · PFT', 'Health Check-up · Report Desk'],
-  3: ['MRI · CT Scan', 'ECG · 2D Echo · Stress Test', 'Cardiac Consultation · Reporting'],
+  0: ['OPD Reception · Appointments · Vaccination', 'Main Reception · Admissions · Pharmacy →', 'Billing · Insurance · Cash Counter →'],
+  1: ['OPD Consultations 101 – 103', 'Inpatient Rooms 101 – 107 →', 'Nurses\' Station · Relatives\' Lounge →'],
+  2: ['Digital X-ray 208 – 209', 'Intensive Care Unit →', 'International Patient Wing →'],
+  3: ['CT Scan 307 – 308', 'Operation Theatres 1 – 3 →', 'Pre-op · Recovery · OT Waiting →'],
 }
 
 const short = (name: string) => name.replace(' Laboratory', ' Lab').replace('Administration & Patient Registration', 'Administration').replace('Sample Receiving & Accessioning', 'Sample Receiving')
@@ -154,5 +154,8 @@ export function buildWayfinding(es: OpdCtx[], rooms: Room[][]) {
     exit(-6.0, 3.2, Math.PI / 2, true)
     exit(-6.0, -20.4, Math.PI / 2, true)
     exit(-5.6, -9.0, 0, level !== 0)
+    // The main block: to the main stair at the back, down the back corridor from the north side.
+    exit(3.5, -19.4, Math.PI / 2, false)
+    if (level > 0) exit(8.96, -16.5, 0, true)
   })
 }

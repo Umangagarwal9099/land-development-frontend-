@@ -9,7 +9,7 @@ import type { Paint } from '../../textures'
 import { circuit, type Circuit } from '../../kalakalD65/fixtures'
 import { makeCtx, type Ctx as ErCtx } from '../erKit'
 import type { EmergencyMaterials } from '../emergencyMaterials'
-import { ashLaminate, ceramic, epoxy, hisScreen, NAVY, vitrified, wallTile } from './paints'
+import { ashLaminate, ceramic, epoxy, hisScreen, NAVY, vitrified, wallTile, woodPlank } from './paints'
 import { CEILING, type Dir, type DoorSpec, type FloorPlan, type RoomSpec } from './plan'
 
 /*
@@ -70,6 +70,8 @@ export function opdMaterials(k: Kit, lighting: Lighting, m: EmergencyMaterials) 
         g.globalAlpha = 1
       }, 2, 1024, { roughness: 0.34 }),
       service: metric('epoxy', epoxy, 2, 512, { roughness: 0.55 }),
+      wood: metric('woodVinyl', woodPlank, 1.2, 1024, { roughness: 0.42 }),
+      none: m.vinylLight,
     },
     wallTile: metric('wallTile', wallTile, 1.2, 512, { roughness: 0.22 }),
     /** Pale ash laminate for room doors; the frames in white powder-coated steel. */
@@ -146,6 +148,8 @@ export interface OpdCtx extends ErCtx {
   y: number
   /** The floor's title, for the information cards ("Third Floor · MRI Scan Room"). */
   floorName: string
+  /** Every room on the floor by id, once the shell is built (a fitter finds a room's parts here). */
+  byId: Map<string, Room>
 }
 
 export function makeOpdCtx(k: Kit, lighting: Lighting, root: Group, plan: FloorPlan, seed: number): OpdCtx {
@@ -153,7 +157,7 @@ export function makeOpdCtx(k: Kit, lighting: Lighting, root: Group, plan: FloorP
   let o = shared.get(k.m)
   if (!o) shared.set(k.m, (o = opdMaterials(k, lighting, e.m)))
   const floorName = ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor'][plan.level]
-  return { ...e, o, plan, level: plan.level, y: plan.y, floorName }
+  return { ...e, o, plan, level: plan.level, y: plan.y, floorName, byId: new Map() }
 }
 
 /* ---------- a room ---------- */
@@ -201,7 +205,7 @@ export class Room {
   /** Sides that are the building's façade (windows, from 0.9 m up), not a wall of ours. */
   readonly exterior: Dir[]
   /** The ceiling's height above the floor. */
-  readonly ceiling = CEILING
+  readonly ceiling: number
   private e: OpdCtx
 
   constructor(e: OpdCtx, spec: RoomSpec, inset: Record<Dir, number>, exterior: Dir[], mesh: string, zone: string) {
@@ -215,9 +219,10 @@ export class Room {
     this.z0 = z0 + inset['-z']
     this.z1 = z1 - inset['+z']
     this.exterior = exterior
+    this.ceiling = spec.height ?? CEILING
     this.mesh = mesh
     this.zone = zone
-    this.group.name = `opd_${spec.id}`
+    this.group.name = `${spec.dept ?? 'opd'}_${spec.id}`
     e.root.add(this.group)
   }
 
@@ -309,7 +314,7 @@ export class Room {
     const c = box.getCenter(new Vector3())
     const hit = new Mesh(new BoxGeometry(size.x, size.y, size.z), HOT)
     hit.position.copy(c)
-    hit.name = `info_opd_${this.level}_${this.spec.id}_${infoCount++}`
+    hit.name = `info_${this.spec.dept ?? 'opd'}_${this.level}_${this.spec.id}_${infoCount++}`
     hit.userData.info = { ...info, place: info.place ?? this.place }
     hit.castShadow = false
     hit.receiveShadow = false

@@ -111,6 +111,10 @@ export function buildKalakalHospital(context = true): FurnishedModel {
     }
   // Two basement parking levels, built the first time a visitor goes below ground (not on the master plan).
   const basement = context ? new Basement(root, k, lighting, pool, HOSPITAL_BASEMENT, SITE, highlights) : undefined
+  // The main block's lifts run down into the car park: their shafts and landings join its levels.
+  if (basement && opd) basement.onBuild.push((at) => {
+    for (const [level, g] of opd.basement) at(level).add(g)
+  })
   // On foot from the road: up the entrance walk towards the main doors.
   const walk: WalkArea = {
     start: [(WALK.x0 + WALK.x1) / 2, GL, PLOT.z1 - 2.5],
@@ -140,7 +144,8 @@ export function buildKalakalHospital(context = true): FurnishedModel {
     c.windowGlass.opacity = day ? 0.6 : 0.32
   }
   setSky(false)
-  // The lifts a walker can ride: the main lobby's down to the basements, and the OPD's up through it.
+  // The lifts a walker can ride: the main lobby's down to the basements, the OPD's up through its
+  // block, and the main block's from B2 to the theatres.
   const lifts: LiftHost | undefined = opd && {
     tick: (dt, walker) => {
       const a = basement?.tick(dt, walker) ?? false
