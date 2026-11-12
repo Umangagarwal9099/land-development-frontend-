@@ -4,7 +4,7 @@ import { ceilingFan } from '../../kalakalD65/fixtures'
 import { chime, click } from '../../basement/sound'
 import { bake, bentTube, carcass, castor, cupboardDoor, drape, drawer, face, geo, group, lathe, panel, pillow, put, rod, tube } from '../erKit'
 import { furnMats, infusionBag } from '../erFurniture'
-import { outlet } from '../erEquipment'
+import { flowmeter, outlet, suction } from '../erEquipment'
 import type { OpdCtx, Room } from '../opd/ctx'
 
 /*
@@ -354,6 +354,12 @@ export function bedHead(e: OpdCtx, p: Object3D, link: CallLink, o: BedHeadOpts =
   const fz = z0 + 0.086
   const gases: ('o2' | 'air' | 'vac')[] = o.gases === 'full' ? ['o2', 'air', 'vac'] : ['o2', 'vac']
   gases.forEach((g, i) => outlet(e, p, g, -W / 2 + 0.12 + i * 0.11, 1.46, fz))
+  // In the outlets: the O₂ flowmeter with its humidifier bottle, the suction regulator with its
+  // canister and sucker hung on the rail (their probes reach the sockets from a frame set back).
+  const fit = group(p, 0, 0, fz - 0.061)
+  flowmeter(e, fit, -W / 2 + 0.12, 1.46, null)
+  const vx = -W / 2 + 0.12 + (gases.length - 1) * 0.11
+  suction(e, fit, vx, 1.46, vx + 0.26)
   // Sockets: two raw (white), two UPS (red); data; the nurse-call socket and button.
   for (let i = 0; i < 4; i++) {
     const x = 0.1 + i * 0.11

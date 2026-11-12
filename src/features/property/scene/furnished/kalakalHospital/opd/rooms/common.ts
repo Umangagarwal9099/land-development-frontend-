@@ -6,7 +6,7 @@ import { ivStand, ultrasound } from '../../erEquipment'
 import { group, signPanel } from '../../erKit'
 import type { OpdCtx } from '../ctx'
 import {
-  armchair, bench, cableLadder, detectorPillar, diningSet, distributionBoard, extinguishers, footstool, fridge, handRub, hoseReel, janitor, keyLockers, kitchenette, leafletRack, mats, mrSafeBay, networkRack, noticeBoard, pigeonholes, planter, platformScale, sanitiserStand, sideTable, tokenKiosk, totem, waterStation, wheelieBin,
+  armchair, bench, cableLadder, detectorPillar, diningSet, distributionBoard, extinguishers, footstool, fridge, handRub, hoseReel, keyLockers, kitchenette, leafletRack, mats, mrSafeBay, networkRack, noticeBoard, pigeonholes, planter, platformScale, sanitiserStand, sideTable, tokenKiosk, totem, waterStation, wheelieBin,
 } from '../equipment/common'
 import {
   babyChanger, cisternDuct, cubicleRun, dropDownRail, exhaustGrille, floorDrain, grabRail, handDryerUnit, jumboRoll, mirror, pedalBin, pullCord, soapDispenser,
@@ -111,14 +111,13 @@ const accessible: Fitter = (e, room) => {
   room.info(pan, { title: 'Accessible WC', kind: 'Universal toilet', body: 'A wheelchair-accessible toilet as the Harmonised Guidelines for accessibility require: the WC seat at 480 mm, 480 mm off the side wall with an L-shaped rail there and a drop-down rail on the transfer side, the basin within reach, an emergency pull cord that rings at the floor\'s nurses\' station, and a clear 1.5 m turning circle.', specs: ['Outward-opening 1.0 m door', 'Basin rim at 800 mm, knee space, lever mixer', 'Mirror tilted for a seated user', 'Fold-down baby-changing station'] })
 }
 
-/** The electrical and IT riser and janitor's closet behind the stair. */
+/** The electrical and IT riser behind the stair. */
 const riser: Fitter = (e, room) => {
   distributionBoard(e, room.at(room.x0 + 0.65, room.z1, PI), 0.8, 0.9, `DB-OPD-${room.level === 0 ? 'G' : room.level}`, 0.95)
   distributionBoard(e, room.at(room.x0 + 1.6, room.z1, PI), 0.6, 0.7, 'LIGHTING DB', 1.1)
   cableLadder(e, room.at(room.x0 + 2.45, room.z1, PI), 0.4, room.ceiling)
   networkRack(e, room.at(room.x0 + 0.4, room.z0 + 0.6, 0))
-  janitor(e, room.at(room.x0 + 1.5, room.z0, 0))
-  room.info(room.group.children[0], { title: 'Electrical & IT Riser', kind: 'Building services', body: 'The floor\'s electrical riser: its main distribution board fed from the LT panel in the basement, the lighting board, the vertical cable ladder carrying power and data up the building, and the floor\'s network rack for the hospital information system; with the housekeeping janitor\'s sink beside them.' })
+  room.info(room.group.children[0], { title: 'Electrical & IT Riser', kind: 'Building services', body: 'The floor\'s electrical riser: its main distribution board fed from the LT panel in the basement, the lighting board, the vertical cable ladder carrying power and data up the building, and the floor\'s network rack for the hospital information system.' })
 }
 
 /* ---------- the link ---------- */

@@ -59,16 +59,37 @@ export function opdMaterials(k: Kit, lighting: Lighting, m: EmergencyMaterials) 
         g.globalAlpha = 1
       }, 2, 1024, { roughness: 0.3 }),
       conductive: metric('conductive', (g, w, h) => {
-        // Static-dissipative vinyl: mid grey with the dark conductive chips through it.
-        g.fillStyle = '#8b9196'
+        // Homogeneous static-dissipative sheet vinyl, as theatres and imaging rooms are laid: a
+        // pale grey-green with fine directional chips and the black carbon veins that carry
+        // charge to earth, its 2 m sheets heat-welded with a matching rod.
+        g.fillStyle = '#b4bfbc'
         g.fillRect(0, 0, w, h)
-        for (let i = 0; i < (w * h) / 10; i++) {
-          g.globalAlpha = 0.3 + Math.random() * 0.4
-          g.fillStyle = i % 4 ? '#3b4045' : '#c2c6c9'
-          g.fillRect(Math.random() * w, Math.random() * h, 1.6, 0.7)
+        for (let i = 0; i < (w * h) / 9; i++) {
+          g.globalAlpha = 0.18 + Math.random() * 0.3
+          g.fillStyle = ['#d6dedb', '#97a39f', '#c6cfcc'][i % 3]
+          g.fillRect(Math.random() * w, Math.random() * h, 2.2, 0.8)
         }
+        g.globalAlpha = 0.5
+        g.strokeStyle = '#2c3331'
+        g.lineWidth = 0.7
+        for (let i = 0; i < 70; i++) {
+          let x = Math.random() * w
+          let y = Math.random() * h
+          g.beginPath()
+          g.moveTo(x, y)
+          for (let j = 0; j < 4; j++) {
+            x += (Math.random() - 0.3) * 26
+            y += (Math.random() - 0.5) * 8
+            g.lineTo(x, y)
+          }
+          g.stroke()
+        }
+        g.globalAlpha = 0.55
+        g.fillStyle = '#8e9a96'
+        g.fillRect(0, 0, w, 2)
+        g.fillRect(0, 0, 2, h)
         g.globalAlpha = 1
-      }, 2, 1024, { roughness: 0.34 }),
+      }, 2, 1024, { roughness: 0.22, metalness: 0.02 }),
       service: metric('epoxy', epoxy, 2, 512, { roughness: 0.55 }),
       wood: metric('woodVinyl', woodPlank, 1.2, 1024, { roughness: 0.42 }),
       none: m.vinylLight,
@@ -78,6 +99,8 @@ export function opdMaterials(k: Kit, lighting: Lighting, m: EmergencyMaterials) 
     door: std({ map: k.tex.painted(256, 512, ashLaminate), roughness: 0.48 }),
     doorWhite: std({ color: '#eceae5', roughness: 0.45 }),
     frame: std({ color: '#e6e7e5', roughness: 0.4, metalness: 0.2 }),
+    /** A theatre's hermetic sliding door: seamless HPL in a pale clinical blue-grey. */
+    otLeaf: std({ color: '#d5e0e3', roughness: 0.28, metalness: 0.05 }),
     /** Lead-lined doors: grey enamel. The MRI's RF door: its copper edge. */
     leadDoor: std({ color: '#b9bdc0', roughness: 0.4, metalness: 0.15 }),
     copper: std({ color: '#b87333', metalness: 0.9, roughness: 0.32 }),

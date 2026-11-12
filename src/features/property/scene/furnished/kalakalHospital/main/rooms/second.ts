@@ -1,16 +1,14 @@
 import { Vector3, type Object3D } from 'three'
 import { PI } from '../../../kit'
-import { bentTube, castor, face, group, signPanel } from '../../erKit'
+import { castor, face, group, signPanel } from '../../erKit'
 import { crashCart, taskChair } from '../../erFurniture'
 import { computerOnWheels, gasAlarm, patientMonitor, zoneValves } from '../../erEquipment'
 import { beamSeating, linenTrolley, workstation } from '../../emergency'
 import type { OpdCtx, Room } from '../../opd/ctx'
-import { handRub, kitchenette, fridge, leafletRack, planter, waterStation } from '../../opd/equipment/common'
+import { handRub, kitchenette, leafletRack, planter, waterStation } from '../../opd/equipment/common'
 import { coffeeTable } from '../../opd/equipment/clinical'
-import { itemMats } from '../../opd/equipment/items'
-import { wallShelves } from '../../opd/equipment/ground'
 import { pedalBin, handWashPoint } from '../../opd/equipment/sanitary'
-import { baseRun, curtain, desk, rack, wallCupboard } from '../../opd/furniture'
+import { curtain, desk, rack, wallCupboard } from '../../opd/furniture'
 import { board, NAVY } from '../../opd/paints'
 import { bins, computer, deskPhone, medFridge, papers, poster, printer, sharps, wallScreen } from '../../opd/smalls'
 import type { Fitter } from '../../opd/rooms/types'
@@ -18,7 +16,7 @@ import { bedHead, callButton, callLamp, callLink, drawerCart, kitMats, rubBottle
 import { centralPaint, icuMonitorPaint, ventScreenPaint } from '../equipment/secondPaints'
 import { icuPendant, icuVentilator, infusionPump, infusionTower, ppeStation, pressureMonitor, suctionUnit, syringePump, wallMonitor, type PumpKind } from '../equipment/secondIcu'
 import {
-  artwork, bedsideCabinet, clubChair, coffeeMachine, conciergeDesk, credenza, diningChair, FLAGS, flagStand, floorLamp, intlMats, pedestalTable, recliner,
+  artwork, bedsideCabinet, clubChair, conciergeDesk, credenza, diningChair, FLAGS, flagStand, floorLamp, intlMats, pedestalTable, recliner,
   refreshmentCounter, sofaBed, tableLamp, tissueBox, tvArm, worldClock,
 } from '../equipment/secondIntl'
 
@@ -491,7 +489,7 @@ const intlLounge: Fitter = (e, room) => {
   planter(e, room.at(room.x0 + 0.38, room.z0 + 0.4))
   artwork(e, room.onWall('+z', 3.3), 1.3, 0.85, 2, 1.6)
   // The refreshment counter between the suites' doors; two chairs and a lamp by the east wall.
-  const rc = room.onWall('+z', 8.9)
+  const rc = room.onWall('+z', 9.9)
   refreshmentCounter(e, rc, 1.9)
   room.info(rc, { title: 'Refreshment Counter', kind: 'Lounge pantry', body: 'Coffee and tea from a bean-to-cup machine, hot water, cookies and bottled water, for patients\' families through the day; dietary requests (halal, vegetarian, Jain) through the pantry.', specs: ['Bean-to-cup coffee, six recipes', 'Hot-water urn, herbal teas', 'Halal and vegetarian snacks'] })
   for (const x of [9.75, 10.85]) clubChair(e, room.at(x, room.z0 + 0.5, 0), c.taupe)
@@ -502,18 +500,19 @@ const intlLounge: Fitter = (e, room) => {
 }
 
 /**
- * A suite's room: its bed with the head on `head` (a side wall), the premium bed head with full
- * gases, the wall monitor, bedside cabinet and lamp, recliner, attendant's sofa-bed, a credenza
- * with the minibar under the TV, the split AC, the wardrobe in the entry, curtain, art, call.
+ * A suite's room: its bed with the head on `head` (the wall the two suites share, their bed heads
+ * back to back on its services), the premium bed head with full gases, the wall monitor, bedside
+ * cabinet and lamp, recliner and the attendant's sofa-bed in the window bay, a credenza with the
+ * minibar under the TV and the split AC on the washroom's wall, the wardrobe in the entry,
+ * curtain, art, call. The suite runs out to the façade beyond its washroom (the bay behind the pier).
  */
 const intlSuite: Fitter = (e, room) => {
   const id = room.spec.id
   const l = link(e, id)
   const entry = e.byId.get(`${id}Entry`)
   if (id === 'suite213') return presidential(e, room, l, entry)
-  const s = id === 'suite211' ? 1 : -1
+  const s = id === 'suite211' ? -1 : 1
   const head: '-x' | '+x' = s > 0 ? '-x' : '+x'
-  const far: '-x' | '+x' = s > 0 ? '+x' : '-x'
   const hx = s > 0 ? room.x0 : room.x1
   const u = (d: number) => hx + s * d
   const bz = room.z0 + 1.5
@@ -534,17 +533,18 @@ const intlSuite: Fitter = (e, room) => {
   const sb = room.at(u(3.0), room.z1 - 0.46, PI)
   sofaBed(e, sb, 1.6)
   room.info(sb, { title: 'Attendant\'s Sofa-cum-bed', kind: 'Family accommodation', body: 'The attendant stays with the patient: the sofa\'s seat cushions pull out to a single bed, made up at night by housekeeping with fresh linen.', specs: ['Sleeps one, 0.75 × 1.9 m', 'Linen changed daily'] })
-  const cr = room.onWall(far, bz)
-  credenza(e, cr, 1.3, true)
-  wallTV(e, room.onWall(far, bz), 43, 1.6)
-  splitAC(e, room.onWall(far, room.z1 - 0.65), 0.95, 2.72, -s * 1.75)
+  // On the washroom's wall across from the bed: credenza and minibar, the TV over them, the AC.
+  const cr = room.onWall('-z', u(3.5))
+  credenza(e, cr, 1.1, true)
+  wallTV(e, room.onWall('-z', u(3.5)), 43, 1.6)
+  splitAC(e, room.onWall('-z', u(4.55)), 0.95, 2.72, s * 0.75)
   floorLamp(e, room.at(u(0.27), room.z1 - 0.25))
-  artwork(e, room.onWall('-z', u(1.57)), 0.4, 0.55, 2 + (s > 0 ? 0 : 1), 1.5)
+  artwork(e, room.onWall('-z', u(4.85)), 0.4, 0.55, 2 + (s > 0 ? 0 : 1), 1.5)
   // The entry: wardrobe, hand-rub by the door, the curtain at the room's edge, the lamp outside.
   if (entry) {
-    const wd = entry.onWall(head, entry.z0 + 1.1, 0, 0)
+    const wd = entry.onWall(head, entry.z0 + 1.4, 0, 0)
     wardrobe(e, wd, 1.0, 2.1, 0.58, 'walnut')
-    rubBottle(e, entry.onWall(far, entry.z0 + 0.6), 1.25)
+    rubBottle(e, entry.onWall(head === '-x' ? '+x' : '-x', entry.z0 + 0.6), 1.25)
     const door = entry.doors[0]
     if (door) lampOverDoor(e, entry, l, door.x, entry.z0 - 0.062, PI)
     const cx0 = s > 0 ? entry.x0 + 0.03 : entry.x1 - 0.03
@@ -607,37 +607,6 @@ const intlFamily: Fitter = (e, room) => {
   if (!room.exterior.includes('+z')) artwork(e, room.onWall('+z', 12.3), 0.7, 0.5, 0, 1.6)
 }
 
-const intlPantry: Fitter = (e, room) => {
-  const { k, m } = e
-  kitchenette(e, room.onWall('-z', -0.6), 2.4)
-  fridge(e, room.onWall('-z', 1.0))
-  const br = room.onWall('-z', 1.95)
-  baseRun(e, br, 1.0, { fill: 'none' })
-  coffeeMachine(e, group(br, 0.0, 0.905, 0.3))
-  wallShelves(e, room.onWall('-z', -0.15), 1.3, 0.28, [1.95, 2.3])
-  // Crockery on the shelves: plates on edge, stacked cups, glasses.
-  const sh = room.onWall('-z', -0.15)
-  for (let i = 0; i < 8; i++) k.cyl(sh, 0.12, 0.12, 0.012, m.whitePlastic, -0.5 + i * 0.016, 2.09, 0.14, 24).rotation.z = PI / 2
-  for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) k.cyl(sh, 0.042, 0.035, 0.085, m.whitePlastic, -0.1 + i * 0.1, 2.0 + j * 0.055, 0.12, 16)
-  for (let i = 0; i < 5; i++) k.cyl(sh, 0.035, 0.032, 0.11, itemMats(e).glass, -0.15 + i * 0.09, 2.37, 0.12, 16)
-  room.info(br, { title: 'International Wing Pantry', kind: 'Ward pantry', body: 'The wing\'s pantry for the suites: patients\' meals arrive from the main kitchen in heated trolleys and are plated here; tea, coffee and special diets (halal, Jain, vegetarian, diabetic) are prepared to order.', specs: ['Domestic fridge for patients\' food, labelled and dated', 'Bean-to-cup coffee, RO water', 'Serving trolley for the suites'] })
-  // The serving trolley parked by the door, a pedal bin.
-  const st = room.at(room.x1 - 0.42, room.z0 + 0.42, PI / 2)
-  for (const [x, z] of [[-0.3, -0.2], [0.3, -0.2], [-0.3, 0.2], [0.3, 0.2]]) castor(e, st, x, z, 0.04)
-  for (const y of [0.22, 0.82]) k.box(st, 0.72, 0.02, 0.46, m.stainless, 0, y, 0)
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.cyl(st, 0.011, 0.011, 0.8, m.stainless, sx * 0.34, 0.5, sz * 0.21, 8)
-  trolleyHandle(e, st)
-  pedalBin(e, room.at(room.x1 - 0.25, room.z1 - 0.3))
-}
-
-/** The serving trolley's push handle. */
-function trolleyHandle(e: OpdCtx, p: Object3D) {
-  const { m } = e
-  const t = bentTube(e, 'stHandle', [[-0.34, 0.85, -0.21], [-0.34, 0.95, -0.21], [-0.34, 0.95, 0.21], [-0.34, 0.85, 0.21]], 0.012, 0.03)
-  const o = e.k.mesh(t, m.stainless, p, 0, 0, 0)
-  o.castShadow = true
-}
-
 export const MAIN_SECOND: Record<string, Fitter> = {
   icu_vent: icuVent,
   icu_bed: icuBed,
@@ -651,5 +620,4 @@ export const MAIN_SECOND: Record<string, Fitter> = {
   intl_lounge: intlLounge,
   intl_suite: intlSuite,
   intl_family: intlFamily,
-  intl_pantry: intlPantry,
 }

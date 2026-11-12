@@ -36,14 +36,22 @@ export interface DoorSpec {
   side: Dir
   at: number
   w?: number
-  /** single (default), double leaves, a lead-lined X-ray / CT door, an RF-shielded MRI door, a fully glazed door, a fire door. */
-  kind?: 'single' | 'double' | 'lead' | 'mri' | 'glass' | 'fire'
-  /** Which jamb the hinges are on, seen from inside the room looking out: −1 the left, 1 the right. */
+  /**
+   * single (default), double leaves, a lead-lined X-ray / CT door, an RF-shielded MRI door, a fully
+   * glazed door, a fire door, or an operation theatre's hermetically sealed automatic sliding door.
+   */
+  kind?: 'single' | 'double' | 'lead' | 'mri' | 'glass' | 'fire' | 'hermetic'
+  /**
+   * Which jamb the hinges are on, seen from inside the room looking out: −1 the left, 1 the right.
+   * For a hermetic sliding door, which way its leaf runs open along the wall (the door's own x).
+   */
   hinge?: -1 | 1
   /** A door that leads from this room into the next one (connecting): no plate, no switch by it. */
   internal?: boolean
   /** Swings out of the room (stairs, small stores, washrooms) rather than in. */
   out?: boolean
+  /** A sliding door whose leaf runs on the room's side of the wall rather than outside it. */
+  inside?: boolean
 }
 
 /** A window in an internal wall (observation, a counter's screen): along the side from … to, sill … head above the floor. */
@@ -106,6 +114,11 @@ export interface RoomSpec {
   light?: 'clinical' | 'dim' | 'lounge' | 'service'
   /** A shaft or stair well: no floor of its own (above the ground for stairs). */
   well?: 'lift' | 'stair'
+  /**
+   * An operating theatre: its sealed ceiling keeps the middle clear for the laminar-flow plenum
+   * over the table (the light panels stand round it) and takes no ceiling diffuser of its own.
+   */
+  theatre?: boolean
 }
 
 export interface FloorPlan {
@@ -200,7 +213,7 @@ function common(level: number): RoomSpec[] {
   const rooms: RoomSpec[] = [
     { id: 'stair', name: 'OPD Stair', rect: [STAIR.x0, STAIR.x1, STAIR.z0, STAIR.z1], fit: 'stair', kind: 'core', thick: ['+x', '-z', '+z'], quiet: true, floor: 'service', ceiling: 'open', well: 'stair', doors: [{ side: '+x', at: 3.2, w: 1.1, kind: 'fire', hinge: -1 }] },
     { id: 'lifts', name: 'Lifts', rect: [LIFTS.x0, LIFTS.x1, LIFTS.z0, LIFTS.z1], fit: 'lifts', kind: 'core', thick: ['+x', '-z', '+z', '-x'], quiet: true, ceiling: 'open', well: 'lift' },
-    { id: 'riser', name: 'Electrical Riser & Janitor', no: n(90), rect: [XS, XA, BAY[7], STAIR.z0], fit: 'riser', kind: 'service', quiet: true, floor: 'service', ceiling: 'open', light: 'service', doors: [{ side: '+x', at: -3.07, w: 0.9, out: true }] },
+    { id: 'riser', name: 'Electrical & IT Riser', no: n(90), rect: [XS, XA, BAY[7], STAIR.z0], fit: 'riser', kind: 'service', quiet: true, floor: 'service', ceiling: 'open', light: 'service', doors: [{ side: '+x', at: -3.07, w: 0.9, out: true }] },
     { id: 'firestair', name: 'Fire Stair', rect: [FIRE_STAIR.x0, FIRE_STAIR.x1, FIRE_STAIR.z0, FIRE_STAIR.z1], fit: 'firestair', kind: 'core', thick: ['+x', '+z'], quiet: true, floor: 'service', ceiling: 'open', well: 'stair', doors: [{ side: '+x', at: -20.4, w: 1.1, kind: 'fire', hinge: 1 }] },
     {
       id: 'ladies', name: 'Toilets · Ladies', no: n(91), rect: [XS, XA, BAY[3], BAY[4]], fit: 'toilet_f', kind: 'wet', tiled: true, floor: 'tile', ceiling: 'wet',
@@ -314,7 +327,8 @@ const ground: RoomSpec[] = [
     doors: [{ side: '-x', at: 9.9, w: 1.2, kind: 'glass' }],
   }),
   // The patient services hall south of the front corridor: insurance and billing down one side,
-  // the cash counter down the other, the pharmacy's dispensing window across its end.
+  // the cash counter down the other, the pharmacy's dispensing window across its end (the
+  // hospital's one pharmacy: its reserve stock is racked inside it).
   M({ id: 'services', name: 'Patient Services Hall', no: 'G13', rect: [-2.2, 2.9, -14.4, Z1A], fit: 'main_services', kind: 'public', floor: 'vitrified', ceiling: 'board', light: 'lounge' }),
   M({
     id: 'ipdInsurance', name: 'Insurance & Cashless Desk', no: 'G14', rect: [XB, -2.2, -10.0, Z1A], fit: 'main_insurance', kind: 'room', floor: 'vinyl',
@@ -331,7 +345,8 @@ const ground: RoomSpec[] = [
     doors: [{ side: '+z', at: 4.6, w: 0.9 }],
     glazing: [{ side: '-x', from: -9.5, to: -6.6, sill: 0.9, head: 2.15, kind: 'teller' }],
   }),
-  M({ id: 'pharmacyStore', name: 'Pharmacy Store', no: 'G17', rect: [2.9, XG, -14.4, -10.0], fit: 'main_pharmacy_store', kind: 'room', floor: 'vinyl', doors: [{ side: '-z', at: 4.2, w: 1.0, internal: true }] }),
+  // Beside the cash counter, off the services hall: the admitting doctor's consultation room.
+  M({ id: 'consultG', name: 'Admission Consultation Room', no: 'G17', rect: [2.9, XG, -14.4, -10.0], fit: 'main_consult', kind: 'room', floor: 'vinyl', doors: [{ side: '-x', at: -13.6, w: 1.0, hinge: -1 }] }),
   M({
     id: 'pharmacy', name: 'Pharmacy', no: 'G18', rect: [-2.2, XG, Z2B, -14.4], fit: 'main_pharmacy', kind: 'room', floor: 'vinyl',
     doors: [{ side: '-z', at: 3.9, w: 1.0 }],
@@ -363,20 +378,22 @@ const first: RoomSpec[] = [
 
   ...mainCore(),
   ...ring(),
-  // The nurses' station faces the lift lobby and the front corridor; the supervisor behind it.
+  // The nurses' station faces the lift lobby and the front corridor; the ward's consultation room
+  // behind it opens off the relatives' lounge.
   M({
     id: 'nurses', name: 'Nurses\' Station', no: '120', rect: [XG, XN1, Z1B, 1.0], fit: 'ward_nurses', kind: 'room', floor: 'vinyl', open: ['-z'],
     gaps: [{ side: '-x', from: Z1B, to: ZL }],
   }),
-  M({ id: 'supervisor', name: 'Nursing Supervisor', no: '121', rect: [XG, XN1, 1.0, ZF], fit: 'ward_supervisor', kind: 'room', floor: 'vinyl', doors: [{ side: '-z', at: 8.9, w: 0.9, internal: true }] }),
-  // Behind the lifts: the visitors' toilets, off the relatives' lounge.
+  M({ id: 'consult1', name: 'Doctor\'s Consultation Room', no: '121', rect: [XG, XN1, 1.0, ZF], fit: 'ward_consult', kind: 'room', floor: 'vinyl', doors: [{ side: '+z', at: 9.35, w: 1.0, hinge: 1 }] }),
+  // Behind the lifts: the visitors' toilets, off the relatives' lounge (wet rooms stacked over
+  // the floors' below and under the second floor's).
   M({ id: 'visitorWc', name: 'Visitors\' Accessible Toilet', no: '122', rect: [XL, 0.85, ZLB, ZF], fit: 'ward_visitor_wc', kind: 'wet', tiled: true, floor: 'tile', ceiling: 'wet', doors: [{ side: '+z', at: -0.6, w: 0.9, out: true }] }),
-  M({ id: 'janitor', name: 'Janitor', no: '123', rect: [0.85, XM, ZLB, ZF], fit: 'ward_janitor', kind: 'service', floor: 'service', light: 'service', tiled: true, doors: [{ side: '+z', at: 2.9, w: 0.9, out: true }] }),
-  // Behind the curtain wall: the relatives' lounge, two single rooms on the glass, stores behind the piers.
+  M({ id: 'visitorToilet', name: 'Visitors\' Toilet', no: '123', rect: [0.85, XM, ZLB, ZF], fit: 'ward_visitor_toilet', kind: 'wet', tiled: true, floor: 'tile', ceiling: 'wet', doors: [{ side: '+z', at: 2.9, w: 0.9, out: true }] }),
+  // Behind the curtain wall: the relatives' lounge and two single rooms on the glass; the deluxe
+  // room 106 takes the bay behind the west pier too, with its window on the west façade.
   M({ id: 'lounge', name: 'Relatives\' Waiting Lounge', no: '124', rect: [0.9, 11.3, ZF, 8.2], fit: 'ward_lounge', kind: 'public', floor: 'vitrified', ceiling: 'board', light: 'lounge' }),
-  M({ id: 'linen', name: 'Linen Store', no: '125', rect: [0.9, 2.0, 8.2, 13.0], fit: 'ward_linen', kind: 'service', floor: 'service', light: 'service', doors: [{ side: '-z', at: 1.45, w: 0.8, out: true }] }),
   M({ id: 'housekeeping', name: 'Housekeeping', no: '126', rect: [10.2, 11.3, 8.2, 13.0], fit: 'ward_housekeeping', kind: 'service', floor: 'service', light: 'service', doors: [{ side: '-z', at: 10.75, w: 0.8, out: true }] }),
-  ...enSuite({ room: ward('r106', 'Single Room (AC) · Deluxe', '106', [2.0, 6.1, 8.2, 13.0], 'ward_single_ac'), e: { w: 1.8, d: 2.0, corner: 'x0z0' }, eDoor: { side: '+z', at: 2.9 }, doors: [{ side: '-z', at: 5.2, w: 1.2, hinge: 1 }] }),
+  ...enSuite({ room: ward('r106', 'Single Room (AC) · Deluxe', '106', [0.9, 6.1, 8.2, 13.0], 'ward_single_ac'), e: { w: 2.2, d: 2.0, corner: 'x0z0' }, eDoor: { side: '+x', at: 9.2 }, doors: [{ side: '-z', at: 4.35, w: 1.2, hinge: -1 }] }),
   ...enSuite({ room: ward('r107', 'Single Room (AC) · Deluxe', '107', [6.1, 10.2, 8.2, 13.0], 'ward_single_ac'), e: { w: 1.8, d: 2.0, corner: 'x1z0' }, eDoor: { side: '+z', at: 9.3 }, doors: [{ side: '-z', at: 7.0, w: 1.2, hinge: -1 }] }),
   // The double room at the front of the north side.
   ...enSuite({ room: ward('r105', 'Double Room (AC)', '105', [XN1, XN, Z1B, ZF], 'ward_double_ac'), e: { w: 1.8, d: 2.2, corner: 'x0z0' }, eDoor: { side: '+z', at: 10.96 }, doors: [{ side: '-z', at: 12.75, w: 1.2, hinge: -1 }] }),
@@ -386,10 +403,10 @@ const first: RoomSpec[] = [
   // Double rooms across the back, off the back corridor, the two beds side by side.
   ...enSuite({ room: ward('r101', 'Double Room (AC)', '101', [1.8, 7.7, ZB, Z2A], 'ward_double_ac'), e: { w: 1.8, d: 2.2, corner: 'x1z1' }, eDoor: { side: '-z', at: 6.8 }, doors: [{ side: '+z', at: 4.6, w: 1.2, hinge: 1 }] }),
   ...enSuite({ room: ward('r102', 'Double Room (Non-AC)', '102', [7.7, XN, ZB, Z2A], 'ward_double_nonac'), e: { w: 1.8, d: 2.2, corner: 'x1z1' }, eDoor: { side: '-z', at: 12.7 }, doors: [{ side: '+z', at: 10.5, w: 1.2, hinge: 1 }] }),
-  // The rooms under the podium garden, round the court: no windows, the ward's support.
+  // The rooms under the podium garden, round the court: no windows. The high dependency unit
+  // faces the nurses' station across the front corridor; the ward's support behind it.
   M({ id: 'exam', name: 'Examination & Procedure Room', no: '127', rect: [XB, -0.6, -12.0, Z1A], fit: 'ward_exam', kind: 'room', floor: 'vinyl', doors: [{ side: '+z', at: -2.7, w: 1.2 }] }),
-  M({ id: 'supply', name: 'Medical Supply & Clean Utility', no: '128', rect: [-0.6, 3.6, -12.0, Z1A], fit: 'ward_supply', kind: 'room', floor: 'vinyl', doors: [{ side: '+z', at: 1.5, w: 1.0 }] }),
-  M({ id: 'pantry', name: 'Patient Diet Pantry', no: '129', rect: [3.6, XN0, -12.0, Z1A], fit: 'ward_pantry', kind: 'room', floor: 'vinyl', doors: [{ side: '+z', at: 5.7, w: 0.9 }] }),
+  M({ id: 'hdu', name: 'High Dependency Unit (HDU) · 3 Beds', no: '128', rect: [-0.6, XN0, -12.0, Z1A], fit: 'ward_hdu', kind: 'room', floor: 'vinyl', doors: [{ side: '+z', at: 6.6, w: 1.5, kind: 'double' }] }),
   M({ id: 'staffWc', name: 'Staff Washroom & Change', no: '130', rect: [XB, -0.6, Z2B, -12.0], fit: 'ward_staff_wc', kind: 'wet', tiled: true, floor: 'tile', ceiling: 'wet', doors: [{ side: '-z', at: -2.7, w: 0.9 }] }),
   M({ id: 'dirty', name: 'Dirty Utility & Sluice', no: '131', rect: [-0.6, 3.6, Z2B, -12.0], fit: 'ward_dirty', kind: 'service', floor: 'service', tiled: true, light: 'service', doors: [{ side: '-z', at: 1.5, w: 1.0 }] }),
   M({ id: 'doctors', name: 'Duty Doctors\' Room', no: '132', rect: [3.6, XN0, Z2B, -12.0], fit: 'ward_doctors', kind: 'room', floor: 'vinyl', doors: [{ side: '-z', at: 5.7, w: 0.9 }] }),
@@ -439,16 +456,18 @@ const second: RoomSpec[] = [
   M({ id: 'icuWaiting', name: 'ICU Relatives\' Waiting', no: '221', rect: [XG, XN1, Z1B, 0.5], fit: 'icu_waiting', kind: 'public', floor: 'vitrified', ceiling: 'board', light: 'lounge' }),
   M({ id: 'counselling', name: 'Family Counselling Room', no: '222', rect: [XG, XN1, 0.5, ZF], fit: 'icu_counselling', kind: 'room', floor: 'wood', light: 'dim', doors: [{ side: '-z', at: 8.6, w: 0.9 }] }),
   // The international patient wing behind the curtain wall: its lounge and concierge, two
-  // suites on the glass, the presidential suite in the north wing with its family room.
-  M({ id: 'pantry', name: 'International Wing Pantry', no: '224', rect: [XL, XM, ZLB, ZF], fit: 'intl_pantry', kind: 'room', floor: 'vinyl', doors: [{ side: '+z', at: 2.6, w: 0.9 }] }),
+  // suites on the glass (each taking the bay behind its pier, their bed heads back to back on
+  // the wall between them), the presidential suite in the north wing with its family room.
+  // Behind the lifts, over the first floor's: the accessible toilet off the glazed link and a
+  // toilet off the lounge, for patients' families and visitors.
+  M({ id: 'intlWc', name: 'Accessible Toilet', no: '224', rect: [XL, 0.85, ZLB, ZF], fit: 'ward_visitor_wc', kind: 'wet', tiled: true, floor: 'tile', ceiling: 'wet', doors: [{ side: '+z', at: -0.6, w: 0.9, out: true }] }),
+  M({ id: 'intlToilet', name: 'Lounge Toilet', no: '225', rect: [0.85, XM, ZLB, ZF], fit: 'ward_visitor_toilet', kind: 'wet', tiled: true, floor: 'tile', ceiling: 'wet', doors: [{ side: '+z', at: 2.9, w: 0.9, out: true }] }),
   M({
     id: 'intlLounge', name: 'International Patient Lounge & Concierge', no: '210', rect: [0.9, 11.3, ZF, 8.6], fit: 'intl_lounge', kind: 'public', floor: 'wood', ceiling: 'board', light: 'lounge',
     closed: ['-x'], doors: [{ side: '-x', at: 6.5, w: 1.2, kind: 'glass' }],
   }),
-  M({ id: 'intlLinen', name: 'Suite Linen Store', no: '225', rect: [0.9, 2.0, 8.6, 13.0], fit: 'ward_linen', kind: 'service', floor: 'service', light: 'service', doors: [{ side: '-z', at: 1.45, w: 0.8, out: true }] }),
-  M({ id: 'intlStore', name: 'Wing Store', no: '226', rect: [10.2, 11.3, 8.6, 13.0], fit: 'ward_housekeeping', kind: 'service', floor: 'service', light: 'service', doors: [{ side: '-z', at: 10.75, w: 0.8, out: true }] }),
-  ...enSuite({ room: M({ id: 'suite211', name: 'International Suite 211', no: '211', rect: [2.0, 6.1, 8.6, 14.2], fit: 'intl_suite', kind: 'room', floor: 'wood', ceiling: 'board', light: 'lounge' }), e: { w: 1.9, d: 2.3, corner: 'x0z0' }, eDoor: { side: '+z', at: 2.95 }, doors: [{ side: '-z', at: 5.15, w: 1.2, hinge: 1 }], premium: true }),
-  ...enSuite({ room: M({ id: 'suite212', name: 'International Suite 212', no: '212', rect: [6.1, 10.2, 8.6, 14.2], fit: 'intl_suite', kind: 'room', floor: 'wood', ceiling: 'board', light: 'lounge' }), e: { w: 1.9, d: 2.3, corner: 'x1z0' }, eDoor: { side: '+z', at: 9.25 }, doors: [{ side: '-z', at: 7.05, w: 1.2, hinge: -1 }], premium: true }),
+  ...enSuite({ room: M({ id: 'suite211', name: 'International Suite 211', no: '211', rect: [0.9, 6.1, 8.6, 14.2], fit: 'intl_suite', kind: 'room', floor: 'wood', ceiling: 'board', light: 'lounge' }), e: { w: 2.2, d: 2.3, corner: 'x0z0' }, eDoor: { side: '+x', at: 9.75 }, doors: [{ side: '-z', at: 5.3, w: 1.2, hinge: 1 }], premium: true }),
+  ...enSuite({ room: M({ id: 'suite212', name: 'International Suite 212', no: '212', rect: [6.1, 11.3, 8.6, 14.2], fit: 'intl_suite', kind: 'room', floor: 'wood', ceiling: 'board', light: 'lounge' }), e: { w: 2.2, d: 2.3, corner: 'x1z0' }, eDoor: { side: '-x', at: 9.75 }, doors: [{ side: '-z', at: 8.1, w: 1.2, hinge: 1 }], premium: true }),
   M({
     id: 'familyRoom', name: 'Presidential Suite 213 · Family Room', rect: [11.3, XN, ZF, 10.7], fit: 'intl_family', kind: 'room', part: 'suite213', floor: 'wood', ceiling: 'board', light: 'lounge',
     doors: [{ side: '-x', at: 6.4, w: 1.2, hinge: 1 }, { side: '-z', at: 12.6, w: 1.0, internal: true }],
@@ -485,14 +504,14 @@ const third: RoomSpec[] = [
   M({ id: 'anaesthesia', name: 'Anaesthesia Work Room', no: '314', rect: [0.9, XM, ZLB, 4.5], fit: 'ot_anaesthesia', kind: 'room', floor: 'conductive', doors: [{ side: '+x', at: 3.5, w: 0.9 }] }),
   M({ id: 'otEquipment', name: 'OT Equipment Store', no: '315', rect: [XL, 0.9, ZLB, 3.7], fit: 'ot_equipment', kind: 'service', floor: 'conductive', light: 'service', doors: [{ side: '+x', at: 2.9, w: 0.9, internal: true, out: true }] }),
   // The three theatres: OT 1 across the front of the court, OTs 2 and 3 behind the curtain wall.
-  M({ id: 'ot1', name: 'Operation Theatre 1 · General & Laparoscopic Surgery', no: 'OT-1', rect: [XG, 11.2, Z1B, 2.5], fit: 'ot_1', kind: 'room', floor: 'conductive', light: 'clinical', doors: [{ side: '+z', at: 8.3, w: 1.6, kind: 'double' }] }),
+  M({ id: 'ot1', name: 'Operation Theatre 1 · General & Laparoscopic Surgery', no: 'OT-1', rect: [XG, 11.2, Z1B, 2.5], fit: 'ot_1', kind: 'room', floor: 'conductive', ceiling: 'board', light: 'clinical', theatre: true, doors: [{ side: '+z', at: 8.3, w: 1.6, kind: 'hermetic', hinge: 1 }] }),
   M({
     id: 'preop', name: 'Pre-operative Holding & OT Reception', no: '311', rect: [11.2, XN, Z1B, 2.5], fit: 'ot_preop', kind: 'room', floor: 'conductive',
     doors: [{ side: '-z', at: 12.4, w: 1.4, kind: 'double' }, { side: '+z', at: 12.4, w: 1.4, kind: 'double', internal: true }],
   }),
-  M({ id: 'ot2', name: 'Operation Theatre 2 · Orthopaedic Surgery', no: 'OT-2', rect: [0.9, 6.1, 4.5, 13.0], fit: 'ot_2', kind: 'room', floor: 'conductive', doors: [{ side: '-z', at: 4.9, w: 1.6, kind: 'double' }] }),
-  M({ id: 'ot3', name: 'Operation Theatre 3 · Major & Specialty Surgery', no: 'OT-3', rect: [6.1, 11.3, 4.5, 13.0], fit: 'ot_3', kind: 'room', floor: 'conductive', doors: [{ side: '-z', at: 7.6, w: 1.6, kind: 'double' }] }),
-  M({ id: 'sterile', name: 'Sterile Supply & Clean Utility', no: '312', rect: [11.3, XN, 4.5, 10.7], fit: 'ot_sterile', kind: 'room', floor: 'conductive', doors: [{ side: '-z', at: 12.45, w: 1.0 }] }),
+  M({ id: 'ot2', name: 'Operation Theatre 2 · Orthopaedic Surgery', no: 'OT-2', rect: [0.9, 6.1, 4.5, 13.0], fit: 'ot_2', kind: 'room', floor: 'conductive', ceiling: 'board', light: 'clinical', theatre: true, doors: [{ side: '-z', at: 4.9, w: 1.6, kind: 'hermetic', hinge: -1, inside: true }] }),
+  M({ id: 'ot3', name: 'Operation Theatre 3 · Major & Specialty Surgery', no: 'OT-3', rect: [6.1, 11.3, 4.5, 13.0], fit: 'ot_3', kind: 'room', floor: 'conductive', ceiling: 'board', light: 'clinical', theatre: true, doors: [{ side: '-z', at: 7.6, w: 1.6, kind: 'hermetic', hinge: 1 }] }),
+  M({ id: 'sterile', name: 'OT Sterile Instrument Store', no: '312', rect: [11.3, XN, 4.5, 10.7], fit: 'ot_sterile', kind: 'room', floor: 'conductive', doors: [{ side: '-z', at: 12.45, w: 1.0 }] }),
   M({ id: 'otPlant', name: 'OT Air-handling & Gas Manifold Space', rect: [2.0, 10.2, 13.0, 14.2], fit: '', kind: 'service', floor: 'service', ceiling: 'open', light: 'service', quiet: true }),
   // Round the court, past the restricted doors: changing, CSSD, PACU, dirty utility.
   ...ring({

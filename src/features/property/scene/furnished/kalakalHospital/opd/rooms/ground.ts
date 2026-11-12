@@ -6,13 +6,13 @@ import { bed, counter, credenza, cylinder, examCouch, pedestal, taskChair, wheel
 import { group, signPanel } from '../../erKit'
 import type { OpdCtx, Room } from '../ctx'
 import {
-  ahu, backlitSign, belt, carrier, dispTray, cashDrawer, chemicals, chest, extinguisher, kiosk, keyCabinet, ltPanel, medicineShelves, mopSink, mopTrolley,
-  noteCounter, pallet, payTerminal, photocopier, pigeonholes, radioChargers, receiptPrinter, roundTable, scanner, sign, stanchion, stripCabinet,
-  tokens, wallShelves, waterCooler, bulkRack, cctvWall,
+  ahu, backlitSign, belt, carrier, cashDrawer, chemicals, chest, extinguisher, kiosk, keyCabinet, ltPanel, mopSink, mopTrolley,
+  noteCounter, payTerminal, photocopier, pigeonholes, radioChargers, receiptPrinter, roundTable, sign, stanchion,
+  tokens, wallShelves, waterCooler, cctvWall,
 } from '../equipment/ground'
 import {
   bins, bottle, clock, computer, cupboard, desk, deskPhone, dispensers, dressingSupplies, dressingTrolley, fileCabinet, gloveBox, injectionTrolley,
-  lockers, medFridge, oxygenTrolley, papers, patientChair, poster, printer, rack, sharps, stool, wallCupboard, wallScreen, workbench, baseRun, curtain,
+  lockers, oxygenTrolley, papers, patientChair, poster, printer, rack, sharps, wallCupboard, wallScreen, baseRun, curtain,
 } from '../furniture'
 import { handWashPoint } from '../equipment/sanitary'
 import type { Fitter } from './types'
@@ -20,8 +20,8 @@ import type { Fitter } from './types'
 /*
  * The ground floor: the outpatient hall behind the entrance with the main reception, the
  * security desk and the appointment and lift assistance counter; the waiting lounge facing the
- * billing and report counters and, across the front corridor, the pharmacy's dispensing hatch;
- * the pharmacy and its store; the dressing and injection room; the administration office; the
+ * billing and report counters (the hospital's one pharmacy is the main block's, off its services
+ * hall); the dressing and injection room; the administration office; the
  * security, insurance and vaccination rooms on the south side; the plant and housekeeping at the
  * back. Plan coordinates as in ../plan.ts (+x north, +z east).
  */
@@ -211,80 +211,6 @@ const reports: Fitter = (e, room) => {
   sign(e, room.at(room.x0 - 0.13, 1.75, -PI / 2), 'reports', 'REPORT COLLECTION', 'Laboratory · X-ray · Scans', 2.1, 0.42, 0, 2.6, 0)
 }
 
-/* ---------- the pharmacy ---------- */
-
-const pharmacy: Fitter = (e, room) => {
-  const { k, m, o } = e
-  // The dispensing counter under the hatch to the front corridor: drawers and cupboards on the
-  // pharmacists' side, the billing workstations and barcode scanners on it.
-  const ct = room.at(2.0, room.z1 - 0.62, PI)
-  baseRun(e, ct, 5.4, { fill: 'medicines' })
-  ;[0.2, 1.9, 3.6].forEach((x, i) => {
-    computer(e, room.at(x, room.z1 - 0.38, PI), 0, 0.915, 0, 0, o.his(`g_pharm${i}`, 'Pharmacy · Dispensing & Billing', i === 1 ? 'table' : 'form'))
-    scanner(e, room.at(x + 0.45, room.z1 - 0.3, PI), 0, 0.915, 0)
-  })
-  receiptPrinter(e, room.at(2.75, room.z1 - 0.32, PI), 0, 0.915, 0)
-  for (let i = 0; i < 6; i++) k.box(room.group, 0.18, 0.004, 0.26, m.paper, -0.3 + i * 0.012, room.y + 0.915 + i * 0.004, room.z1 - 0.32, false)
-  for (const x of [0.9, 2.8]) stool(e, room.at(x, room.z1 - 1.1, 0))
-  room.info(ct, {
-    title: 'Pharmacy Dispensing Counter',
-    kind: 'Pharmacy · Dispensing',
-    body: 'Prescriptions are checked by a registered pharmacist against the doctor\'s e-prescription, billed with each strip\'s batch and expiry scanned, and handed over with counselling on dose and timing.',
-    specs: ['Three dispensing and billing workstations', 'Barcode batch and expiry scanning', 'Schedule H and H1 drugs on prescription only', 'Drawers of strips and cupboards of fast movers'],
-  })
-  // Open shelving of medicines on both side walls; the fridge on the east wall.
-  for (const z of [-11.3, -10.1, -8.9, -7.7]) medicineShelves(e, room.at(room.x0 + 0.4, z, PI / 2), 1.2, 2.1, 0.4, 6)
-  for (const z of [-9.7, -8.5, -7.3]) medicineShelves(e, room.at(room.x1 - 0.4, z, -PI / 2), 1.2, 2.1, 0.4, 6)
-  const fr = room.at(room.x1 - 0.62, -10.75, -PI / 2)
-  medFridge(e, fr, 'Pharmacy Refrigerator')
-  room.info(fr, { title: 'Pharmaceutical Refrigerator', kind: 'Cold chain · +2 to +8 °C', body: 'Holds insulins, vaccines, eye drops and other heat-sensitive medicines between 2 and 8 °C, its temperature logged every five minutes and alarmed if it drifts.', specs: ['400 L, glass door, forced-air cooling', 'Digital display and data logger', 'Audible and SMS temperature alarm', 'On the standby generator circuit'] })
-  // The back wall: the cabinet of strip drawers, and the staff working area beside it.
-  const sc = room.at(0.0, room.z0 + 0.45, 0)
-  stripCabinet(e, sc, 5, 4)
-  room.info(sc, { title: 'Strip Drawer Cabinet', kind: 'Pharmacy · Storage', body: 'Tablets and capsules in their strips, filed alphabetically by generic name in labelled drawers, so the pharmacist can pick a prescription without leaving the counter.', specs: ['20 drawers, labelled by generic name', 'FEFO: first expiry, first out', 'Prescriptions awaiting dispensing on top'] })
-  const sd = room.at(2.1, room.z0 + 0.375, PI)
-  desk(e, sd, 1.4, 0.75, 1)
-  computer(e, sd, -0.15, 0.75, 0.1, PI, o.his('g_pharmstock', 'Pharmacy · Stock & Indents', 'table'))
-  deskPhone(e, sd, 0.45, 0.75, 0.05, PI)
-  papers(e, sd, -0.5, 0.75, -0.1, 0.3)
-  taskChair(e, group(sd, 0.0, 0, -0.62, 0.15))
-  // The checking bench in the middle: prescriptions in trays, a label printer, a counting tray.
-  const wb = room.at(2.0, -8.8, 0)
-  workbench(e, wb, 1.8, 0.8, 0.9)
-  for (let i = 0; i < 3; i++) dispTray(e, wb, -0.55 + i * 0.34, 0.9, -0.35, (i - 1) * 0.05, i + 1)
-  k.box(wb, 0.2, 0.012, 0.12, m.whitePlastic, 0.5, 0.906, -0.25)
-  receiptPrinter(e, wb, 0.6, 0.9, -0.6, 0)
-  papers(e, wb, 0.15, 0.9, -0.5, 0.1)
-  for (let i = 0; i < 5; i++) bottle(e, wb, -0.7 + i * 0.07, 0.9, -0.65, 0.12, 0.025, i % 2 ? m.amber : m.whitePlastic, m.whitePlastic)
-  room.info(wb, { title: 'Prescription Checking Bench', kind: 'Pharmacy · Quality check', body: 'Every filled prescription is laid out in its tray and checked by a second pharmacist against the prescription before it goes to the counter.', specs: ['Double-check of drug, strength and quantity', 'Dosage labels in English and Telugu'] })
-  // Out on the corridor: the pharmacy's sign over its hatch and its token display.
-  sign(e, room.at(1.0, -5.69, 0), 'pharmacy', 'PHARMACY', 'Open 24 hours · Prescriptions & OTC', 2.6, 0.42, 0, 2.65, 0)
-  wallScreen(e, room.at(3.95, -5.7, 0), 0.9, 2.62, tokens(e, 'pharm', 'Pharmacy · Ready to Collect', [['P-112', 'Window 1'], ['P-113', 'Window 2'], ['P-109', 'Window 3']], 9103))
-  extinguisher(e, room.onWall('-z', 3.3))
-}
-
-const pharmacyStore: Fitter = (e, room) => {
-  const { o } = e
-  const xs = [-0.3, 1.25, 2.8]
-  for (const x of xs) bulkRack(e, room.at(x, room.z1 - 0.55, PI))
-  for (const x of xs) {
-    bulkRack(e, room.at(x, -14.7, 0))
-    bulkRack(e, room.at(x, -15.8, PI))
-  }
-  for (const x of xs.slice(0, 2)) bulkRack(e, room.at(x, room.z0 + 0.55, 0))
-  const pl = room.at(3.0, -17.3, 0.05)
-  pallet(e, pl, 1.2, 1.0, 4)
-  room.info(pl, { title: 'Incoming Stock', kind: 'Pharmacy store · Receiving', body: 'A delivery from the distributor waiting to be checked against its invoice, entered into stock batch by batch and shelved first-expiry-first-out.', specs: ['Goods received note against the purchase order', 'Batch, expiry and MRP entered on receipt'] })
-  const r0 = room.at(1.25, room.z1 - 0.55, PI)
-  room.info(r0, { title: 'Bulk Medicine Racks', kind: 'Pharmacy store', body: 'Heavy-duty steel racking holding the pharmacy\'s reserve stock of tablets, syrups, IV fluids and consumables in their cartons, arranged by therapeutic group.', specs: ['Six bays, four levels each', 'Stock rotated first-expiry-first-out', 'Temperature kept below 25 °C'] })
-  for (const z of [-14.0, -13.05]) medFridge(e, room.at(room.x1 - 0.62, z, -PI / 2), 'Cold Chain Refrigerator', 1.85, 0.9)
-  const dg = room.at(room.x1 - 0.38, -16.3, PI / 2)
-  desk(e, dg, 1.2, 0.7, -1)
-  computer(e, dg, 0.1, 0.75, 0.1, PI, o.his('g_store', 'Store · Goods Received', 'form'))
-  papers(e, dg, -0.4, 0.75, -0.05, 0)
-  taskChair(e, group(dg, 0, 0, -0.62, 0))
-}
-
 /* ---------- dressing and injection ---------- */
 
 const dressing: Fitter = (e, room) => {
@@ -463,8 +389,6 @@ export const GROUND: Record<string, Fitter> = {
   wheelchairs,
   billing,
   reports,
-  pharmacy,
-  pharmacy_store: pharmacyStore,
   dressing_injection: dressing,
   admin,
   security,

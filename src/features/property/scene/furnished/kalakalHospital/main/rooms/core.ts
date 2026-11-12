@@ -14,8 +14,8 @@ import { wallClock } from '../kit'
 
 /** What each floor's board in the main lift lobby lists under its name. */
 const FLOOR_BOARD: Record<number, [string, string[]]> = {
-  0: ['Main Reception · Patient Services', ['Main Reception & Admissions', 'Insurance · Billing · Cash · Pharmacy', 'Emergency (24 h) →  ·  OPD ←']],
-  1: ['Inpatient Rooms', ['Single & Double Rooms 101 – 107', 'Nurses\' Station · Relatives\' Lounge', 'OPD Consultations ←']],
+  0: ['Main Reception · Patient Services', ['Main Reception · Admissions · Consultation', 'Insurance · Billing · Cash · Pharmacy', 'Emergency (24 h) →  ·  OPD ←']],
+  1: ['Inpatient Rooms · HDU', ['Single & Double Rooms 101 – 107', 'High Dependency Unit · Nurses\' Station', 'Doctor\'s Consultation · Relatives\' Lounge']],
   2: ['International Wing · ICU', ['International Suites 211 – 213', 'Intensive Care Unit · Ventilator Rooms', 'ICU Relatives\' Waiting · Counselling']],
   3: ['Operation Theatres', ['Operation Theatres 1 – 3', 'Pre-op Holding · Recovery (PACU)', 'OT Relatives\' Waiting']],
 }

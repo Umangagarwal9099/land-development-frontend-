@@ -3,7 +3,7 @@ import { PI } from '../../kit'
 import { bake, bentTube, face, group, lathe, put, rod, tube } from '../erKit'
 import type { OpdCtx, Room } from '../opd/ctx'
 import { yawInto } from '../opd/ctx'
-import { exhaustGrille, floorDrain, grabRail, healthFaucet, mirror, pullCord, robeHook, sanMats, soapDispenser, vanityTop, wallBasin, wcPan, cisternDuct } from '../opd/equipment/sanitary'
+import { dropDownRail, exhaustGrille, floorDrain, grabRail, healthFaucet, mirror, pullCord, robeHook, sanMats, soapDispenser, vanityTop, wallBasin, wcPan, cisternDuct } from '../opd/equipment/sanitary'
 import type { Fitter } from '../opd/rooms/types'
 import { kitMats } from './kit'
 
@@ -170,7 +170,9 @@ function fitWashroom(e: OpdCtx, room: Room, premium: boolean) {
   } else coupledWc(e, wcWall)
   const zs = wcSide
   grabRail(e, wcWall, `wcRail${premium}`, [[zs * 0.32, 0.75, 0], [zs * 0.32, 0.75, 0.06], [zs * 0.32, 0.75, 0.06], [zs * 0.32 + zs * 0.6, 0.75, 0.06], [zs * 0.32 + zs * 0.6, 0.75, 0]])
-  rollHolder(e, wcWall, -zs * 0.42, 0.7)
+  // A fold-down support rail on the WC's open side, for a patient rising or transferring from a wheelchair.
+  dropDownRail(e, group(wcWall, -zs * 0.4, 0, 0), 0.75, 0.75)
+  rollHolder(e, wcWall, -zs * 0.62, 0.7)
   healthFaucet(e, wcWall, zs * 0.27)
   // Nurse call: the pull cord within reach of the WC, its reset plate.
   pullCord(e, group(wcWall, zs * 0.7, 0, 0), room.ceiling)
@@ -183,6 +185,9 @@ function fitWashroom(e: OpdCtx, room: Room, premium: boolean) {
     mirror(e, bWall, 0.5, 0.65, 1.45, 0.06)
   }
   soapDispenser(e, bWall, 0.36, 1.12)
+  // A vertical grab rail beside the basin, on the side away from the door.
+  const gx = premium ? 0.55 : 0.4
+  grabRail(e, bWall, `basinGrab${premium}`, [[-gx, 0.85, 0], [-gx, 0.85, 0.07], [-gx, 1.45, 0.07], [-gx, 1.45, 0]])
   // The shower: its set on the far wall, the seat on the WC's side wall, a vertical grab rail.
   const far = group(G, 0, 0, D)
   far.rotation.y = PI
@@ -224,7 +229,7 @@ function fitWashroom(e: OpdCtx, room: Room, premium: boolean) {
     body: premium
       ? 'A step-free washroom in large-format porcelain: a wall-hung WC on a concealed cistern with its dual-flush plate, a stone vanity with an undermount basin and back-lit mirror, a walk-in shower behind frameless glass with a rain head, a hand shower on its rail and a fold-down seat.'
       : 'A step-free washroom in anti-slip tiles: a close-coupled WC with its dual-flush cistern, grab rail, health faucet and toilet roll; a china basin with a wrist-lever mixer under its mirror; a shower behind a fixed glass screen with a thermostatic mixer, fold-down seat and a linear drain.',
-    specs: ['Door opens outwards, with an emergency release', 'Nurse-call pull cord by the WC', 'Anti-slip R11 floor tiles falling to a linear drain', 'Exhaust fan, 10 air changes an hour'],
+    specs: ['Door opens outwards, with an emergency release', 'Nurse-call pull cord by the WC', 'Wall and fold-down grab rails at the WC, rails at the basin and shower', 'Anti-slip R11 floor tiles falling to a linear drain', 'Exhaust fan, 10 air changes an hour'],
   }, [G.position.x, 1.1, G.position.z])
 }
 

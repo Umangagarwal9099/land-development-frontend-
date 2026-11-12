@@ -1,22 +1,26 @@
 import type { Group } from 'three'
 import { PI } from '../../../kit'
 import { workstation, beamSeating, linenTrolley } from '../../emergency'
-import { examLight, vitalsStand } from '../../erEquipment'
+import { examLight, headwall, ivStand, vitalsStand } from '../../erEquipment'
 import { armChair, counter, crashCart, examCouch, locker, overbedTable, sofa, taskChair, visitorChair, wheelchair } from '../../erFurniture'
 import { group, signPanel } from '../../erKit'
 import type { OpdCtx, PlacedDoor, Room } from '../../opd/ctx'
-import { bench, fridge, kitchenette, noticeBoard, sideTable, sofa as loungeSofa, waterStation, planter } from '../../opd/equipment/common'
-import { chemicals, mopSink, mopTrolley } from '../../opd/equipment/ground'
+import { bench, sideTable, sofa as loungeSofa, waterStation, planter } from '../../opd/equipment/common'
+import { chemicals, mopTrolley } from '../../opd/equipment/ground'
 import { dropDownRail, exhaustGrille, floorDrain, grabRail, handWashPoint, mirror, pullCord, soapDispenser, towelDispenser, wallBasin, wcPan } from '../../opd/equipment/sanitary'
-import { baseRun, bins, clock, computer, curtain, desk, deskPhone, dressingTrolley, fileCabinet, lockers, medFridge, papers, poster, printer, rack, sharps, wallCupboard, wallScreen } from '../../opd/furniture'
+import { baseRun, bins, clock, computer, curtain, desk, deskPhone, dressingTrolley, lockers, papers, poster, printer, sharps, wallCupboard, wallScreen } from '../../opd/furniture'
 import { board, NAVY, tokenScreen } from '../../opd/paints'
 import type { Dir } from '../../opd/plan'
 import { coffeeTable as loungeTable } from '../../opd/equipment/clinical'
 import type { Fitter } from '../../opd/rooms/types'
-import { bedHead, callLamp, callLink, drawerCart, fan, fanRegulator, linenShelves, rubBottle, splitAC, wallClock, wallTV, wardBed, wardrobe, type CallLink } from '../kit'
+import { bedHead, callButton, callLamp, callLink, drawerCart, fan, fanRegulator, rubBottle, splitAC, wallClock, wallTV, wardBed, wardrobe, type CallLink } from '../kit'
+import { icuMonitorPaint, ventScreenPaint } from '../equipment/secondPaints'
+import { icuVentilator, infusionTower } from '../equipment/secondIcu'
 
 /*
- * The main block's first floor: the inpatient rooms round the nurses' station. Every bed has its
+ * The main block's first floor: the inpatient rooms round the nurses' station, the three-bed high
+ * dependency unit across the corridor from it, the doctor's consultation room (./clinic.ts) off
+ * the relatives' lounge. Every bed has its
  * bed-head unit (oxygen, vacuum, sockets, reading light, nurse call), a locker and an overbed
  * table, a chair beside it, monitoring at hand; each room its wardrobe, its washroom (fitted by
  * ../washroom.ts) and a nurse-call lamp over its door that lights with the room's call buttons,
@@ -82,6 +86,7 @@ function bedSpace(e: OpdCtx, room: Room, s: BedSpot, link: CallLink, o: { style:
   overbedTable(e, room.onWall(s.side, s.at - s.locker * 0.72, 0, 1.55))
   if (o.chair !== false) visitorChair(e, room.onWall(s.side, s.at + s.locker * 0.85, 0, 1.25))
   if (o.monitor) {
+    ivStand(e, room.onWall(s.side, s.at + s.locker * 0.62, 0, 0.75), false)
     const vs = room.onWall(s.side, s.at - s.locker * 0.95, 0, 0.45)
     vitalsStand(e, vs, e.m.monitors[0])
     room.info(vs, { title: 'Vital Signs Monitor', kind: 'Patient monitoring', body: 'A mobile monitor for spot checks and continuous observation: non-invasive blood pressure, SpO₂ with pulse, temperature and respiration, its readings sent to the patient\'s record.', specs: ['NIBP, SpO₂, temperature', 'Early-warning score', 'Wi-Fi to the HIS'] })
@@ -104,13 +109,14 @@ function doorsOf(e: OpdCtx, room: Room): [Room, PlacedDoor][] {
 /* ---------- the rooms ---------- */
 
 /** Bed positions, AC, TV and wardrobe for each room, by id. */
-const LAYOUT: Record<string, { beds: BedSpot[]; ac?: [Dir, number]; tv?: [Dir, number]; robe: [Dir, number, 'main' | 'nook']; seat: [number, number, number]; fans?: [number, number][]; curtain?: [number, number, number, 'x' | 'z'] }> = {
+const LAYOUT: Record<string, { beds: BedSpot[]; ac?: [Dir, number]; tv?: [Dir, number]; robe: [Dir, number, 'main' | 'nook']; seat: [number, number, number]; fans?: [number, number][]; curtain?: [number, number, number, 'x' | 'z']; bin?: [number, number] }> = {
   r101: { beds: [{ side: '-x', at: -24.65, locker: 1 }, { side: '-x', at: -22.05, locker: 1 }], ac: ['+x', -24.4], tv: ['+x', -23.4], robe: ['+z', 6.8, 'main'], seat: [5.6, -25.1, PI], curtain: [1.86, -23.35, 2.55, 'x'] },
   r102: { beds: [{ side: '-x', at: -24.65, locker: 1 }, { side: '-x', at: -22.05, locker: 1 }], robe: ['+z', 12.7, 'main'], seat: [11.6, -25.1, PI], fans: [[9.6, -24.5], [9.6, -21.9]], curtain: [7.76, -23.35, 2.55, 'x'] },
   r103: { beds: [{ side: '-x', at: -13.15, locker: -1 }], robe: ['-z', 12.75, 'nook'], seat: [13.0, -12.9, -PI / 2], fans: [[11.9, -13.6]] },
   r104: { beds: [{ side: '-x', at: -10.85, locker: 1 }], ac: ['-z', 11.4], tv: ['-z', 12.9], robe: ['+z', 12.75, 'nook'], seat: [13.05, -10.0, -PI / 2] },
   r105: { beds: [{ side: '-x', at: 0.3, locker: -1 }, { side: '-x', at: 2.9, locker: 1 }], ac: ['+z', 11.9], tv: ['+z', 13.0], robe: ['+z', 10.65, 'main'], seat: [13.05, 1.6, -PI / 2], curtain: [10.12, 1.6, 2.5, 'x'] },
-  r106: { beds: [{ side: '-x', at: 11.65, locker: 1 }], ac: ['+x', 12.25], tv: ['+x', 12.25], robe: ['+x', 10.75, 'main'], seat: [4.9, 12.6, PI] },
+  // 106 runs from the west façade (its windows) to the wall it shares with 107, the bed's head on it.
+  r106: { beds: [{ side: '+x', at: 11.6, locker: 1 }], ac: ['-z', 1.45], tv: ['-z', 2.45], robe: ['+x', 9.2, 'nook'], seat: [1.45, 11.6, PI / 2], bin: [1.3, 10.55] },
   r107: { beds: [{ side: '+x', at: 11.65, locker: -1 }], ac: ['-x', 12.25], tv: ['-x', 12.25], robe: ['-x', 10.75, 'main'], seat: [7.3, 12.6, PI] },
 }
 
@@ -152,11 +158,13 @@ function patientRoom(ac: boolean): Fitter {
     // The patient's board, a clock, the bin by the door.
     const b0 = L.beds[0]
     whiteboard(e, room.onWall(b0.side, b0.at - b0.locker * 1.55))
+    // A sharps box and glove dispenser by the bed head, for the nurses' rounds.
+    sharps(e, room.onWall(b0.side, b0.at + b0.locker * 1.32), 1.3)
     const [c0, c1] = room.side(L.robe[0])
     void c0
     void c1
     wallClock(e, room.onWall(b0.side, b0.at, 0, 0.001), 2.55, 0.26)
-    bins(e, room.at(room.x1 - 0.25, room.z0 + 0.25), ['black', 'yellow'])
+    bins(e, room.at(L.bin?.[0] ?? room.x1 - 0.25, L.bin?.[1] ?? room.z0 + 0.25), ['black', 'yellow'])
   }
 }
 
@@ -180,16 +188,16 @@ const nurses: Fitter = (e, room) => {
     title: 'Nurses\' Station',
     kind: 'Ward nursing station',
     body: 'The ward\'s nursing hub, facing the lifts so every arrival and every door is seen: admissions and transfers are received here, medicines charted and administered, and the nurse-call annunciator on the wall behind shows which room is calling.',
-    specs: ['Three HIS workstations', 'Nurse-call annunciator for rooms 101–107', 'Raised transaction ledge, wheelchair-height section', 'Medication trolley and crash cart at hand'],
+    specs: ['Three HIS workstations', 'Nurse-call annunciator for rooms 101–107 and the HDU', 'Raised transaction ledge, wheelchair-height section', 'Medication trolley and crash cart at hand'],
   })
   // The nurse-call annunciator on the back wall: a lamp for each room under its number.
   const ann = room.onWall('+z', room.x0 + 2.2)
   k.box(ann, 1.5, 0.42, 0.04, m.charcoal, 0, 2.05, 0.02)
-  const ids = ['r101', 'r102', 'r103', 'r104', 'r105', 'r106', 'r107']
+  const ids = ['r101', 'r102', 'r103', 'r104', 'r105', 'r106', 'r107', 'hdu']
   ids.forEach((id, i) => {
-    const x = -0.6 + i * 0.2
+    const x = -0.7 + i * 0.2
     callLamp(e, ann, wardLink(e, id), x, 2.1, 0.04, 'amber')
-    const lab = e.o.sign(`annun_${id}`, 96, 48, board('#1b1c1e', [[id.slice(1), 0.6, '#ffffff']]))
+    const lab = e.o.sign(`annun_${id}`, 96, 48, board('#1b1c1e', [[id === 'hdu' ? 'HDU' : id.slice(1), 0.6, '#ffffff']]))
     signPanel(e, ann, 0.12, 0.06, lab, x, 1.94, 0.042, 0, 0.002)
   })
   room.info(ann, { title: 'Nurse-call Annunciator', kind: 'Nurse call system', body: 'Each room\'s lamp lights amber, with a chime, when a call button at a bed or the pull cord in a washroom is pressed; the lamp over that room\'s door lights red at the same time. The call is cancelled at the bed.', specs: ['Calls from beds and washrooms', 'Corridor dome lights over every door'] })
@@ -202,32 +210,23 @@ const nurses: Fitter = (e, room) => {
   clock(e, room.onWall('+z', room.x1 - 2.4), 2.45)
 }
 
-const supervisor: Fitter = (e, room) => {
-  const d = room.at(room.cx + 0.4, room.z1 - 0.75, PI)
-  desk(e, d, 1.4, 0.7, 1)
-  computer(e, d, 0.2, 0.75, 0.1, PI, e.o.his('ward_sup', 'Nursing Roster · Duty Plan', 'table'))
-  deskPhone(e, d, -0.45, 0.75, 0.1, PI)
-  taskChair(e, room.at(room.cx + 0.4, room.z1 - 1.3, 0))
-  for (const x of [-0.5, 0.3]) visitorChair(e, room.at(room.cx + x, room.z0 + 0.6, PI))
-  fileCabinet(e, room.onWall('-x', room.cz, 0, 0.25), 4)
-  noticeBoard(e, room.onWall('+x', room.cz), 1.2, 1.5)
-  room.info(d, { title: 'Nursing Supervisor', kind: 'Ward office', body: 'The ward sister\'s office: duty rosters, staffing, incident reports and the day\'s bed plan.' })
-}
-
 const lounge: Fitter = (e, room) => {
-  // Sofas and armchairs in two groups facing the information screen; water and a planter.
-  for (const [x, ry] of [[2.8, 0], [8.6, 0]] as const) {
-    loungeSofa(e, room.at(x, room.z0 + 0.5, ry), 1.8)
-    loungeTable(e, room.at(x, room.z0 + 1.35), 0.9, 0.5)
+  // Two seating groups against the rooms' wall, clear of the doors on to the lounge (the toilet's,
+  // the passage from the lifts, the consultation room's, 106's and 107's, housekeeping's).
+  for (const x of [2.2, 9.0]) {
+    const sf = room.at(x, room.z1 - 0.48, PI)
+    loungeSofa(e, sf, 1.8)
+    loungeTable(e, room.at(x, room.z1 - 1.35), 0.9, 0.5)
+    for (const dx of [-0.8, 0.8]) armChair(e, room.at(x + dx, room.z1 - 2.15, dx < 0 ? 0.25 : -0.25))
   }
-  for (const x of [1.6, 4.1, 7.3, 9.9]) armChair(e, room.at(x, room.z0 + 2.05, PI))
-  beamSeating(e, room.at(5.7, room.z0 + 0.45, 0), 3)
-  const ws = room.at(room.x1 - 0.4, room.z0 + 0.4, -PI / 2)
+  room.info(room.at(2.2, room.z1 - 0.48, PI), { title: 'Relatives\' Waiting Lounge', kind: 'Visitor amenity', body: 'Relatives wait here for visiting hours and for the doctor: soft seating in two groups, drinking water, the visiting-hours screen, and the consultation room where the doctors meet families.', specs: ['Visiting hours 4 – 7 pm', 'One attendant pass per patient', 'Accessible toilet and visitors\' toilet beside'] })
+  beamSeating(e, room.at(7.0, room.z0 + 0.45, 0), 3)
+  const ws = room.at(10.85, room.z0 + 0.42, 0)
   waterStation(e, ws)
   room.info(ws, { title: 'Drinking Water Station', kind: 'Visitor amenity', body: 'RO-purified drinking water, chilled and ambient, with paper cups.' })
-  wallScreen(e, room.onWall('-z', 5.7), 1.0, 1.9, e.o.screen('wardLoungeInfo', 1024, 576, tokenScreen('Visiting Hours · 4 – 7 pm', [['ICU', '11 – 12 · 5 – 6'], ['Wards', '4 – 7 pm'], ['Attendant passes', 'Main reception'], ['Pharmacy', 'Ground floor']], 712)))
+  wallScreen(e, room.onWall('-z', 7.0), 1.0, 1.9, e.o.screen('wardLoungeInfo', 1024, 576, tokenScreen('Visiting Hours · 4 – 7 pm', [['ICU', '11 – 12 · 5 – 6'], ['Wards', '4 – 7 pm'], ['Attendant passes', 'Main reception'], ['Pharmacy', 'Ground floor']], 712)))
   planter(e, room.at(room.x0 + 0.35, room.z0 + 0.35))
-  sideTable(e, room.at(10.6, room.z0 + 2.05))
+  sideTable(e, room.at(10.65, room.z1 - 2.15))
 }
 
 const visitorWc: Fitter = (e, room) => {
@@ -243,16 +242,6 @@ const visitorWc: Fitter = (e, room) => {
   pullCord(e, room.onWall('-z', room.cx), room.ceiling)
   floorDrain(e, room.at(room.cx, room.cz))
   exhaustGrille(e, room.at(room.cx, room.cz), room.ceiling, 0.25)
-}
-
-const janitorRoom: Fitter = (e, room) => {
-  mopSink(e, room.onWall('-z', room.x0 + 0.5))
-  mopTrolley(e, room.at(room.x1 - 0.5, room.cz, -PI / 2))
-  chemicals(e, room.onWall('-z', room.x1 - 0.8), 0.9, 1.4)
-}
-
-const linen: Fitter = (e, room) => {
-  linenShelves(e, room.onWall('-x', room.cz + 0.6), Math.min(2.4, room.d - 1.4), 1.95, Math.min(0.45, room.w - 0.55), 5)
 }
 
 const housekeeping: Fitter = (e, room) => {
@@ -278,22 +267,64 @@ const exam: Fitter = (e, room) => {
   room.info(c, { title: 'Examination Couch', kind: 'Clinical examination', body: 'A two-section examination couch with an adjustable backrest under a ceiling-mounted LED examination light, for examinations and minor procedures out of the patient\'s room.' })
 }
 
-const supply: Fitter = (e, room) => {
-  rack(e, room.onWall('-x', room.cz, 0, 0.25), 2.2, 2.0, 0.45, 5, 'supplies')
-  rack(e, room.onWall('+x', room.cz - 0.7, 0, 0.25), 1.6, 2.0, 0.45, 5, 'medicines')
-  baseRun(e, room.onWall('-z', room.cx), 2.4, { sink: 0.6, fill: 'supplies' })
-  wallCupboard(e, room.onWall('-z', room.cx), 2.4, 0.7, 0.35, 1.5, { fill: 'supplies' })
-  const f = room.onWall('+x', room.z1 - 0.6, 0, 0.32)
-  medFridge(e, f, 'Medication Refrigerator · 2–8 °C')
-  room.info(f, { title: 'Medication Refrigerator', kind: 'Cold chain · 2–8 °C', body: 'Insulins, vaccines and other cold-chain medicines for the ward, its temperature logged twice a day.' })
-}
+/* ---------- the high dependency unit ---------- */
 
-const pantry: Fitter = (e, room) => {
-  kitchenette(e, room.onWall('-z', room.cx), 2.6)
-  fridge(e, room.onWall('-x', room.cz - 0.6, 0, 0.35))
-  const t = room.at(room.x1 - 0.8, room.cz + 0.6, -PI / 2)
-  drawerCart(e, t, 0.7, 1.05, 0.6, 4)
-  room.info(t, { title: 'Food Trolley', kind: 'Patient diet service', body: 'Meals arrive from the central kitchen by the service lift and are served from here to the patients by diet: normal, diabetic, soft, liquid.' })
+/**
+ * The HDU: three beds for patients who need closer watching than a ward gives but not intensive
+ * care (after major surgery, on non-invasive ventilation, on vasoactive or insulin infusions),
+ * a nurse to every two beds. Each bed space 2.6 m wide with its headwall (O₂, air, vacuum, the
+ * flowmeter and humidifier, suction, the monitor on its arm), an ICU bed, infusion pumps, a locker
+ * and curtains between; the middle bed on non-invasive ventilation. The nurses' observation desk
+ * faces the beds with the central monitor; the crash cart, a hand-wash basin, waste by the door.
+ */
+const hdu: Fitter = (e, room) => {
+  const l = wardLink(e, 'hdu')
+  const xs = [0.95, 3.55, 6.15]
+  xs.forEach((x, i) => {
+    const hw = room.onWall('-z', x)
+    headwall(e, hw, e.o.screen(`hduMon${i}`, 640, 408, icuMonitorPaint(`HDU-${i + 1}`, 7200 + i, i === 1)), false)
+    callButton(e, hw, l, 0.85, 1.44, 0.086, 'Nurse Call')
+    const b = room.onWall('-z', x, 0, 1.13)
+    wardBed(e, b, { style: 'icu', back: i === 1 ? 0.62 : 0.45, linen: i === 2 ? 'made' : 'used', height: 0.66 })
+    locker(e, room.onWall('-z', x + 0.95, 0, 0.3))
+    overbedTable(e, room.onWall('-z', x + 0.85, 0, 1.9))
+    if (i < 2) curtain(e, room.at(x + 1.3, room.z0 + 1.55, -PI / 2), 3.0, room.ceiling, 0.85)
+    if (i !== 2) {
+      // The infusion stand at the bed's upper body on the side away from the locker.
+      const tw = room.onWall('-z', x - 0.95, 0, 1.0)
+      infusionTower(e, tw, {
+        pumps: i === 0 ? [{ kind: 'vol', drug: 'NaCl 0.9%', rate: '75.0 ml/h', sub: 'VTBI 600 ml' }, { kind: 'syr', drug: 'Insulin', rate: '3.0 ml/h', sub: '3.0 U/h' }] : [{ kind: 'syr', drug: 'Dobutamine', rate: '4.5 ml/h', sub: '5 µg/kg/min' }],
+        key: `hdu${i}`, toward: [0.9, 0.8, 0.2], bags: [['0.9% Sodium Chloride', 'Injection IP · 1000 mL']],
+      })
+    }
+  })
+  room.info(room.onWall('-z', xs[0], 0, 1.13), {
+    title: 'High Dependency Unit', kind: 'Step-down critical care · 3 beds',
+    body: 'Three beds between the ward and the ICU, a nurse to every two patients: after major surgery, on non-invasive ventilation, on infusions that need titrating, or stepping down from the ICU. Each bed has a headwall with oxygen, air and vacuum, the flowmeter and suction, its monitor networked to the central screen at the nurses\' desk, infusion pumps, and a curtain to the next bed.',
+    specs: ['Nurse : patient 1 : 2', 'O₂, air, vacuum, UPS power at every bed', 'Continuous ECG, SpO₂, NIBP; central monitoring', 'Non-invasive ventilation, infusion and syringe pumps'],
+  })
+  // The middle bed on non-invasive ventilation (BiPAP by mask).
+  const v = room.onWall('-z', xs[1] + 1.05, 0, 0.6)
+  icuVentilator(e, v, { screen: e.o.screen('vent_HDU2', 640, 410, ventScreenPaint('HDU-2 · NIV', 7210)), side: -1 })
+  room.info(v, { title: 'Non-invasive Ventilator', kind: 'NIV · BiPAP', body: 'Ventilation by a tight-fitting face mask instead of a tube: pressure support with PEEP for a patient tiring with COPD, pulmonary oedema or after extubation, kept off the ICU by it.', specs: ['NIV, CPAP, high-flow O₂', 'Leak compensation, heated humidifier'] })
+  // The observation desk facing the beds, the central monitor on it.
+  const d = room.at(2.4, -7.05, 0)
+  desk(e, d, 1.6, 0.7, 1)
+  computer(e, d, -0.35, 0.75, -0.15, 0, e.o.screen('hduCentral', 640, 408, icuMonitorPaint('HDU · Central', 7220, false)))
+  computer(e, d, 0.4, 0.75, -0.15, 0, e.o.his('hdu_chart', 'HDU · Vitals & Fluid Balance', 'graph'))
+  deskPhone(e, d, 0.05, 0.75, 0.1, 0)
+  taskChair(e, room.at(2.4, -6.35, PI))
+  room.info(d, { title: 'HDU Observation Desk', kind: 'Nursing station', body: 'The HDU nurse sits facing the three beds: every monitor\'s waveforms and alarms repeat on the central monitor here, and observations and fluid balance are charted on the HIS every hour.' })
+  crashCart(e, room.at(room.x0 + 0.4, -6.55, PI / 2), e.m.monitors[1])
+  const mt = room.at(4.15, -6.4, PI)
+  drawerCart(e, mt, 0.62, 1.0, 0.5, 6)
+  room.info(mt, { title: 'Medication Trolley', kind: 'HDU medicines', body: 'Each patient\'s medicines in a locked drawer, with the infusion drugs, flushes and syringes for the round.' })
+  handWashPoint(e, room.onWall('+z', 5.1), 0.5)
+  bins(e, room.onWall('+x', -7.2, 0, 0.22), ['yellow', 'red', 'black'])
+  sharps(e, room.onWall('+x', -7.2), 1.3)
+  wallClock(e, room.onWall('+z', 1.0), 2.35, 0.3)
+  poster(e, room.onWall('+z', 0.0), 'NIV Mask Fitting', '#1c3966', 0.42, 0.6, 1.6)
+  for (const door of room.doors) entrance(e, room, door, l)
 }
 
 const staffWc: Fitter = (e, room) => {
@@ -334,15 +365,11 @@ export const MAIN_FIRST: Record<string, Fitter> = {
   ward_double_ac: patientRoom(true),
   ward_double_nonac: patientRoom(false),
   ward_nurses: nurses,
-  ward_supervisor: supervisor,
   ward_lounge: lounge,
   ward_visitor_wc: visitorWc,
-  ward_janitor: janitorRoom,
-  ward_linen: linen,
   ward_housekeeping: housekeeping,
   ward_exam: exam,
-  ward_supply: supply,
-  ward_pantry: pantry,
+  ward_hdu: hdu,
   ward_staff_wc: staffWc,
   ward_dirty: dirty,
   ward_doctors: doctors,

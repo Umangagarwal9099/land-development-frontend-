@@ -2,21 +2,18 @@ import { CatmullRomCurve3, Group, Mesh, MeshStandardMaterial, TorusGeometry, Vec
 import { PI } from '../../../kit'
 import { click } from '../../../basement/sound'
 import { castor, drape, geo, group, lathe, panel, put, rod, tube } from '../../erKit'
-import { outlet } from '../../erEquipment'
-import { patientMonitor } from '../../erEquipment'
 import { instrumentTray, kidneyTray, gauzePacks } from '../../opd/equipment/items'
 import { tapSensor } from '../../opd/equipment/sanitary'
 import type { OpdCtx } from '../../opd/ctx'
 import { kitMats } from '../kit'
 
 /*
- * The operation theatres' equipment, built after the products such theatres are fitted with: an
- * electro-hydraulic operating table (column table with a radiolucent four-section top, after the
- * Maquet / Trumpf class), ceiling LED surgical lights on spring arms, an anaesthesia workstation
- * (trolley, flowmeters, vaporisers, bellows, absorber, its screen and the breathing circuit in
- * corrugated tube), ceiling service pendants, instrument tables and Mayo stands under sterile
- * drapes, scrub troughs with sensor taps, the surgeon's control panel, a laparoscopy tower and a
- * mobile C-arm. Each in its own frame, front towards +z, on y = 0.
+ * The operation theatres' smaller equipment, built after the products such theatres are fitted
+ * with: instrument tables and Mayo stands under sterile drapes, kick buckets, the electrosurgical
+ * unit, suction, a laparoscopy tower and a mobile C-arm, scrub troughs with sensor taps, the
+ * surgeon's control panel, the laminar-flow plenum and the seamless wall panels. (The table, the
+ * lights, the pendants and the anaesthesia workstation are in ./otKit.ts.) Each in its own frame,
+ * front towards +z, on y = 0.
  */
 
 const cache = new WeakMap<object, ReturnType<typeof make>>()
@@ -63,181 +60,6 @@ export function corrugated(e: OpdCtx, p: Object3D, key: string, pts: [number, nu
     m.position.copy(at)
     m.lookAt(at.clone().add(tan))
     p.add(m)
-  }
-}
-
-/* ---------- the operating table ---------- */
-
-/**
- * An electro-hydraulic operating table along local z, head at −z: the floor-locking base with its
- * stainless cover, the telescopic column, the radiolucent top in head, back, seat and leg sections
- * on stainless side rails, black pressure-care pads, two padded arm boards, the remote on its hook.
- * Orthopaedic: the leg plates removed and the traction extension with its two boots fitted.
- */
-export function operatingTable(e: OpdCtx, p: Object3D, o: { ortho?: boolean; draped?: boolean } = {}) {
-  const { k } = e
-  const c = otMats(e)
-  // Base and its floor locks.
-  k.soft(p, 0.62, 0.12, 1.05, 0.04, c.brushed, 0, 0.07, 0.15)
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.cyl(p, 0.045, 0.05, 0.03, c.dark, sx * 0.24, 0.015, 0.15 + sz * 0.42, 16)
-  // The column: stepped telescopic covers.
-  k.soft(p, 0.4, 0.42, 0.34, 0.05, c.brushed, 0, 0.34, 0.15)
-  k.soft(p, 0.34, 0.26, 0.28, 0.04, c.steel, 0, 0.65, 0.15)
-  k.box(p, 0.56, 0.06, 0.5, c.steel, 0, 0.8, 0.15)
-  const top = 0.86
-  // The top's frame and side rails, sections and pads.
-  const sections: [number, number, string][] = [[-1.02, -0.72, 'head'], [-0.7, -0.08, 'back'], [-0.06, 0.42, 'seat'], [0.44, 1.02, 'leg']]
-  for (const [z0, z1, name] of sections) {
-    if (o.ortho && name === 'leg') continue
-    const w = name === 'head' ? 0.3 : 0.52
-    k.box(p, w - 0.04, 0.03, z1 - z0, c.grey, 0, top, (z0 + z1) / 2)
-    k.soft(p, w, 0.07, z1 - z0 - 0.01, 0.03, c.pad, 0, top + 0.05, (z0 + z1) / 2)
-    if (name !== 'head') for (const s of [-1, 1]) k.box(p, 0.012, 0.03, z1 - z0 - 0.02, c.steel, s * 0.285, top - 0.005, (z0 + z1) / 2)
-  }
-  // Arm boards at the back section's foot, swung out square.
-  for (const s of [-1, 1]) {
-    const a = group(p, s * 0.3, top + 0.02, -0.25)
-    k.box(a, 0.05, 0.03, 0.06, c.steel, s * 0.02, 0, 0)
-    k.soft(a, 0.66, 0.05, 0.16, 0.025, c.pad, s * 0.38, 0.03, 0)
-  }
-  if (o.ortho) {
-    // The traction extension: two bars from the seat, the boots on their spars, the perineal post.
-    for (const s of [-1, 1]) {
-      put(p, tube(e, `orthoBar${s}`, [[s * 0.08, top, 0.42], [s * 0.22, top - 0.05, 0.9], [s * 0.38, top - 0.08, 1.45]], 0.02), c.steel)
-      k.soft(p, 0.12, 0.28, 0.22, 0.04, c.dark, s * 0.38, top + 0.05, 1.45)
-      k.cyl(p, 0.02, 0.02, 0.5, c.steel, s * 0.38, top - 0.3, 1.5, 12)
-    }
-    k.cyl(p, 0.05, 0.05, 0.3, c.pad, 0, top + 0.18, 0.4, 16)
-  }
-  // The anaesthesia screen frame at the head, the remote on its hook.
-  put(p, tube(e, 'anaesScreen', [[-0.32, top, -0.72], [-0.32, top + 0.75, -0.72], [0.32, top + 0.75, -0.72], [0.32, top, -0.72]], 0.01), c.steel)
-  const r = group(p, 0.31, top - 0.18, 0.2)
-  k.soft(r, 0.07, 0.2, 0.035, 0.015, c.body, 0, 0, 0)
-  for (let i = 0; i < 6; i++) k.box(r, 0.022, 0.016, 0.004, c.grey, (i % 2 - 0.5) * 0.028, 0.06 - Math.floor(i / 2) * 0.03, 0.018, false)
-  if (o.draped) put(p, drape(e, 'otDrape', 0.7, 1.9, 0.25, 0.1, 5), c.drape, 0, top + 0.09, 0.05)
-}
-
-/* ---------- surgical lights and pendants ---------- */
-
-/**
- * Ceiling-mounted LED surgical lights from one central axis at the ceiling: canopy, axis tube,
- * spring arms, yokes and dome lightheads with their LED fields and sterile handles. `heads` gives
- * each head's arm turn and its reach. Returns the lit faces (kept whole, see live_) for switching.
- */
-export function surgicalLights(e: OpdCtx, p: Object3D, ceiling: number, heads: [number, number, number][]) {
-  const { k } = e
-  const c = otMats(e)
-  put(p, lathe(e, 'slCanopy', [[0, 0], [0.24, 0], [0.24, -0.06], [0.12, -0.1], [0, -0.1]], 32), c.body, 0, ceiling, 0)
-  k.cyl(p, 0.05, 0.05, 0.5, c.body, 0, ceiling - 0.35, 0, 20)
-  const lit: Mesh[] = []
-  heads.forEach(([turn, reach, drop], i) => {
-    const arm = group(p, 0, ceiling - 0.55 - i * 0.12, 0, turn)
-    k.cyl(arm, 0.06, 0.06, 0.08, c.body, 0, 0, 0, 20)
-    k.soft(arm, 0.08, 0.07, reach, 0.03, c.body, 0, 0, reach / 2)
-    // The spring arm, down to the yoke.
-    const sp = group(arm, 0, 0, reach)
-    k.cyl(sp, 0.04, 0.04, 0.06, c.body, 0, 0, 0, 16)
-    put(sp, tube(e, `slSpring${drop}`, [[0, 0, 0], [0, -drop * 0.5, 0.15], [0, -drop, 0.18]], 0.03), c.body)
-    // The yoke and the dome.
-    const head = group(sp, 0, -drop - 0.12, 0.18)
-    head.rotation.x = 0.35
-    put(head, tube(e, 'slYoke', [[-0.36, -0.05, 0], [-0.36, 0.1, 0], [0.36, 0.1, 0], [0.36, -0.05, 0]], 0.018), c.body)
-    put(head, lathe(e, 'slDome', [[0, 0.1], [0.12, 0.09], [0.3, 0.04], [0.34, -0.02], [0.33, -0.05], [0, -0.05]], 40), c.body)
-    // The LED field: a ring of modules round the centre, kept whole so it can switch.
-    const holder = new Group()
-    holder.name = `live_otlight_${e.ids++}`
-    head.add(holder)
-    const field = put(holder, lathe(e, 'slField', [[0.04, 0], [0.3, 0], [0.3, 0.004], [0.04, 0.004]], 40), c.lens, 0, -0.056, 0, false)
-    field.rotation.x = PI
-    lit.push(field as Mesh)
-    for (let j = 0; j < 12; j++) {
-      const a = (j / 12) * PI * 2
-      k.cyl(head, 0.035, 0.035, 0.01, c.grey, Math.cos(a) * 0.2, -0.058, Math.sin(a) * 0.2, 16)
-    }
-    // The sterile handle in the middle.
-    put(head, lathe(e, 'slHandle', [[0, 0], [0.03, 0], [0.028, -0.12], [0.035, -0.14], [0, -0.15]], 16), c.dark, 0, -0.05, 0)
-  })
-  return lit
-}
-
-/**
- * A ceiling service pendant: canopy, a twin arm out to `reach`, the column with its gas outlets,
- * sockets and two shelves; the anaesthesia pendant carries the patient monitor on its top shelf.
- */
-export function otPendant(e: OpdCtx, p: Object3D, ceiling: number, reach: number, turn: number, monitor?: Material) {
-  const { k, m } = e
-  const c = otMats(e)
-  put(p, lathe(e, 'pdCanopy', [[0, 0], [0.2, 0], [0.2, -0.05], [0.1, -0.08], [0, -0.08]], 28), c.body, 0, ceiling, 0)
-  k.cyl(p, 0.07, 0.07, 0.3, c.body, 0, ceiling - 0.22, 0, 20)
-  const arm = group(p, 0, ceiling - 0.42, 0, turn)
-  k.soft(arm, 0.16, 0.12, reach, 0.04, c.body, 0, 0, reach / 2)
-  const col = group(arm, 0, 0, reach, -turn)
-  k.cyl(col, 0.09, 0.09, 0.14, c.body, 0, -0.07, 0, 20)
-  k.soft(col, 0.32, 1.2, 0.3, 0.05, c.body, 0, -0.78, 0)
-  k.box(col, 0.26, 1.05, 0.004, m.reveal, 0, -0.78, 0.151, false)
-  const gases = ['o2', 'o2', 'air', 'vac', 'vac'] as const
-  gases.forEach((g, i) => outlet(e, col, g, -0.08 + (i % 3) * 0.08, -0.32 - Math.floor(i / 3) * 0.1, 0.152))
-  for (let i = 0; i < 6; i++) k.soft(col, 0.07, 0.07, 0.01, 0.004, i < 3 ? m.red : m.whitePlastic, -0.08 + (i % 3) * 0.08, -0.62 - Math.floor(i / 3) * 0.09, 0.155)
-  for (const y of [-1.0, -1.32]) {
-    k.soft(col, 0.56, 0.025, 0.42, 0.01, c.body, 0, y, 0.22)
-    k.box(col, 0.6, 0.025, 0.03, c.steel, 0, y, 0.44)
-  }
-  if (monitor) {
-    const mo = group(col, 0, -0.985, 0.22)
-    patientMonitor(e, mo, monitor, 0.4)
-  }
-  return col
-}
-
-/* ---------- anaesthesia ---------- */
-
-/**
- * An anaesthesia workstation: the trolley with its worktop and three drawers on castors, the
- * flowmeter bank and the vaporisers on their rail, the ventilator's bellows in its clear housing,
- * the CO₂ absorber, the screen on its arm, the breathing circuit in corrugated tube to the Y-piece
- * and the reservoir bag, O₂ and N₂O reserve cylinders on the back.
- */
-export function anaesthesiaMachine(e: OpdCtx, p: Object3D, screen: Material) {
-  const { k, m } = e
-  const c = otMats(e)
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) castor(e, p, sx * 0.32, sz * 0.25, 0.06, 0, sz > 0)
-  k.soft(p, 0.78, 0.7, 0.6, 0.04, c.body, 0, 0.47, 0)
-  for (let i = 0; i < 3; i++) {
-    k.box(p, 0.7, 0.18, 0.02, c.body, 0, 0.3 + i * 0.2, 0.305)
-    k.box(p, 0.18, 0.02, 0.02, c.grey, 0, 0.36 + i * 0.2, 0.32)
-  }
-  k.soft(p, 0.84, 0.04, 0.64, 0.015, c.grey, 0, 0.84, 0.02)
-  // The upper tower: flowmeters, vaporisers, the control panel.
-  k.soft(p, 0.62, 0.62, 0.3, 0.03, c.body, 0, 1.17, -0.12)
-  for (let i = 0; i < 3; i++) {
-    k.box(p, 0.04, 0.3, 0.02, c.glass, -0.22 + i * 0.06, 1.25, 0.035, false)
-    k.cyl(p, 0.007, 0.007, 0.012, [m.green, m.blue, c.dark][i], -0.22 + i * 0.06, 1.18 + i * 0.05, 0.035, 8)
-    k.cyl(p, 0.018, 0.018, 0.03, [m.green, m.blue, c.dark][i], -0.22 + i * 0.06, 1.05, 0.05, 16).rotation.x = PI / 2
-  }
-  for (const [x, mat] of [[0.08, c.sevo], [0.24, c.iso]] as const) {
-    k.soft(p, 0.12, 0.26, 0.16, 0.02, mat, x, 1.08, 0.1)
-    k.cyl(p, 0.035, 0.035, 0.02, c.grey, x, 1.22, 0.1, 20)
-  }
-  k.box(p, 0.5, 0.02, 0.06, c.steel, 0.16, 0.94, 0.1)
-  // The screen on its arm.
-  const s = group(p, -0.05, 1.62, -0.05)
-  s.rotation.x = -0.15
-  patientMonitor(e, s, screen, 0.42, c.dark)
-  // The bellows in its clear housing at the side, the absorber canister below it.
-  k.cyl(p, 0.1, 0.1, 0.3, c.glass, -0.47, 1.05, 0.05, 24)
-  put(p, lathe(e, 'bellows', Array.from({ length: 11 }, (_, i): [number, number] => [i % 2 ? 0.075 : 0.085, i * 0.024]), 24), c.dark, -0.47, 0.92, 0.05)
-  k.cyl(p, 0.09, 0.09, 0.26, c.glass, -0.47, 0.62, 0.05, 24)
-  k.cyl(p, 0.082, 0.082, 0.22, c.soda, -0.47, 0.62, 0.05, 24)
-  // The breathing circuit: inspiratory and expiratory limbs to the Y-piece; the bag on its port.
-  corrugated(e, p, 'insp', [[-0.45, 0.95, 0.2], [-0.4, 1.1, 0.5], [-0.15, 1.15, 0.85], [0.05, 1.05, 1.05]], m.blue)
-  corrugated(e, p, 'exp', [[-0.52, 0.95, 0.2], [-0.5, 1.05, 0.55], [-0.2, 1.05, 0.9], [0.05, 1.03, 1.06]], m.blue)
-  k.cyl(p, 0.015, 0.015, 0.06, m.clearPlastic, 0.06, 1.04, 1.08, 12)
-  put(p, lathe(e, 'resBag', [[0, 0], [0.03, 0.01], [0.075, 0.08], [0.08, 0.15], [0.06, 0.22], [0.02, 0.26], [0, 0.27]], 20), c.bag, -0.55, 0.62, 0.3)
-  // Reserve cylinders on the back: oxygen (black, white shoulder) and nitrous oxide (blue).
-  for (const [x, body, top] of [[-0.18, c.o2Cyl, c.o2Top], [0.18, c.n2oCyl, c.n2oCyl]] as const) {
-    k.cyl(p, 0.055, 0.055, 0.6, body, x, 0.62, -0.36, 20)
-    k.cyl(p, 0.05, 0.055, 0.08, top, x, 0.96, -0.36, 20)
-    k.cyl(p, 0.015, 0.015, 0.06, c.steel, x, 1.03, -0.36, 10)
   }
 }
 

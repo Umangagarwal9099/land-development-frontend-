@@ -4,10 +4,10 @@ import { taskChair, visitorChair, wheelchair } from '../../erFurniture'
 import { group } from '../../erKit'
 import type { OpdCtx, Room } from '../../opd/ctx'
 import {
-  bulkRack, cashDrawer, chest, dispTray, keyCabinet, noteCounter, pallet, payTerminal, photocopier, receiptPrinter, roundTable, sign,
+  bulkRack, cashDrawer, dispTray, keyCabinet, noteCounter, payTerminal, photocopier, receiptPrinter, roundTable, sign,
   stripCabinet, tokens, medicineShelves, extinguisher, waterCooler,
 } from '../../opd/equipment/ground'
-import { coffeeTable, compactor, fileTrolley, scanner as docScanner, sofa as loungeSofa } from '../../opd/equipment/clinical'
+import { coffeeTable, compactor, scanner as docScanner, sofa as loungeSofa } from '../../opd/equipment/clinical'
 import { leafletRack, planter, sanitiserStand, handRub, noticeBoard } from '../../opd/equipment/common'
 import { barcodeScanner } from '../../opd/equipment/items'
 import { baseRun, bins, bottle, computer, cupboard, desk, deskPhone, fileCabinet, medFridge, papers, poster, printer, stool, wallScreen, workbench } from '../../opd/furniture'
@@ -420,30 +420,14 @@ const pharmacy: Fitter = (e, room) => {
   for (let i = 0; i < 5; i++) bottle(e, wb, 0.35 + i * 0.07, 0.9, -0.12, 0.12, 0.025, i % 2 ? m.amber : m.whitePlastic, m.whitePlastic)
   k.box(wb, 0.2, 0.012, 0.12, m.whitePlastic, 0.6, 0.906, -0.22)
   room.info(wb, { title: 'Prescription Checking Bench', kind: 'Pharmacy · Quality check', body: 'Every filled prescription is laid out in its tray and checked by a second pharmacist against the prescription before it goes to the window.', specs: ['Double check of drug, strength and quantity', 'Dosage labels in English and Telugu'] })
+  // The pharmacy's reserve stock, racked in its own north-east corner (the hospital's one
+  // pharmacy holds its stock itself): cartons by therapeutic group, issued first-expiry-first-out.
+  const rr = room.at(4.05, room.z1 - 0.55, PI)
+  bulkRack(e, rr, 1.3, 2.2, 0.55, 4)
+  room.info(rr, { title: 'Reserve Stock Racking', kind: 'Pharmacy · Stock', body: 'The pharmacy\'s reserve of tablets, syrups, IV fluids and surgical consumables in their cartons on heavy-duty racking, refilling the dispensing shelves first-expiry-first-out; deliveries are checked in at the stock desk against their invoices.', specs: ['Boltless steel racking, 4 levels', 'Kept below 25 °C, humidity logged', 'Monthly physical stock verification'] })
   handRub(e, room.onWall('+z', 3.0), 1.3)
   extinguisher(e, room.onWall('-z', 4.9))
   wallClock(e, room.onWall('+x', -17.3), 2.3, 0.28)
-}
-
-const pharmacyStore: Fitter = (e, room) => {
-  const { o } = e
-  for (const z of [-12.15, -10.78]) bulkRack(e, room.at(room.x0 + 0.55, z, PI / 2), 1.35, 2.2, 0.55, 4)
-  const r0 = room.at(room.x0 + 0.55, -12.15, PI / 2)
-  room.info(r0, { title: 'Bulk Medicine Racks', kind: 'Pharmacy store', body: 'The pharmacy\'s reserve stock of tablets, syrups, IV fluids and surgical consumables in their cartons on heavy-duty racking, arranged by therapeutic group and issued to the pharmacy first-expiry-first-out.', specs: ['Boltless steel racking, 4 levels', 'Store kept below 25 °C, humidity logged', 'Monthly physical stock verification'] })
-  const ilr = room.at(room.x1 - 0.7, -12.35, -PI / 2)
-  chest(e, ilr, 'ilr', 1.1)
-  room.info(ilr, { title: 'Ice-Lined Refrigerator (ILR)', kind: 'Cold chain · Vaccines', body: 'Bulk vaccines and insulins are kept between +2 and +8 °C in this top-opening ice-lined refrigerator, whose lining holds the temperature through long power cuts; readings are logged twice a day.', specs: ['Holds +2 to +8 °C for 16 h without power', 'Baskets of vials, diluents beside', 'Temperature log twice daily'] })
-  const pl = room.at(room.x1 - 0.35, -11.2, PI / 2)
-  pallet(e, pl, 0.8, 0.6, 3)
-  room.info(pl, { title: 'Incoming Stock', kind: 'Pharmacy store · Receiving', body: 'A distributor\'s delivery waiting to be checked against its invoice and purchase order, entered batch by batch with expiry and MRP, and shelved.', specs: ['Goods received note against the PO', 'Batch, expiry and MRP entered on receipt'] })
-  const dg = room.at(4.05, room.z1 - 0.3, 0)
-  desk(e, dg, 1.1, 0.6, 0)
-  computer(e, dg, 0.1, 0.75, 0.1, PI, o.his('m_store', 'Store · Goods Received', 'form'))
-  papers(e, dg, -0.35, 0.75, -0.05, PI)
-  barcodeScanner(e, dg, -0.42, 0.75, 0.15, PI)
-  taskChair(e, room.at(4.05, room.z1 - 0.95, 0.1))
-  fileTrolley(e, room.at(4.05, -12.7, 0.2))
-  extinguisher(e, room.onWall('+x', -13.6))
 }
 
 /* ---------- medical records, administration ---------- */
@@ -510,7 +494,6 @@ export const MAIN_GROUND: Record<string, Fitter> = {
   main_billing: billing,
   main_cash: cash,
   main_pharmacy: pharmacy,
-  main_pharmacy_store: pharmacyStore,
   main_records: records,
   main_admin: admin,
 }

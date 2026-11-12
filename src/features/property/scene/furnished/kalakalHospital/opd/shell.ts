@@ -176,7 +176,7 @@ export function buildShell(e: OpdCtx): Shell {
         const run = onSide(d.at)
         if (!run) continue
         const w = d.w ?? 1.0
-        const head = d.kind === 'double' || d.kind === 'lead' || d.kind === 'mri' ? 2.25 : 2.15
+        const head = d.kind === 'double' || d.kind === 'lead' || d.kind === 'mri' || d.kind === 'hermetic' ? 2.25 : 2.15
         if (!cuts.has(run)) cuts.set(run, [])
         cuts.get(run)!.push({ a: d.at - w / 2 - 0.05, b: d.at + w / 2 + 0.05, sill: 0, head: head + 0.05 })
         doorAt.push({ room, spec: d, run })
@@ -373,6 +373,7 @@ let doorCount = 0
  */
 function buildDoor(e: OpdCtx, room: Room, d: DoorSpec, run: WallRun) {
   const { k, m, o } = e
+  if (d.kind === 'hermetic') return hermeticDoor(e, room, d, run)
   const G = doorFrame(e, room, d, run)
   const w = d.w ?? 1.0
   const t = run.t
@@ -473,6 +474,93 @@ function buildDoor(e: OpdCtx, room: Room, d: DoorSpec, run: WallRun) {
     // A modular plate: the lights' switch and a 6 A socket beside it.
     switchPlate(e.k, sg, `opd_${e.level}_${spec.id}`, ['switch', 'socket'], o.switches, [room.circuit])
   }
+}
+
+/**
+ * An operation theatre's hermetic door, as modular theatres are fitted: one leaf of seamless
+ * HPL-faced honeycomb in a stainless frame, sliding on the corridor side under the operator's
+ * housing and pressing into its perimeter seal as it closes (keeping the theatre's positive
+ * pressure); a vision panel, the full-height pull, a stainless kick plate; touch-free foot and
+ * hand sensors either side; over the opening a lit OT IN USE sign. The leaf (autoleaf_) slides
+ * aside for a walker, along the door's own x towards `hinge`.
+ */
+function hermeticDoor(e: OpdCtx, room: Room, d: DoorSpec, run: WallRun) {
+  const { k, m, o } = e
+  const G = doorFrame(e, room, d, run)
+  const w = d.w ?? 1.6
+  const t = run.t
+  const H = 2.25
+  const s = d.hinge ?? 1
+  const out = -(t / 2)
+  // The leaf's side of the wall: the corridor's (outside), or the room's.
+  const lz = d.inside ? t / 2 + 0.045 : out - 0.045
+  const hz = d.inside ? t / 2 + 0.065 : out - 0.065
+  // The opening's stainless lining (jambs and head, wrapping the wall) and the floor's sealing strip.
+  for (const j of [-1, 1]) k.box(G, 0.04, H + 0.04, t + 0.02, m.stainless, j * (w / 2 + 0.02), (H + 0.04) / 2, 0)
+  k.box(G, w + 0.08, 0.04, t + 0.02, m.stainless, 0, H + 0.02, 0)
+  k.box(G, w, 0.005, t + 0.04, m.stainless, 0, 0.0145, 0, false)
+  // The leaf: on the corridor side, overlapping the opening by 50 mm all round.
+  const LW = w + 0.1
+  const leaf = new Group()
+  leaf.name = `autoleaf_ot_${e.level}_${room.spec.id}_${doorCount++}`
+  leaf.position.set(0, 0, lz)
+  leaf.userData.slide = [s * (LW - 0.05), 0, 0]
+  G.add(leaf)
+  const lh = H + 0.05
+  const body = k.box(leaf, LW, lh, 0.05, o.otLeaf, 0, lh / 2, 0)
+  body.userData.front = true
+  // Its stainless edge frame and the black perimeter gasket behind it.
+  for (const j of [-1, 1]) k.box(leaf, 0.025, lh, 0.054, m.stainless, j * (LW / 2 - 0.0125), lh / 2, 0, false)
+  k.box(leaf, LW, 0.025, 0.054, m.stainless, 0, lh - 0.0125, 0, false)
+  // The perimeter seal: a black gasket round the leaf's wall face, which it presses into as it closes.
+  const gz = (d.inside ? -1 : 1) * 0.028
+  for (const j of [-1, 1]) k.box(leaf, 0.02, lh - 0.02, 0.006, m.rubber, j * (LW / 2 - 0.035), lh / 2, gz, false)
+  k.box(leaf, LW - 0.06, 0.02, 0.006, m.rubber, 0, lh - 0.035, gz, false)
+  // Vision panel: double-glazed, flush, a stainless bead round it.
+  const vw = 0.45
+  const vh = 0.6
+  const vx = -s * 0.25
+  for (const z of [-0.0255, 0.0255]) k.box(leaf, vw, vh, 0.004, o.screenGlass, vx, 1.5, z, false)
+  for (const j of [-1, 1]) {
+    k.box(leaf, vw + 0.03, 0.015, 0.058, m.stainless, vx, 1.5 + j * (vh / 2 + 0.0075), 0, false)
+    k.box(leaf, 0.015, vh + 0.03, 0.058, m.stainless, vx + j * (vw / 2 + 0.0075), 1.5, 0, false)
+  }
+  // Kick plates both faces; the long pull handle on the leading edge, both faces.
+  for (const z of [-1, 1]) {
+    k.box(leaf, LW - 0.06, 0.35, 0.002, m.stainless, 0, 0.2, z * 0.0262, false)
+    const hx = -s * (LW / 2 - 0.09)
+    k.cyl(leaf, 0.014, 0.014, 1.0, m.stainless, hx, 1.1, z * 0.07, 16)
+    for (const y of [0.62, 1.58]) k.box(leaf, 0.02, 0.02, 0.05, m.stainless, hx, y, z * 0.045)
+  }
+  // The operator's housing over the opening and the run, on the corridor face.
+  const runLen = LW * 2 - 0.05
+  k.soft(G, runLen + 0.04, 0.2, 0.13, 0.02, m.aluminium, s * (LW / 2 - 0.025), H + 0.16, hz)
+  const sign = o.screen('otInUse', 512, 96, (g, ww, hh) => {
+    g.fillStyle = '#1a0606'
+    g.fillRect(0, 0, ww, hh)
+    g.fillStyle = '#ff3b30'
+    g.font = `700 ${hh * 0.56}px Helvetica`
+    g.textAlign = 'center'
+    g.fillText('OT IN USE', ww / 2, hh * 0.72)
+  }, 1.2)
+  k.box(G, 0.62, 0.13, 0.03, m.charcoal, 0, H + 0.43, out - 0.02)
+  face(e, G, 0.58, 0.1, sign, 0, H + 0.43, out - 0.036, PI)
+  // Touch-free switches: a foot sensor low and a hand sensor at 1 m, either side of the opening.
+  for (const side of [-1, 1]) {
+    const z = side < 0 ? out - 0.001 : t / 2 + 0.001
+    const ry = side < 0 ? PI : 0
+    const sx = -s * (w / 2 + 0.22)
+    const pg = new Group()
+    pg.position.set(sx, 0, z)
+    pg.rotation.y = ry
+    G.add(pg)
+    k.soft(pg, 0.12, 0.09, 0.07, 0.01, m.stainless, 0, 0.2, 0.035)
+    k.box(pg, 0.08, 0.03, 0.004, m.black, 0, 0.2, 0.071, false)
+    k.soft(pg, 0.1, 0.1, 0.02, 0.01, m.stainless, 0, 1.05, 0.01)
+    k.cyl(pg, 0.03, 0.03, 0.006, m.darkPlastic, 0, 1.05, 0.022, 20).rotation.x = PI / 2
+  }
+  // The room's plate outside, on the side the leaf doesn't run to.
+  if (room.spec.no) signPanel(e, G, 0.4, 0.2, o.sign(`plate_${e.level}_${room.spec.id}`, 512, 256, roomPlate(room.spec.no, room.spec.name, 'Restricted · Theatre attire')), -s * (w / 2 + 0.55), 1.55, out - 0.007, PI, 0.008)
 }
 
 /** A lit warning lamp over a door, outside: its words glowing red. */
@@ -599,13 +687,15 @@ function overhead(e: OpdCtx, room: Room, ceiling: boolean) {
         const x = tile(room.x0 + ((i + 0.5) * room.w) / nx)
         const z = tile(room.z0 + ((j + 0.5) * room.d) / nz)
         if (x < room.x0 + 0.3 || x > room.x1 - 0.3 || z < room.z0 + 0.3 || z > room.z1 - 0.3) continue
+        // A theatre keeps its middle for the laminar-flow plenum over the table.
+        if (spec.theatre && Math.abs(x - room.cx) < 1.75 && Math.abs(z - room.cz) < 1.95) continue
         k.box(g, 0.6, 0.012, 0.6, m.ledFrame, x, yc - 0.006, z, false)
         k.box(g, 0.56, 0.004, 0.56, panel, x, yc - 0.013, z, false)
         taken.push([x, z])
       }
   }
   // Air: a supply diffuser, and in larger rooms a return grille; each in a tile of its own.
-  if (spec.kind !== 'circulation' && room.w * room.d > 5) {
+  if (spec.kind !== 'circulation' && !spec.theatre && room.w * room.d > 5) {
     const spots: [number, number][] = [[tile(room.x0 + room.w * 0.3), tile(room.z0 + room.d * 0.7)], [tile(room.x0 + room.w * 0.7), tile(room.z0 + room.d * 0.3)]]
     spots.slice(0, room.w * room.d > 14 ? 2 : 1).forEach(([x, z], i) => {
       if (taken.some(([a, b]) => Math.abs(a - x) < 0.5 && Math.abs(b - z) < 0.5)) return
