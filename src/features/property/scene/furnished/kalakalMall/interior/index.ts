@@ -14,6 +14,7 @@ import { buildFloor, clipped, floorCtx, type FloorCtx } from './shell'
 import { flushing, washroomRects } from './washroom'
 import { Signs } from './signs'
 import { shopZones } from './shops'
+import { cafeTick } from './shops/cafe'
 import { ENV, ESCALATORS, FLOORS, isLettable, LEVELS, ROOF, VOID } from './units'
 
 export { FLOORS } from './units'
@@ -135,8 +136,9 @@ export function buildMallInterior(k: Kit, lighting: Lighting, parent: Object3D):
         scroll(rails.down.map, SPEED * step)
       }
       if (walker) for (const esc of escalators) if (esc.carry(walker, step)) break
-      // A flush under way keeps the frames coming until it has finished.
-      return busy || flushing()
+      // A flush, or a machine running in the café, keeps the frames coming until it has finished.
+      const brewing = cafeTick(step)
+      return busy || flushing() || brewing
     },
     liftNear: core.liftNear,
     links,

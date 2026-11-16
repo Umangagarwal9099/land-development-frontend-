@@ -1,7 +1,10 @@
 import type { FloorCtx } from '../shell'
 import type { Unit } from '../units'
 import { buildDior } from './dior'
+import { buildAppleStore } from './applestore'
+import { buildCosmetics } from './cosmetics'
 import { buildPrada } from './prada'
+import { buildStarbucks } from './starbucks'
 
 /*
  * The shops fitted out so far (units.ts says which): each is built in place of the bare unit the
@@ -12,6 +15,9 @@ export function fitShops(e: FloorCtx) {
   for (const u of e.plan.units) {
     if (u.fitout === 'dior') buildDior(e, u)
     else if (u.fitout === 'prada') buildPrada(e, u)
+    else if (u.fitout === 'starbucks') buildStarbucks(e, u)
+    else if (u.fitout === 'cosmetics') buildCosmetics(e, u)
+    else if (u.fitout === 'apple') buildAppleStore(e, u)
   }
 }
 

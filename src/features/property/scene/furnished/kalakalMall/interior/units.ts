@@ -43,7 +43,7 @@ export interface Unit {
   rects: Rect[]
   fronts: Front[]
   /** A shop whose interior is built (see ../interior/shops): the shell leaves it to its fit-out. */
-  fitout?: 'dior' | 'prada'
+  fitout?: 'dior' | 'prada' | 'starbucks' | 'cosmetics' | 'apple'
 }
 
 /** A marked zone inside one of the big open spaces (the gaming hall, the cinema). */
@@ -205,10 +205,10 @@ const G: FloorPlan = {
       fronts: [{ axis: 'x', at: XV0, from: -11.0, to: VZ0, door: 2.0 }, { axis: 'z', at: VZ0, from: XV0, to: 0.0, door: 0 }],
     },
     { id: 'G-05', name: 'Desserts & Pastries', use: 'Dessert and pastry boutique', kind: 'cafe', rects: [[XV0, 0.0, ZSC1, -11.0]], fronts: [{ axis: 'x', at: XV0, from: ZSC1, to: -11.0, door: 1.8 }] },
-    { id: 'G-06', name: 'Electronics & Gadgets', use: 'Electronics and gadget store', kind: 'shop', rects: [[4.0, 7.75, -16.6, -9.0]], fronts: [{ axis: 'z', at: -9.0, from: 4.0, to: 7.75, door: 2.0 }] },
-    { id: 'G-07', name: 'Cosmetics & Beauty', use: 'Cosmetics and beauty brand', kind: 'shop', rects: [[7.75, 11.5, -16.6, -9.0]], fronts: [{ axis: 'z', at: -9.0, from: 7.75, to: 11.5, door: 2.0 }] },
-    { id: 'G-08', name: 'Perfume & Fragrance', use: 'Perfume and fragrance house', kind: 'shop', rects: [[LINK_X1, XE, ZFG, ENV_G.z1]], fronts: [{ axis: 'z', at: ZFG, from: LINK_X1, to: XE, door: 2.2 }] },
-    { id: 'G-09', name: 'Starbucks', use: 'Starbucks café, glazed to the forecourt on two sides', kind: 'cafe', rects: [[XE, ENV_G.x1, 3.5, ENV_G.z1]], fronts: [{ axis: 'x', at: XE, from: 3.5, to: ZFG, door: 2.4 }] },
+    { id: 'G-06', name: 'Perfume & Fragrance', use: 'Perfume and fragrance house', kind: 'shop', rects: [[4.0, 7.75, -16.6, -9.0]], fronts: [{ axis: 'z', at: -9.0, from: 4.0, to: 7.75, door: 2.0 }] },
+    { id: 'G-07', name: 'Rosé Atelier', use: 'Cosmetics, skincare and fragrance boutique', kind: 'shop', rects: [[7.75, 11.5, -16.6, -9.0]], fronts: [{ axis: 'z', at: -9.0, from: 7.75, to: 11.5, door: 2.0 }], fitout: 'cosmetics' },
+    { id: 'G-08', name: 'Apple Store', use: 'Apple store: iPhone, Mac, iPad, Watch, AirPods and accessories', kind: 'shop', rects: [[LINK_X1, XE, ZFG, ENV_G.z1]], fronts: [{ axis: 'z', at: ZFG, from: LINK_X1, to: XE, door: 2.2 }], fitout: 'apple' },
+    { id: 'G-09', name: 'Starbucks', use: 'Starbucks café, glazed to the forecourt on two sides', kind: 'cafe', rects: [[XE, ENV_G.x1, 3.5, ENV_G.z1]], fronts: [{ axis: 'x', at: XE, from: 3.5, to: ZFG, door: 2.4 }], fitout: 'starbucks' },
     { id: 'G-K1', name: 'Coffee To Go', use: 'Quick coffee and takeaway counter', kind: 'kiosk', rects: [[1.0, 3.2, 5.8, 7.2]], fronts: [] },
     { id: 'G-K2', name: 'Macarons & Chocolates', use: 'Dessert kiosk', kind: 'kiosk', rects: [[8.6, 10.6, -1.2, 0.4]], fronts: [] },
     ...washrooms(ENV_G.x0, -22.3),

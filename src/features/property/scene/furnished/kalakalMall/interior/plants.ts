@@ -77,12 +77,12 @@ function rod(p: Object3D, a: Vector3, b: Vector3, r0: number, r1: number, m: Mat
 
 /* ---------- planters ---------- */
 
-export type PlanterStyle = 'travertine' | 'nero' | 'bronze'
+export type PlanterStyle = 'travertine' | 'nero' | 'bronze' | 'white'
 
 /** A turned planter, top at `h`, radius r; returns the soil level. */
 export function planter(e: FloorCtx, p: Object3D, x: number, z: number, r: number, h: number, style: PlanterStyle = 'travertine') {
   const { lux } = e
-  const mat = style === 'travertine' ? lux.travertine : style === 'nero' ? lux.wallNero : lux.bronze
+  const mat = style === 'travertine' ? lux.travertine : style === 'nero' ? lux.wallNero : style === 'white' ? lux.plaster : lux.bronze
   const prof = [new Vector2(0, 0), new Vector2(r * 0.72, 0), new Vector2(r * 0.78, 0.02), new Vector2(r * 0.96, h * 0.85), new Vector2(r, h - 0.03), new Vector2(r, h), new Vector2(r - 0.04, h), new Vector2(r - 0.05, h - 0.06), new Vector2(0, h - 0.06)]
   const body = add(p, new LatheGeometry(prof, 48), mat)
   body.position.set(x, e.y, z)
