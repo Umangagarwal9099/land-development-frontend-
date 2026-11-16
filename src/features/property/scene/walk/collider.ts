@@ -1,5 +1,5 @@
 import { DoubleSide, InstancedMesh, Line3, Matrix3, Matrix4, Mesh, MeshBasicMaterial, Ray, Sphere, Vector3, Box3, type Material, type Object3D } from 'three'
-import type { ExtendedTriangle } from 'three-mesh-bvh'
+import type { ExtendedTriangle, MeshBVH } from 'three-mesh-bvh'
 
 /**
  * Nodes that aren't solid: room hotspots' floor overlays, the earth a basement is cut from in the
@@ -110,7 +110,7 @@ export class Collider {
       if (ignore && isWithin(mesh, ignore)) continue
       inverse.copy(mesh.matrixWorld).invert()
       localRay.copy(ray).applyMatrix4(inverse)
-      const i = mesh.geometry.boundsTree!.raycastFirst(localRay, DoubleSide, 0, best)
+      const i = (mesh.geometry.boundsTree! as MeshBVH).raycastFirst(localRay, DoubleSide, 0, best)
       if (i && i.distance < best) {
         best = i.distance
         hit = true

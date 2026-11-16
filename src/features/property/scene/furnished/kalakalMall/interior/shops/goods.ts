@@ -1,4 +1,4 @@
-import { BufferGeometry, CatmullRomCurve3, CylinderGeometry, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, Group, LatheGeometry, Shape, SphereGeometry, TorusGeometry, TubeGeometry, Vector2, Vector3, type Material, type MeshStandardMaterial, type Object3D } from 'three'
+import { BufferGeometry, CatmullRomCurve3, CylinderGeometry, ExtrudeGeometry, Float32BufferAttribute, Group, LatheGeometry, Shape, SphereGeometry, TorusGeometry, TubeGeometry, Vector2, Vector3, type Material, type Object3D } from 'three'
 import { rng } from '../../../textures'
 import { at, mesh, PI, type Shop } from './kit'
 
