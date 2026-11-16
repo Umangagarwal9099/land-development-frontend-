@@ -83,6 +83,7 @@ export function buildKalakalMall(context = true): FurnishedModel {
 
   // Each floor's lamps light it while it is looked at or walked; the rest light the exterior.
   const pool = new LightPool(root, (l) => (l.userData.zone as string | undefined) ?? 'exterior', 6)
+  for (const l of interior?.links ?? []) pool.link(l.zone, l.other, l.at, 2)
   // Two basement parking levels, built the first time a visitor goes below ground (not on the master plan).
   const basement = context ? new Basement(root, k, lighting, pool, MALL_BASEMENT, SITE, highlights) : undefined
   // The lifts come down into the car park: their shafts and landings join its levels when built.

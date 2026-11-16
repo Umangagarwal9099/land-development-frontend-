@@ -192,6 +192,10 @@ export const STONES = {
   onyx: { ground: [236, 188, 118], clouds: ['#f3cf92', '#d9a35c', '#fae3b8'], veins: [], bands: ['#c98a3e', '#f6dcaa', '#b7742d', '#fff1d2'], single: true, seed: 71 },
   /** Grey-white for the washrooms' walls. */
   bianco: { ground: [236, 236, 234], clouds: ['#e2e2e1', '#f3f3f2'], veins: [{ colour: '#9a9ca0', width: [1.2, 8], alpha: 0.45, count: 4, wander: 60, branches: 8 }], single: true, seed: 83 },
+  /** Fior di Bosco: warm grey with white and dark veins, the Dior fascia. */
+  fiorDiBosco: { ground: [138, 130, 122], clouds: ['#9a928a', '#7f7770', '#b3aba2'], veins: [{ colour: '#f1ede7', width: [2.2, 12], alpha: 0.7, count: 4, wander: 70, branches: 6 }, { colour: '#5e5651', width: [1.0, 6], alpha: 0.4, count: 3, wander: 40, branches: 4 }], seed: 91 },
+  /** Nero Marquina in big slabs with bold white veining, the Prada floor. */
+  marquina: { ground: [21, 21, 23], clouds: ['#1a1a1c', '#2c2c2f', '#151517'], veins: [{ colour: '#f2f0ec', width: [4.0, 22], alpha: 0.8, count: 3, wander: 110, branches: 8 }, { colour: '#cfcdc8', width: [1.2, 6], alpha: 0.5, count: 5, wander: 50, branches: 6 }], seed: 97 },
 } satisfies Record<string, StoneSpec>
 
 export type StoneName = keyof typeof STONES

@@ -324,9 +324,26 @@ function kalakalMall(): Property {
           : 'The Gents, behind the lifts, one door off the service corridor: a backlit onyx wall facing it, the vanity along the corridor wall on bookmatched Emperador, wall-hung urinals between Nero screens and floor-to-ceiling walnut cubicles along the back, with an accessible cubicle at the end.',
         ['Marble floor and full-height wall cladding', 'Wall-hung WCs on concealed cisterns; sensor taps; hand dryers', 'Mechanical exhaust, 10 air changes an hour'],
         ['Cubicle doors, seats, lids, flush plates, taps, dryers and light switches all work', 'Backlit mirrors and onyx', 'Accessible cubicle with grab rails and pull cord']))
+    const fitted: Record<string, [string, string[], string[]]> = {
+      dior: [
+        'Dior\'s boutique, fitted out to the house\'s design: a deep fascia of Fior di Bosco marble carrying the name in backlit serif letters over bronze-framed glazing and a pair of glass doors with long bronze pulls, a display window either side of them (a champagne shelf unit of bags, a cap and sneakers on a cream cannage back; a mannequin). Inside, the Dior Oblique carpet in warm grey is inset in a Botticino stone border under a cream ceiling with a round lit cove over the salon; lit champagne shelving of bags runs along the walls, with a shoe wall, a hanging bay of ready-to-wear beside a tall mirror, a long oak display table, a round salon table under the cove, cream leather club chairs and the till. The façade glass to the avenue and the forecourt is lined with cannage-backed display windows of mannequins and bags on plinths.',
+        ['Fior di Bosco marble fascia and pilasters; bronze-framed glazing', 'Dior Oblique carpet inset in Botticino stone', 'Champagne-framed lit shelving; cannage-backed display windows', '3.8 m cream ceiling with a round lit cove'],
+        ['Entrance doors, the till drawer, the vitrine and the window access door all work', 'Display lighting on its own switch by the door', 'Display windows to the forecourt and the south avenue'],
+      ],
+      prada: [
+        'Prada\'s boutique, fitted out to the house\'s design: a Nero Marquina fascia and pilasters with the name in pale steel letters over black-steel framed glazing and glass doors, a lit display window either side. Inside, under a great oval of mint-green knife pleats hung below the ceiling (its inside lit pale green, the name across its far end, a line of light at its foot), lit shelving of bags runs down both long walls over Statuario counters with cream chairs tucked under them and cream fluted panels in grey frames above; at the back a lit alcove with a white plinth of blossom branches stands between two glazed vitrines, with deep green pleated curtains in the corners. The floor is Nero Marquina in big slabs, with a round pastel floral rug under the oval carrying a pleated mint pouf, pleated side tables each with a bag, and two bouclé armchairs; a tall vitrine and the till stand inside the entrance.',
+        ['Nero Marquina fascia, pilasters and floor', 'Oval pleated ceiling feature with a lit soffit', 'Lit shelving over Statuario counters; cream fluted wall panels', 'Pleated mint seating on a floral rug'],
+        ['Entrance doors, the till drawer and the vitrine doors all work', 'Display lighting on its own switch by the door', 'Display window to the south avenue'],
+      ],
+    }
     const list = plan.units.filter((u) => isLettable(u) || u.kind === 'lounge').map((u) => {
       const kind = u.kind === 'food' ? 'Food court counter' : u.kind === 'kiosk' ? 'Kiosk pad' : u.kind === 'cafe' ? 'Café / F&B unit' : u.kind === 'anchor' ? 'Anchor unit' : u.kind === 'lounge' ? 'Common lounge' : 'Retail unit'
       const front = u.fronts.reduce((t, f) => t + (f.to - f.from), 0)
+      if (u.fitout) {
+        const [description, specs, amenities] = fitted[u.fitout]
+        return room(u.id, `${u.id} · ${u.name}`, u.rects, description,
+          [`${Math.round(areaOf(u.rects))} m² (${Math.round(areaOf(u.rects) * 10.764).toLocaleString('en-IN')} sq ft) carpet area`, `${front.toFixed(1)} m of frontage`, ...specs], amenities)
+      }
       return room(u.id, `${u.id} · ${u.name}`, u.rects,
         u.kind === 'lounge'
           ? `${u.use}: an open lounge off the west spine, furnished with sofas and lounge chairs round low tables.`

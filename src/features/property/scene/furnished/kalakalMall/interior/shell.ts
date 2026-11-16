@@ -193,7 +193,7 @@ function buildSlab(e: FloorCtx) {
   if (level === 0) {
     // The podium is the ground floor's slab (see ../building.ts): the units get a screed topping on it.
     for (const u of e.plan.units)
-      if (u.kind !== 'kiosk' && u.kind !== 'lounge' && u.kind !== 'washroom' && !u.id.startsWith('RAMP'))
+      if (u.kind !== 'kiosk' && u.kind !== 'lounge' && u.kind !== 'washroom' && !u.id.startsWith('RAMP') && !u.fitout)
         for (const r of u.rects) sheet(g, clipped(e, r), y + 0.004, m.screed, false, [], 'unit_floor')
     return
   }
@@ -342,6 +342,8 @@ function buildUnits(e: FloorCtx) {
   // the soffit too: the car park's own walls stand inside them.
   for (const s of partitions(e, walled)) wallOn(e, g, s.axis, s.at, s.from, s.to, y, e.soffit, 0.15, m.wallPaint)
   for (const u of e.plan.units) {
+    // A fitted shop builds its own front in the opening, its floor and its ceiling (see ./shops).
+    if (u.fitout) continue
     if (u.kind === 'kiosk') kiosk(e, u)
     for (const f of u.fronts) shopfront(e, u, f)
     if (isLettable(u) && u.kind !== 'kiosk') unitMark(e, u)

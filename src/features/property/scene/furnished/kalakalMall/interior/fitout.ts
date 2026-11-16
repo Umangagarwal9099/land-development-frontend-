@@ -8,6 +8,7 @@ import { place } from './signs'
 import { bx, clipped, partitions, rectPoly, subtract, wallOn, type FloorCtx } from './shell'
 import { ENV, VOID, VZ0, VZ1, XV0, XV1, ZSC0, type Front, type Rect, type Zone } from './units'
 import { luxuryWashrooms } from './washroom'
+import { fitShops } from './shops'
 
 /*
  * The public spaces furnished and finished (the shops stay bare until their own fit-outs): designer
@@ -60,6 +61,7 @@ export function fitFloor(e: FloorCtx) {
   switch (e.level) {
     case 0:
       ground(e)
+      fitShops(e)
       break
     case 1:
     case 2:

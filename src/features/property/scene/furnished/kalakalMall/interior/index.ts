@@ -13,6 +13,7 @@ import { interiorMaterials, scroll } from './materials'
 import { buildFloor, clipped, floorCtx, type FloorCtx } from './shell'
 import { flushing, washroomRects } from './washroom'
 import { Signs } from './signs'
+import { shopZones } from './shops'
 import { ENV, ESCALATORS, FLOORS, isLettable, LEVELS, ROOF, VOID } from './units'
 
 export { FLOORS } from './units'
@@ -25,7 +26,7 @@ export { FLOORS } from './units'
  */
 
 /** Kept whole when a floor merges: everything that moves, is operated, or is found by name. */
-const LIVE = /^(door_|button_|switch_|liftdoor_|liftcar_|live_|room_|esc_walk_|void_|autoleaf_|info_)/
+const LIVE = /^(door_|drawer_|button_|switch_|liftdoor_|liftcar_|live_|room_|esc_walk_|void_|autoleaf_|info_)/
 
 export interface MallInterior {
   root: Group
@@ -42,6 +43,8 @@ export interface MallInterior {
   /** Each frame: whether the escalators are in view and running (so the stage keeps drawing). */
   frame: (camera: Camera) => boolean
   zoneAt: (x: number, y: number, z: number) => string | null
+  /** Light zones of the fitted shops, each borrowing a couple of its gallery's lamps at its door. */
+  links: { zone: string; other: string; at: Vector3 }[]
 }
 
 const label = (level: number) => (level === 0 ? 'g' : String(level))
@@ -58,6 +61,8 @@ export function buildMallInterior(k: Kit, lighting: Lighting, parent: Object3D):
   const highlights = new Map<string, MeshBasicMaterial>()
   const hotspots: Object3D[][] = []
   const washrooms: { zone: string; rect: [number, number, number, number] }[][] = []
+  const shops: { zone: string; rects: [number, number, number, number][] }[][] = []
+  const links: MallInterior['links'] = []
 
   for (const plan of FLOORS) {
     const g = new Group()
@@ -71,6 +76,9 @@ export function buildMallInterior(k: Kit, lighting: Lighting, parent: Object3D):
     e.shade.build(e.k, g)
     hotspots.push(unitHotspots(e, highlights))
     washrooms.push(washroomRects(e))
+    const zones = shopZones(e)
+    shops.push(zones)
+    for (const z of zones) links.push({ zone: z.zone, other: `mall_${label(plan.level)}`, at: new Vector3(...z.door) })
   }
 
   const core = buildCore(k, lighting, floors, es)
@@ -131,6 +139,7 @@ export function buildMallInterior(k: Kit, lighting: Lighting, parent: Object3D):
       return busy || flushing()
     },
     liftNear: core.liftNear,
+    links,
     setView: (v) => {
       view = v
       if (!v.walking) {
@@ -149,8 +158,9 @@ export function buildMallInterior(k: Kit, lighting: Lighting, parent: Object3D):
         }
       }
       const f = focus()
-      // A washroom lights itself (its lamps are on its own switch); any other room, its floor.
+      // A washroom lights itself (its lamps are on its own switch), as does a fitted shop; any other room, its floor.
       if (/^room_mall_(?:g|\d)_wc_/.test(z)) return z
+      if (shops.some((list) => list.some((sh) => sh.zone === z))) return z
       const room = roomLevel(z)
       if (room !== null) return `mall_${label(room)}`
       return z === 'exterior' && f !== null && !view.walking ? `mall_${label(f)}` : z
@@ -170,6 +180,7 @@ export function buildMallInterior(k: Kit, lighting: Lighting, parent: Object3D):
       let level = 0
       for (let i = 0; i < LEVELS.length; i++) if (y > LEVELS[i] - 0.6) level = i
       for (const w of washrooms[level]) if (x > w.rect[0] && x < w.rect[1] && z > w.rect[2] && z < w.rect[3]) return w.zone
+      for (const sh of shops[level]) if (sh.rects.some((r) => x > r[0] && x < r[1] && z > r[2] && z < r[3])) return sh.zone
       return `mall_${label(level)}`
     },
   }

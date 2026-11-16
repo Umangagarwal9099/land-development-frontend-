@@ -132,8 +132,8 @@ export class Signs {
   readonly paint: MeshStandardMaterial
 
   constructor(lighting: Lighting) {
-    // Sized to what the mall paints (about 2.5k rows of fascias and signs, 1k of floor marks, five boards).
-    this.fascia = new Atlas(2048, 2624)
+    // Sized to what the mall paints (about 3k rows of fascias, signs and the boutiques' lettering, 1k of floor marks, five boards).
+    this.fascia = new Atlas(2048, 3072)
     this.marks = new Atlas(2048, 1088)
     this.boards = new Atlas(2048, 576)
     this.lit = lighting.glow(new MeshStandardMaterial({ map: this.fascia.texture, emissiveMap: this.fascia.texture, emissive: '#ffffff', emissiveIntensity: 0.55, roughness: 0.4, alphaTest: 0.5 }), 0.6)

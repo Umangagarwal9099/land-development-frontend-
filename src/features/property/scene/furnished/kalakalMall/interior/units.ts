@@ -42,6 +42,8 @@ export interface Unit {
   kind: UnitKind
   rects: Rect[]
   fronts: Front[]
+  /** A shop whose interior is built (see ../interior/shops): the shell leaves it to its fit-out. */
+  fitout?: 'dior' | 'prada'
 }
 
 /** A marked zone inside one of the big open spaces (the gaming hall, the cinema). */
@@ -192,11 +194,11 @@ const G: FloorPlan = {
   title: 'Ground Floor · Luxury Brands, Cafés & Essentials',
   units: [
     {
-      id: 'G-01', name: 'International Luxury Fashion', use: 'Flagship for an international luxury fashion house, with display windows to the forecourt and the south avenue', kind: 'anchor',
+      id: 'G-01', name: 'Dior', use: 'Dior boutique: leather goods, shoes and ready-to-wear, with display windows to the forecourt and the south avenue', kind: 'anchor',
       rects: [[ENV_G.x0, XW, -1.0, 3.4], [ENV_G.x0, -10.9, 3.4, ENV_G.z1], [-10.9, XW, 9.0, ENV_G.z1]],
-      fronts: [{ axis: 'x', at: XW, from: -1.0, to: 3.4, door: 2.4 }],
+      fronts: [{ axis: 'x', at: XW, from: -1.0, to: 3.4, door: 2.4 }], fitout: 'dior',
     },
-    { id: 'G-02', name: 'Premium Apparel', use: 'Premium clothing and apparel', kind: 'shop', rects: [[ENV_G.x0, XW, -6.0, -1.0]], fronts: [{ axis: 'x', at: XW, from: -6.0, to: -1.0, door: 2.2 }] },
+    { id: 'G-02', name: 'Prada', use: 'Prada boutique: leather goods, accessories and fragrance', kind: 'shop', rects: [[ENV_G.x0, XW, -6.0, -1.0]], fronts: [{ axis: 'x', at: XW, from: -6.0, to: -1.0, door: 2.2 }], fitout: 'prada' },
     { id: 'G-03', name: 'Footwear & Sneakers', use: 'Footwear and sneaker store', kind: 'shop', rects: [[ENV_G.x0, XW, ZWC, -6.0]], fronts: [{ axis: 'x', at: XW, from: ZWC, to: -6.0, door: 2.2 }] },
     {
       id: 'G-04', name: 'Artisan Bakery', use: 'Premium bakery and patisserie', kind: 'cafe', rects: [[XV0, 0.0, -11.0, VZ0]],
