@@ -1,5 +1,5 @@
 import { BufferGeometry, Float32BufferAttribute, Mesh, Vector3, type Material, type Object3D } from 'three'
-import { facadePoint, inSwoosh, LOOP, SHOPFRONT, skinBottom, skinTop } from './plan'
+import { facadePoint, inSwoosh, LOOP, ROOF, SHOPFRONT, skinBottom, skinTop } from './plan'
 import type { MallMaterials } from './materials'
 import { rng } from '../textures'
 
@@ -104,7 +104,7 @@ export function buildSkin(parent: Object3D, c: MallMaterials) {
   const half = CELL_H / 2
   const clampH = (s: number, h: number) => Math.min(skinTop(s), Math.max(skinBottom(s), h))
 
-  for (let r = Math.floor(2 / half); r <= Math.ceil(19.5 / half); r++) {
+  for (let r = Math.floor(2 / half); r <= Math.ceil((ROOF + 4) / half); r++) {
     const hc = r * half
     const shift = r % 2 ? 0.5 : 0
     for (let i = 0; i < n; i++) {

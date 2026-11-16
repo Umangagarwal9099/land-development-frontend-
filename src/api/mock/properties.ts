@@ -1,4 +1,5 @@
 import type { Floor, MediaItem, Property, Room } from '../types'
+import { areaOf, FLOORS as MALL_FLOORS, isLettable, LEVELS as MALL_LEVELS } from '../../features/property/scene/furnished/kalakalMall/interior/units'
 import { placeholderImage } from './placeholders'
 
 // Served from public/videos/. Absolute so assetUrl() doesn't resolve it against the R2 domain.
@@ -281,19 +282,75 @@ function basementArea(floor: Floor, level: -1 | -2, [lengthFt, widthFt]: [number
 }
 
 /**
- * Terranova Mall on commercial Plot A-02, Kallakal: the G+2 mall of the client's reference design,
- * modelled in 3D (features/property/scene/furnished/kalakalMall) as an exterior with its grounds.
- * Areas map to the model's amenity_* hotspots.
+ * Terranova Mall on commercial Plot A-02, Kallakal: the client's reference design raised to G+4,
+ * modelled in 3D (features/property/scene/furnished/kalakalMall) with its grounds and, in the
+ * property view, its five floors planned for letting. Outdoor areas map to the model's amenity_*
+ * hotspots; every unit, the gaming hall and the cinema to its room_mall_* hotspots, from the plan
+ * in kalakalMall/interior/units.ts.
  */
 function kalakalMall(): Property {
   const mallLevels = basementFloors()
+  // The floors over the ground, each cut away from the level rail just under its ceiling, framed on the building's plan.
+  const body: [number, number, number, number] = [-18.6, -26.2, 18.6, 13.8]
+  const cut = [4.1, 3.5, 3.5, 3.5, 4.6]
+  mallLevels.G.name = 'Ground Floor · Luxury Brands, Cafés & Essentials'
+  mallLevels.G.cutY = MALL_LEVELS[0] + cut[0]
+  mallLevels.G.focus = body
+  const upper: Floor[] = MALL_FLOORS.slice(1).map((plan) => ({
+    id: id('floor'), name: plan.title, level: plan.level, groupName: `floor_${plan.level}`, cutY: MALL_LEVELS[plan.level] + cut[plan.level], focus: body,
+  }))
+  const floorOf = (level: number) => (level === 0 ? mallLevels.G : upper[level - 1])
+  // Every unit as a room: its number and trade, its size off the plan, what it is let for.
+  const units: Room[] = MALL_FLOORS.flatMap((plan) => {
+    const tag = plan.level === 0 ? 'g' : String(plan.level)
+    const mesh = (unitId: string) => `room_mall_${tag}_${unitId.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`
+    const room = (unitId: string, name: string, rects: [number, number, number, number][], description: string, specs: string[], amenities: string[]): Room => {
+      const a = areaOf(rects)
+      const xs = rects.flatMap((r) => [r[0], r[1]])
+      const zs = rects.flatMap((r) => [r[2], r[3]])
+      const dx = Math.max(...xs) - Math.min(...xs)
+      const dz = Math.max(...zs) - Math.min(...zs)
+      const r1 = (v: number) => Math.round(v * 10) / 10
+      return {
+        id: id('room'), name, kind: 'room', meshName: mesh(unitId), floorId: floorOf(plan.level).id,
+        dimensions: { length: r1(Math.max(dx, dz)), width: r1(Math.min(dx, dz)), unit: 'm' }, areaSqft: Math.round(a * 10.764), description, specs, amenities, media: [],
+      }
+    }
+    const height = plan.level === 0 ? '5.1 m to the slab' : plan.level === 4 ? '5.6 m to the roof slab' : '4.5 m to the slab'
+    const washrooms = plan.units.filter((u) => u.kind === 'washroom').map((u) =>
+      room(u.id, `${plan.label === 'G' ? 'Ground' : `Level ${plan.label}`} · ${u.name}`, u.rects,
+        u.id === 'WC-L'
+          ? `The Ladies, ${plan.level === 0 ? 'in the strip before the loading dock' : 'the whole strip across the corridor from the lifts'}, one door in the middle of its long wall: inside it a free-standing backlit onyx screen with a powder bench behind; a row of floor-to-ceiling walnut cubicles along the back wall with an accessible one at its end; long Calacatta vanities with undermount basins, brushed-brass sensor spouts, arched backlit mirrors in brass frames and opal sconces against bookmatched Calacatta Viola. Calacatta floor edged in Nero, walls clad full height in marble, a cove-lit stepped ceiling.`
+          : 'The Gents, behind the lifts, one door off the service corridor: a backlit onyx wall facing it, the vanity along the corridor wall on bookmatched Emperador, wall-hung urinals between Nero screens and floor-to-ceiling walnut cubicles along the back, with an accessible cubicle at the end.',
+        ['Marble floor and full-height wall cladding', 'Wall-hung WCs on concealed cisterns; sensor taps; hand dryers', 'Mechanical exhaust, 10 air changes an hour'],
+        ['Cubicle doors, seats, lids, flush plates, taps, dryers and light switches all work', 'Backlit mirrors and onyx', 'Accessible cubicle with grab rails and pull cord']))
+    const list = plan.units.filter((u) => isLettable(u) || u.kind === 'lounge').map((u) => {
+      const kind = u.kind === 'food' ? 'Food court counter' : u.kind === 'kiosk' ? 'Kiosk pad' : u.kind === 'cafe' ? 'Café / F&B unit' : u.kind === 'anchor' ? 'Anchor unit' : u.kind === 'lounge' ? 'Common lounge' : 'Retail unit'
+      const front = u.fronts.reduce((t, f) => t + (f.to - f.from), 0)
+      return room(u.id, `${u.id} · ${u.name}`, u.rects,
+        u.kind === 'lounge'
+          ? `${u.use}: an open lounge off the west spine, furnished with sofas and lounge chairs round low tables.`
+          : `${kind} allocated to ${u.use.charAt(0).toLowerCase()}${u.use.slice(1)}. Handed over bare for the tenant's fit-out: screed floor, primed partitions, the slab's soffit exposed above; ${u.kind === 'food' ? 'an open serving counter on the dining hall with its fascia over it.' : u.kind === 'kiosk' ? 'a marked pad in the gallery with a hanging sign; services from the floor box.' : 'a frameless glass shopfront with its entrance onto the gallery and a lit fascia over it.'}`,
+        [`${Math.round(areaOf(u.rects))} m² (${Math.round(areaOf(u.rects) * 10.764).toLocaleString('en-IN')} sq ft) carpet area`, u.kind === 'kiosk' ? 'Island pad in the gallery' : `${front.toFixed(1)} m of frontage`, height],
+        u.kind === 'lounge' ? ['Sofas and lounge chairs', 'Planters', 'Drinking water nearby'] : ['Power and data at the unit', 'Sprinklers and smoke detection', 'HVAC supply from the floor AHU'])
+    })
+    if (plan.hall) {
+      const zones = plan.hall.zones.map((z) => z.name)
+      list.push(room(plan.hall.id, plan.hall.name, plan.hall.rects,
+        plan.level === 3
+          ? 'One large, open gaming and entertainment hall wrapping the atrium on two sides, with no rooms inside it: each activity has its own zone, marked out on the floor in its own finish and coloured light line, with walking room between them. Entrances from the escalator landing and from the lift lobby.'
+          : 'A premium three-screen cinema: its own entrance from the food court beside the escalators, a stone-floored lobby along the atrium with the box office and the popcorn counter, two 70–90 seat auditoria and a recliner screen, and the cinema\'s own washrooms.',
+        zones, plan.level === 3 ? ['One continuous hall, no partitions', 'Safety clearances round lanes, simulators and play'] : ['Separate entrance', 'Box office and concessions', 'Cinema washrooms']))
+    }
+    return [...list, ...washrooms]
+  })
   const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
     id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
     dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
   })
   const rooms: Room[] = [
     area('Main Entrance', 'amenity_entrance', [39, 31],
-      'The entrance in the link between the two blocks, where the faceted skin dips: a double-height glazed front behind automatic sliding doors, under a white cantilevered canopy whose line runs on as the band beneath the north block. Inside, a lobby rises through two floors to a gallery and a ring of lit pendants.',
+      'The entrance in the link between the two blocks, where the faceted skin dips: a double-height glazed front behind automatic sliding doors, under a white cantilevered canopy whose line runs on as the band beneath the north block. Inside, the lobby opens straight into the five-storey atrium and its escalators.',
       ['Double-height structural glazing', 'Automatic sliding doors, 4.4 m frame', 'White ACP canopy on stainless tie rods, recessed downlights', 'Honed stone forecourt at +0.45 m'],
       ['Steps and a 1:20 accessible ramp from the drop-off', 'Benches and planters on the forecourt']),
     area('Forecourt & Drop-off', 'amenity_forecourt', [150, 26],
@@ -305,26 +362,28 @@ function kalakalMall(): Property {
     area('Service Yard & Basement Ramp', 'amenity_service', [150, 26],
       'Behind the mall, closed off from the cross road by an unbroken compound wall: a one-way service road from the entry road on the south side to the exit road on the north, past two loading bays with roller shutters and dock bumpers, the basement car park\'s IN and OUT portals in the rear wall, and the fenced substation and generator enclosure against the back wall. Traffic runs one way round the building: in at the south gate, out at the north.',
       ['Two loading bays with roller shutters', 'Basement IN and OUT portals, 3.6 m wide, 2.6 m clear', 'Transformer and DG set in a fenced enclosure', 'One-way entry road (south) and exit road (north), 3.9 m clear', 'Rear service road, 7.2 m; no access from the cross road'], ['Loading bays', 'Basement parking', 'Substation']),
-    basementArea(mallLevels.B1, -1, [144, 170], 33,
-      'The upper basement under the whole mall and its service road. The one-way IN and OUT ramps come down from the portals in the rear wall at 1:6, landing at the front of the level; between them the two-way ramp to B2 starts from the back cross aisle. Bays line the west aisle and the side walls, parallel bays the one-way lanes, all on a power-trowelled concrete floor with painted bays, numbers and arrows, rubber wheel stops, the level\'s blue band on walls and columns, LED battens on drop rods, jet fans and a red sprinkler grid under the beams. A lift and a stair rise from beside the west lane to the entrance lobby, with fire stairs at two corners.',
-      ['One-way IN and OUT ramps from the rear portals, 3.6 m, 1:6', 'Two-way ramp to B2, 5.4 m', 'Lift and stair to the entrance lobby; two fire stairs', 'Three EV charging bays; two accessible bays by the lifts']),
-    basementArea(mallLevels.B2, -2, [144, 170], 32,
+    basementArea(mallLevels.B1, -1, [144, 170], 32,
+      'The upper basement under the whole mall and its service road. The one-way IN and OUT ramps come down from the portals in the rear wall at 1:6, landing at the front of the level; between them the two-way ramp to B2 starts from the back cross aisle. Bays line the west aisle and the side walls, parallel bays the one-way lanes, all on a power-trowelled concrete floor with painted bays, numbers and arrows, rubber wheel stops, the level\'s blue band on walls and columns, LED battens on drop rods, jet fans and a red sprinkler grid under the beams. The mall\'s two lifts open onto the west lane and run to every floor up to the food court and cinema; a stair rises to the entrance lobby, with fire stairs at two corners.',
+      ['One-way IN and OUT ramps from the rear portals, 3.6 m, 1:6', 'Two-way ramp to B2, 5.4 m', 'Two mall lifts to every floor; a stair to the entrance lobby; two fire stairs', 'Three EV charging bays; two accessible bays by the stair']),
+    basementArea(mallLevels.B2, -2, [144, 170], 31,
       'The lower basement, reached by the two-way ramp from B1, laid out like the level above with its own green band and level markings. Lanes run where the ramps from the ground stand on B1; the fire pump room and the sump are here.',
-      ['Two-way ramp up to B1', 'Fire pump room', 'Lift lobby and two fire stairs']),
+      ['Two-way ramp up to B1', 'Fire pump room', 'Mall lifts and two fire stairs']),
+    ...units,
   ]
   return {
     id: 'p_kalakal_mall', slug: 'kalakal-mall', name: 'Terranova Mall', type: 'commercial', location: 'Kallakal, NH-44',
-    tagline: 'A G+2 shopping mall in a faceted skin, on the HMDA road frontage',
+    tagline: 'A G+4 luxury shopping mall in a faceted skin, on the HMDA road frontage',
     thumbnailUrl: placeholderImage('Terranova Mall', 210, 800, 500),
-    stats: [{ label: 'Plot', value: '3,704 sq yd' }, { label: 'Floors', value: 'B2 + G + 2' }, { label: 'Facing', value: 'East' }],
+    stats: [{ label: 'Plot', value: '3,704 sq yd' }, { label: 'Floors', value: 'B2 + G + 4' }, { label: 'Facing', value: 'East' }],
     description:
-      'A shopping mall on commercial Plot A-02 in Kallakal, facing east onto the 250 ft HMDA master plan road. Two blocks wrapped in a skin of faceted aluminium and dark glass meet at a lower, double-height glazed entrance under a white canopy; the taller south block carries the name and the north block a curved media screen. A raised forecourt, drop-off and visitor parking lie in front, with a basement car park, loading bays and fire-access drives behind and to either side.',
+      'A shopping mall on commercial Plot A-02 in Kallakal, facing east onto the 250 ft HMDA master plan road. Two blocks wrapped in a skin of faceted aluminium and dark glass meet at a double-height glazed entrance under a white canopy; the south block carries the name and the north block a curved media screen. Inside, five floors of galleries ring a skylit atrium crossed by escalators: luxury brands and cafés on the ground, premium fashion on the first, lifestyle and electronics on the second, one open gaming and bowling hall on the third, and the food court and a three-screen cinema on the fourth. Two lifts run from the basement car park to the top; three fire stairs run from top to bottom. A raised forecourt, drop-off and visitor parking lie in front, with loading bays and fire-access drives behind and to either side.',
     highlights: {
-      Plot: 'A-02 · 222′3″ × 150′ (3,704 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: '2 basements + ground + 2 upper floors',
-      Height: 'Roof at 15.45 m; skin crown to 18.4 m', Envelope: '36.7 m frontage × 39.5 m deep', 'Façade': 'Faceted perforated aluminium and solar-control glass',
-      Setbacks: 'Front 20.4 m · sides 4.5 m · rear 7.9 m', Parking: '65 bays on B1 and B2 + 11 visitor bays',
+      Plot: 'A-02 · 222′3″ × 150′ (3,704 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: '2 basements + ground + 4 upper floors',
+      Height: 'Roof at 26.25 m; skin crown to 29.2 m', Envelope: '36.7 m frontage × 39.5 m deep', 'Façade': 'Faceted perforated aluminium and solar-control glass',
+      'Vertical circulation': 'Eight escalators in the atrium; two 16-person lifts, B2 to 4; three fire stairs',
+      Setbacks: 'Front 20.4 m · sides 4.5 m · rear 7.9 m', Parking: '63 bays on B1 and B2 + 11 visitor bays',
     },
-    model: { kind: 'furnished', design: 'kalakal-mall' }, floors: mallLevels.floors, rooms,
+    model: { kind: 'furnished', design: 'kalakal-mall' }, floors: [...upper, ...mallLevels.floors], rooms,
     // Camera positions in scene metres: +z east (the HMDA road), +x north.
     presets: [
       { id: 'street', name: 'From the road', position: [-17, 2.2, 57], target: [-1, 9.5, 12], fov: 50 },
@@ -339,10 +398,24 @@ function kalakalMall(): Property {
       { id: 'entrance', name: 'Entrance, eye level', position: [-3, 1.7, 31], target: [-1, 6, 10], fov: 55 },
       { id: 'parking', name: 'Visitor parking, eye level', position: [11, 1.6, 39], target: [5, 2.2, 27], fov: 50 },
       { id: 'top', name: 'Plan view', position: [0, 150, -0.01], target: [0, 0, 0] },
+      { id: 'atrium', name: 'Arrival lobby & atrium, eye level', position: [-0.6, 1.9, 8.6], target: [2.2, 1.2, -3.0], fov: 62 },
+      { id: 'atrium-high', name: 'Atrium from the second floor', position: [9.2, 12.8, 6.8], target: [1.2, 9.6, -2.4], fov: 64 },
+      { id: 'gallery-1', name: 'First floor gallery & atrium', position: [9.4, 7.6, 7.2], target: [0.5, 6.6, -3.2], fov: 62 },
+      { id: 'lift-lobby', name: 'Lift lobby, first floor', position: [-3.9, 7.5, -8.4], target: [-6.4, 6.7, -13.4], fov: 60 },
+      { id: 'lounge-1', name: 'Atrium lounge, first floor', position: [7.3, 7.5, -7.1], target: [1.6, 6.3, -4.4], fov: 60 },
+      { id: 'lounge-2', name: 'Atrium lounge, second floor', position: [7.6, 12.3, 7.7], target: [1.8, 11.0, 4.9], fov: 60 },
+      { id: 'crown', name: 'Atrium crown chandelier, fourth floor', position: [8.8, 23.6, 7.0], target: [2.0, 22.4, -1.0], fov: 64 },
+      { id: 'food-court', name: 'Food court, fourth floor', position: [-4.4, 22.4, 9.6], target: [-10.6, 20.9, 0.0], fov: 62 },
+      { id: 'escalators-1', name: 'Escalators arriving, first floor', position: [5.9, 7.9, 9.0], target: [5.9, 4.2, 0.0], fov: 58 },
+      { id: 'g-plan', name: 'Ground floor · plan', position: [10, 44, 34], target: [0, 0.45, -6], level: 0 },
+      { id: '1-plan', name: 'First floor · plan', position: [10, 49, 34], target: [0, 5.85, -6], level: 1 },
+      { id: '2-plan', name: 'Second floor · plan', position: [10, 54, 34], target: [0, 10.65, -6], level: 2 },
+      { id: '3-plan', name: 'Third floor · gaming hall', position: [10, 59, 34], target: [0, 15.45, -6], level: 3 },
+      { id: '4-plan', name: 'Fourth floor · food court & cinema', position: [10, 64, 34], target: [0, 20.25, -6], level: 4 },
       { id: 'b1', name: 'B1 · overview', position: [36, 24, 30], target: [0, -3.3, -7], level: -1 },
       { id: 'b1-ramp', name: 'B1 · down the IN ramp', position: [2, 1.9, -23.6], target: [2, -2.6, -4], fov: 60, level: -1 },
       { id: 'b1-aisle', name: 'B1 · west aisle, eye level', position: [-13.9, -1.75, -24], target: [-13.9, -2.2, 10], fov: 60, level: -1 },
-      { id: 'b1-lifts', name: 'B1 · lift lobby', position: [-15.6, -1.75, -7], target: [-10.9, -2.1, 2], fov: 58, level: -1 },
+      { id: 'b1-lifts', name: 'B1 · mall lifts', position: [-3.4, -1.75, -6.0], target: [-6.6, -2.2, -13.5], fov: 58, level: -1 },
       { id: 'b2', name: 'B2 · overview', position: [36, 21, 30], target: [0, -6.6, -7], level: -2 },
       { id: 'b2-aisle', name: 'B2 · west aisle, eye level', position: [-13.9, -5.05, 10], target: [-13.9, -5.5, -24], fov: 60, level: -2 },
       { id: 'b2-ramp', name: 'B2 · up the ramp to B1', position: [7.75, -4.9, 7], target: [7.75, -5.2, -20], fov: 60, level: -2 },

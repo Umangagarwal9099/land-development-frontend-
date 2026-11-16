@@ -345,6 +345,8 @@ export function mallMaterials(k: Kit, lighting: Lighting) {
     pSign: std({ map: tex(256, 256, parkingSign), roughness: 0.5 }),
     shutter: std({ map: tex(512, 512, shutter), metalness: 0.5, roughness: 0.5 }),
     hazard: std({ color: '#e1b12c', roughness: 0.6 }),
+    /** The lit green FIRE EXIT sign over an exit door. */
+    exitSign: glow({ color: '#1a9a52', emissive: '#22c46a', emissiveIntensity: 1.2, roughness: 0.4 }, 1),
     /** Bar railing on the compound walls, its bars at true spacing along a run `len` metres long. */
     railing: (len: number) => std({ color: '#2b2d30', metalness: 0.5, roughness: 0.45, alphaMap: repeated(rail, len, 1), alphaTest: 0.5, side: DoubleSide }),
     /** Chain-link fencing, `len` × `h` metres. */

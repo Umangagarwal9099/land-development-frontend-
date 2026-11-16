@@ -1,5 +1,6 @@
 import type { BasementSpec } from '../basement'
 import { PORTALS } from './building'
+import { LIFTS } from './interior/units'
 import { GL, L1, REAR_Z, SHOPFRONT } from './plan'
 
 /*
@@ -10,9 +11,12 @@ import { GL, L1, REAR_Z, SHOPFRONT } from './plan'
  *   ramps:  the one-way IN and OUT ramps start at the portals in the rear wall (building.ts) and
  *           fall east under the ground floor at 1:6 to B1; between them a two-way ramp from the
  *           back cross aisle falls east to B2.
- *   access: a lift and a stair from B2 up to the entrance lobby, opening into it from beside its
- *           west side; below, onto the west lane. Fire stairs in the south-west and north-east
- *           corners; the pump room (B2) and the LT electrical room (B1) at the north-west.
+ *   access: a stair from B2 up to the entrance lobby, opening into it from beside its west side;
+ *           below, onto the west lane. The mall's two passenger lifts (B2 to the fourth floor,
+ *           built with the mall: see interior/core.ts) come down further back in the same row of
+ *           bays, their doors on the west lane; `shafts` keeps bays and columns clear of them. Fire
+ *           stairs in the south-west and north-east corners; the pump room (B2) and the LT
+ *           electrical room (B1) at the north-west.
  *   grid:   8.1 m along the aisles, columns between the bays on the row edges.
  */
 
@@ -26,8 +30,8 @@ const NC = 13.0
 const PORTAL = REAR_Z - SHOPFRONT
 const inA: [number, number] = [PORTALS.in - PORTALS.w / 2, PORTALS.in + PORTALS.w / 2]
 const outA: [number, number] = [PORTALS.out - PORTALS.w / 2, PORTALS.out + PORTALS.w / 2]
-/** The lift and stair core, beside the entrance lobby's west side (see building.ts). */
-export const ACCESS = { x0: -10.9, x1: -6.6, z0: 1.0, z1: 9.0 }
+/** The stair core, beside the entrance lobby's west side (see building.ts). */
+export const ACCESS = { x0: -10.9, x1: -6.6, z0: 3.4, z1: 9.0 }
 /** Where the IN and OUT ramps land on B1, and where the ramp to B2 lands. */
 const FOOT = 0.8
 const B2FOOT = -4.1
@@ -72,9 +76,10 @@ export const MALL_BASEMENT: BasementSpec = {
     rect: ACCESS,
     face: '+x',
     ground: { y: GL, top: L1 - 0.31, label: 'Entrance lobby', frontWall: true },
-    lifts: [{ x: -7.65, z: 2.3, w: 1.6, d: 1.6, door: '+x' }],
+    lifts: [],
     stair: { zone: { x0: -10.7, x1: -6.8, z0: 3.6, z1: 8.8 }, entry: '+z', door: '+x', at: 8.2 },
   },
+  shafts: [{ x0: LIFTS.x0, x1: LIFTS.x1, z0: LIFTS.z0, z1: LIFTS.z1 }],
   occupancy: 0.78,
   seed: 4402,
 }

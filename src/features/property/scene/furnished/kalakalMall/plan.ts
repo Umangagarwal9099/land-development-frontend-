@@ -12,13 +12,15 @@ import type { Point2 } from '../../../../../api/types'
  *
  *   setbacks: 4.5 m each side (fire access drives), 20.4 m in front, 7.9 m at the rear
  *   envelope: 36.7 m frontage × 39.5 m deep, rounded corners, the entrance link set back 2.7 m
- *   levels:   ground floor +0.45 (podium), first +5.85, second +10.65, roof +15.45
- *             (5.4 / 4.8 / 4.8 m floor to floor); skin crown to +18.4 (south) and +17.2 (north)
+ *   levels:   ground floor +0.45 (podium), first +5.85, second +10.65, third +15.45, fourth
+ *             +20.25, roof +26.25 (5.4 / 4.8 / 4.8 / 4.8 m floor to floor, and 6.0 m under the roof
+ *             for the food court and the cinema); skin crown to +29.2 (south) and +28.0 (north)
  *
- * Read off the reference elevation: the taller south block carries the name, the lower link
- * between the blocks dips the skin over a double-height glazed entrance, and the north block
- * carries the media screen, its skin sweeping down towards the north-east corner above a white
- * band that continues the entrance canopy.
+ * Read off the reference elevation: the taller south block carries the name, the link between
+ * the blocks dips the skin over a double-height glazed entrance, and the north block carries the
+ * media screen, its skin sweeping down towards the north-east corner above a white band that
+ * continues the entrance canopy. The reference's G+2 is raised to G+4 for the brief (ground and
+ * four floors over the two basements); the interior is planned in interior/.
  */
 
 export const FT = 0.3048
@@ -47,9 +49,9 @@ export const ENTRY_X = -1
 export const GL = 0.45
 export const L1 = 5.85
 export const L2 = 10.65
-export const ROOF = 15.45
-/** The entrance lobby rises through two floors under a lower roof, so the skin can dip over it. */
-export const LOBBY_ROOF = 13.0
+export const L3 = 15.45
+export const L4 = 20.25
+export const ROOF = 26.25
 /** The lobby: behind the link, between the blocks. */
 export const LOBBY = { x0: LINK.x0, x1: LINK.x1, z0: 1 }
 
@@ -237,8 +239,9 @@ const frontness = (z: number) => smooth(4, 11, z)
 export function skinTop(s: number) {
   const [x, z] = LOOP.at(s)
   const f = frontness(z)
-  const base = lerp(18.4, 17.2, smooth(-6, 6, x))
-  const link = 4.2 * f * bump(x, ENTRY_X, 5.6)
+  const base = lerp(ROOF + 2.95, ROOF + 1.75, smooth(-6, 6, x))
+  // A gentler dip over the link than the reference's: the upper floors run across it.
+  const link = 1.4 * f * bump(x, ENTRY_X, 5.6)
   const sides = 0.8 * (1 - f) * bump(z, -7, 9) * smooth(12, 17, Math.abs(x))
   return base - link - sides
 }

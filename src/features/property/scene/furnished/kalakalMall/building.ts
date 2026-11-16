@@ -6,11 +6,10 @@ import type { Lighting } from '../shared'
 import type { Contact } from './contact'
 import type { Planting } from './foliage'
 import type { MallMaterials } from './materials'
-import {
-  aroundLobby, BX0, BX1, ENTRY_X, facadePoint, FRONT_Z, GL, L1, lean, LINK, LOBBY, LOBBY_ROOF, lobbyOf, LOOP, PLAZA_Z, REAR_Z, ROOF, SHOPFRONT, skinBottom,
-} from './plan'
+import { LIFTS, STAIRS, VOID } from './interior/units'
+import { BX0, BX1, ENTRY_X, facadePoint, FRONT_Z, GL, L1, L2, L3, L4, lean, LINK, LOBBY, LOOP, PLAZA_Z, REAR_Z, ROOF, SHOPFRONT, skinBottom } from './plan'
 import { BACKING, plumb, ribbon, Tris } from './skin'
-import { frontAt, rect, sheet, slab } from './solids'
+import { sheet, slab } from './solids'
 
 export interface MallCtx {
   k: Kit
@@ -68,7 +67,9 @@ function buildPodium(ctx: MallCtx, parent: Object3D) {
   const open = ctx.openings
   // In the property view the podium is open over the ramp tunnels and the stair well and lift
   // shaft; the wells are closed over until the basement is built (see basement/).
-  const holes = open ? [...open.ramps, ...open.wells].map(rectPoly) : []
+  // The mall's two lifts come down through it too, to the car park (see interior/core.ts).
+  const shafts = open ? [{ x0: LIFTS.x0 + 0.2, x1: LIFTS.x1 - 0.2, z0: LIFTS.z0 + 0.2, z1: LIFTS.z1 - 0.2 }] : []
+  const holes = open ? [...open.ramps, ...open.wells, ...shafts].map(rectPoly) : []
   slab(parent, podiumOutline(), 0, GL, [c.surface('travertine', 1, 1), c.granite], holes, true, 'podium')
   open?.wells.forEach((w, i) => slab(parent, rectPoly(w), GL - 0.02, GL, c.surface('travertine', 1, 1), [], false, `void_well_${i}`))
 }
@@ -83,7 +84,10 @@ function buildShopfronts(ctx: MallCtx, parent: Object3D) {
     const [x, z] = LOOP.at(s)
     return z > LINK.z - 0.5 && z < LINK.z + 0.5 && Math.abs(x - ENTRY_X) < 2.25
   }
-  const glazed = (s: number) => !isRear(s) && !inDoor(s)
+  // Fire stairs 1 and 2 open straight out through the ground floor's glass (see interior/units.ts).
+  const exits = STAIRS.filter((st) => st.exit.face === '-x' || st.exit.face === '+x').map((st) => LOOP.nearest(st.exit.face === '-x' ? BX0 : BX1, st.exit.at))
+  const inExit = (s: number) => exits.some((e) => Math.abs(s - e) < 0.62)
+  const glazed = (s: number) => !isRear(s) && !inDoor(s) && !inExit(s)
   const glass = new Tris()
   const wall = new Tris()
   const rails = new Tris()
@@ -111,6 +115,13 @@ function buildShopfronts(ctx: MallCtx, parent: Object3D) {
   }
   for (const [s0, s1] of LOOP.runs((s) => isRear(s) && !inPortal(s))) ribbon(wall, s0, s1, (s) => plumb(s, 0.1, SHOPFRONT), (s) => plumb(s, bot(s), SHOPFRONT))
   for (const [s0, s1] of LOOP.runs((s) => isRear(s) && inPortal(s))) ribbon(wall, s0, s1, (s) => plumb(s, GL + PORTALS.h, SHOPFRONT), (s) => plumb(s, bot(s), SHOPFRONT))
+  // The exit doors: a steel leaf in a frame, a wall panel over it, the lit sign.
+  for (const e of exits) {
+    ribbon(wall, e - 0.62, e + 0.62, (s) => plumb(s, GL + 2.2, SHOPFRONT), (s) => plumb(s, bot(s), SHOPFRONT))
+    alongLoop(ctx, parent, e, SHOPFRONT, 1.04, 2.15, 0.06, GL + 1.075, c.plantDark)
+    for (const d of [-0.56, 0.56]) alongLoop(ctx, parent, e + d, SHOPFRONT, 0.08, 2.2, 0.16, GL + 1.1, c.mullion)
+    alongLoop(ctx, parent, e, SHOPFRONT + 0.05, 0.5, 0.18, 0.04, GL + 2.45, c.exitSign, false)
+  }
   glass.mesh(c.shopGlass, parent, 'shopfront_glass', false)
   wall.mesh(c.surface('greige', 1, 1), parent, 'service_wall')
   rails.mesh(c.mullion, parent, 'shopfront_rails')
@@ -145,64 +156,21 @@ function buildShopfronts(ctx: MallCtx, parent: Object3D) {
   }
 }
 
-/** What shows through the glass: shop floors, lit ceilings, shop interiors, the double-height lobby. */
-function buildInterior(ctx: MallCtx, parent: Object3D) {
+/**
+ * On the master plan, what shows through the glass: the floors' slabs with their lit ceilings and
+ * a lit core of shops behind. (The property view builds the real interior instead: see interior/.)
+ */
+function buildPlanInterior(ctx: MallCtx, parent: Object3D) {
   const { c, k } = ctx
-  const inner = LOOP.polygon(SHOPFRONT - 0.02, 0.4)
-  // First-floor slab over the shops, its ceiling lit; the lobby stays open through two floors.
-  for (const piece of aroundLobby(inner)) {
-    slab(parent, piece, L1 - 0.3, L1, c.backing, [], false)
-    sheet(parent, piece, L1 - 0.31, c.ceiling, true)
+  const inner = LOOP.polygon(BACKING - 0.02, 0.4)
+  const void_ = [rectPoly({ x0: VOID[0], x1: VOID[1], z0: VOID[2], z1: VOID[3] })]
+  for (const [i, y] of [L1, L2, L3, L4].entries()) {
+    slab(parent, inner, y - (i === 0 ? 0.25 : 0.3), y, c.backing, void_, false)
+    sheet(parent, inner, y - (i === 0 ? 0.26 : 0.31), c.ceiling, true, void_)
   }
-  // The shops' back walls: a lit core standing behind the shop units.
-  const core = { x0: -11.6, x1: 11.6, z0: -19, z1: LOBBY.z0 }
-  // In the property view, clear of the ramp tunnels that run in under the ground floor.
-  const spans: [number, number][] = ctx.openings
-    ? ctx.openings.ramps.reduce<[number, number][]>(
-        (out, r) => out.flatMap(([a, b]): [number, number][] => (r.x1 <= a || r.x0 >= b ? [[a, b]] : ([[a, r.x0 - 0.05], [r.x1 + 0.05, b]] as [number, number][]).filter(([p, q]) => q - p > 0.3))),
-        [[core.x0, core.x1]],
-      )
-    : [[core.x0, core.x1]]
-  for (const [x0, x1] of spans) k.box(parent, x1 - x0, L1 - 0.3 - GL, core.z1 - core.z0, c.shops, (x0 + x1) / 2, (GL + L1 - 0.3) / 2, (core.z0 + core.z1) / 2, false)
-  // Shop partitions at 9 m, square to the glass.
-  for (const [s0, s1] of LOOP.runs((s) => LOOP.normal(s)[1] > -0.7, 0.5)) {
-    const n = Math.max(1, Math.round((s1 - s0) / 9))
-    for (let i = 1; i < n; i++) {
-      const s = s0 + ((s1 - s0) * i) / n
-      const [x] = LOOP.at(s)
-      if (x > LOBBY.x0 - 0.5 && x < LOBBY.x1 + 0.5 && LOOP.at(s)[1] > LOBBY.z0) continue
-      // In the property view, none across the ramp tunnels or the lift and stair core.
-      const clear = [...(ctx.openings?.ramps ?? []), ...(ctx.openings?.wells ?? [])]
-      if (clear.some((r) => [-1.5, -3, -4.5, -6, -7.5].some((d) => {
-        const [px, pz] = LOOP.at(s, SHOPFRONT + d + 1.3)
-        return px > r.x0 - 0.3 && px < r.x1 + 0.3 && pz > r.z0 - 0.3 && pz < r.z1 + 0.3
-      }))) continue
-      alongLoop(ctx, parent, s, SHOPFRONT - 3.2, 0.15, L1 - 0.3 - GL, 6, (GL + L1 - 0.3) / 2, c.white, false)
-    }
-  }
-
-  // The lobby: the core's lit face rising to the lobby roof, the first-floor gallery across it,
-  // and first-floor shopfronts down either side.
-  const lobby = lobbyOf(inner)
-  const top = LOBBY_ROOF - 0.05
-  k.box(parent, LOBBY.x1 - LOBBY.x0, top - L1, 0.3, c.shops, (LOBBY.x0 + LOBBY.x1) / 2, (L1 + top) / 2, LOBBY.z0 - 0.15, false)
-  for (const x of [LOBBY.x0, LOBBY.x1]) {
-    const z1 = frontAt(inner, x) - 0.1
-    k.box(parent, 0.25, top - L1, z1 - LOBBY.z0, c.shops, x + (x === LOBBY.x0 ? -0.12 : 0.12), (L1 + top) / 2, (LOBBY.z0 + z1) / 2, false)
-  }
-  const gallery = { z0: LOBBY.z0, z1: LOBBY.z0 + 2.4 }
-  k.box(parent, LOBBY.x1 - LOBBY.x0, 0.3, gallery.z1 - gallery.z0, c.backing, (LOBBY.x0 + LOBBY.x1) / 2, L1 - 0.15, (gallery.z0 + gallery.z1) / 2)
-  sheet(parent, rect(LOBBY.x0, LOBBY.x1, gallery.z0, gallery.z1), L1 - 0.31, c.ceiling, true)
-  k.box(parent, LOBBY.x1 - LOBBY.x0, 1.05, 0.02, c.tintGlass, (LOBBY.x0 + LOBBY.x1) / 2, L1 + 0.53, gallery.z1 - 0.05, false)
-  k.box(parent, LOBBY.x1 - LOBBY.x0, 0.05, 0.08, c.mullion, (LOBBY.x0 + LOBBY.x1) / 2, L1 + 1.08, gallery.z1 - 0.05)
-  // Lobby ceiling, under the lower roof.
-  sheet(parent, lobby, top, c.ceiling, true)
-  // A pendant cluster of lit rings in the double-height lobby.
-  for (const [r, y] of [[2.2, 9.4], [1.5, 8.8], [0.9, 8.3]] as const) {
-    const ring = new Mesh(new CylinderGeometry(r, r, 0.08, 48, 1, true), c.letter)
-    ring.position.set(ENTRY_X, y, (LOBBY.z0 + LINK.z) / 2 + 0.6)
-    parent.add(ring)
-  }
+  sheet(parent, inner, ROOF - 0.36, c.ceiling, true, void_)
+  for (const [y0, y1] of [[GL, L1 - 0.25], [L1, L2 - 0.3], [L2, L3 - 0.3], [L3, L4 - 0.3], [L4, ROOF - 0.35]])
+    k.box(parent, 23.2, y1 - y0, 17, c.shops, 0, (y0 + y1) / 2, -14, false)
 }
 
 /* ---------- entrance ---------- */
@@ -272,66 +240,59 @@ function buildEntrance(ctx: MallCtx, parent: Object3D) {
     l.position.set(ENTRY_X + dx, y0 - 0.4, back + 2.5)
     parent.add(l)
   }
-  const lobbyLight = lighting.light(new PointLight('#ffe2bb', 14, 16, 2), 0.2)
-  lobbyLight.position.set(ENTRY_X, 7.5, (LOBBY.z0 + LINK.z) / 2)
-  parent.add(lobbyLight)
+  // The lobby's light on the master plan (the property view lights its own interior).
+  if (!ctx.openings) {
+    const lobbyLight = lighting.light(new PointLight('#ffe2bb', 14, 16, 2), 0.2)
+    lobbyLight.position.set(ENTRY_X, 4.2, (LOBBY.z0 + LINK.z) / 2)
+    parent.add(lobbyLight)
+  }
 }
 
 /* ---------- roof ---------- */
 
-const ATRIUM: Point2[] = [
-  [ENTRY_X + 6, -9],
-  [ENTRY_X, -3],
-  [ENTRY_X - 6, -9],
-  [ENTRY_X, -15],
-]
-
+/**
+ * The roof: one slab over the whole building inside the skin's backing, open over the atrium for
+ * its skylight, a ridged glass roof on a kerb whose light falls the full five floors.
+ */
 function buildRoof(ctx: MallCtx, parent: Object3D) {
   const { c, k } = ctx
+  const roof = new Group()
+  roof.name = 'roof'
+  parent.add(roof)
   const outline = LOOP.polygon(BACKING - 0.02, 0.4)
-  const pieces = aroundLobby(outline)
-  pieces.forEach((piece, i) => slab(parent, piece, ROOF - 0.35, ROOF, [c.roof, c.backing], i === 0 ? [ATRIUM] : [], true, 'roof_slab'))
-  const lobby = lobbyOf(outline)
-  slab(parent, lobby, LOBBY_ROOF, LOBBY_ROOF + 0.3, [c.roof, c.backing])
-
-  // The step up from the lobby roof: clerestory glazing facing east, solid cheeks either side.
-  const stepH = ROOF - LOBBY_ROOF - 0.3
-  const stepY = LOBBY_ROOF + 0.3 + stepH / 2
-  k.box(parent, LOBBY.x1 - LOBBY.x0, stepH, 0.04, c.tintGlass, (LOBBY.x0 + LOBBY.x1) / 2, stepY, LOBBY.z0 + 0.1, false)
-  for (let x = LOBBY.x0; x <= LOBBY.x1 + 0.01; x += (LOBBY.x1 - LOBBY.x0) / 7) k.box(parent, 0.08, stepH, 0.14, c.mullion, x, stepY, LOBBY.z0 + 0.1)
-  for (const x of [LOBBY.x0, LOBBY.x1]) {
-    const z1 = frontAt(outline, x)
-    k.box(parent, 0.25, stepH, z1 - LOBBY.z0, c.backing, x, stepY, (LOBBY.z0 + z1) / 2)
-  }
-
-  // Atrium skylight: a glazed pyramid on an upstand, over the lit atrium well.
-  const apex = new Vector3(ENTRY_X, ROOF + 2.6, -9)
-  const kerb = ROOF + 0.45
-  const corners = ATRIUM.map(([x, z]) => new Vector3(x, kerb, z))
+  const [x0, x1, z0, z1] = VOID
+  slab(roof, outline, ROOF - 0.35, ROOF, [c.roof, c.backing], [rectPoly({ x0, x1, z0, z1 })], true, 'roof_slab')
+  // The kerb round the opening, white inside where it is seen from the floors below.
+  const kerb = 0.6
+  for (const [a, b, p, q] of [[x0 - 0.25, x1 + 0.25, z0 - 0.25, z0], [x0 - 0.25, x1 + 0.25, z1, z1 + 0.25], [x0 - 0.25, x0, z0, z1], [x1, x1 + 0.25, z0, z1]])
+    k.box(roof, b - a, kerb + 0.35, q - p, c.acp, (a + b) / 2, ROOF - 0.35 + (kerb + 0.35) / 2, (p + q) / 2)
+  // The glass: two slopes to a ridge along the atrium's length, glazing bars at 1.2 m.
+  const base = ROOF + kerb
+  const ridge = base + 1.6
+  const xm = (x0 + x1) / 2
   const glass = new Tris()
-  for (let i = 0; i < 4; i++) {
-    const a = corners[i]
-    const b = corners[(i + 1) % 4]
-    glass.tri(b, a, apex, [0, 0], [1, 0], [0.5, 1])
-    strut(parent, a, apex, 0.06, c.mullion)
-    // Glazing bars at 1.4 m up each face.
-    for (let t = 0.2; t < 0.99; t += 0.2) strut(parent, a.clone().lerp(b, t), apex, 0.025, c.mullion)
-    const mid = a.clone().lerp(b, 0.5)
-    const len = a.distanceTo(b)
-    const up = k.box(parent, len, 0.45, 0.25, c.backing, mid.x, ROOF + 0.225, mid.z)
-    up.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x)
+  const P = (x: number, y: number, z: number) => new Vector3(x, y, z)
+  for (const [a, b] of [[x0, xm], [xm, x1]]) {
+    const ya = a === x0 ? base : ridge
+    const yb = b === x1 ? base : ridge
+    glass.quad(P(a, ya, z0), P(b, yb, z0), P(b, yb, z1), P(a, ya, z1), [a, z0], [b, z0], [b, z1], [a, z1])
+    glass.quad(P(a, ya, z1), P(b, yb, z1), P(b, yb, z0), P(a, ya, z0), [a, z1], [b, z1], [b, z0], [a, z0])
   }
-  glass.mesh(c.tintGlass, parent, 'atrium_skylight', false)
-  // The well beneath: lit shop walls down to the second floor's atrium floor.
-  sheet(parent, ATRIUM, L1 + 4.8, c.floor)
-  for (let i = 0; i < 4; i++) {
-    const [ax, az] = ATRIUM[i]
-    const [bx, bz] = ATRIUM[(i + 1) % 4]
-    const w = k.box(parent, Math.hypot(bx - ax, bz - az), ROOF - 0.35 - (L1 + 4.8), 0.1, c.shops, (ax + bx) / 2, (ROOF - 0.35 + L1 + 4.8) / 2, (az + bz) / 2, false)
-    w.rotation.y = -Math.atan2(bz - az, bx - ax)
+  // Gable ends.
+  for (const z of [z0, z1]) {
+    glass.tri(P(x0, base, z), P(x1, base, z), P(xm, ridge, z), [x0, 0], [x1, 0], [xm, 1])
+    glass.tri(P(x1, base, z), P(x0, base, z), P(xm, ridge, z), [x1, 0], [x0, 0], [xm, 1])
   }
-
-  buildRooftopPlant(ctx, parent)
+  glass.mesh(c.tintGlass, roof, 'atrium_skylight', false)
+  strut(roof, P(xm, ridge, z0), P(xm, ridge, z1), 0.07, c.mullion)
+  const n = Math.round((z1 - z0) / 1.2)
+  for (let i = 0; i <= n; i++) {
+    const z = z0 + ((z1 - z0) * i) / n
+    strut(roof, P(x0, base, z), P(xm, ridge, z), 0.035, c.mullion)
+    strut(roof, P(xm, ridge, z), P(x1, base, z), 0.035, c.mullion)
+  }
+  for (const x of [x0, x1]) strut(roof, P(x, base, z0), P(x, base, z1), 0.05, c.mullion)
+  buildRooftopPlant(ctx, roof)
 }
 
 /** Lift machine rooms, stair headrooms, chillers, air handlers and tanks, kept below the skin's crown. */
@@ -343,13 +304,15 @@ function buildRooftopPlant(ctx: MallCtx, parent: Object3D) {
     k.box(parent, w + 0.15, 0.12, d + 0.15, c.coping, x, ROOF + h + 0.06, z)
     k.box(parent, 0.9, 2.1, 0.06, c.plantDark, x, ROOF + 1.05, z + d / 2 + 0.03)
   }
-  // Stair headrooms and lift machine rooms over the cores, in the taller south half.
-  room(-13.2, -19.5, 4.2, 6.2, 2.6)
-  room(-13.2, 4.5, 4.2, 6.2, 2.6)
-  room(-8.4, -19.8, 3.2, 3.0, 2.8)
+  // Headrooms over the three fire stairs, and the lifts' machine room over their shafts.
+  for (const st of STAIRS) {
+    const [a, b, p, q] = st.zone
+    room((a + b) / 2, (p + q) / 2, b - a + 0.4, q - p + 0.4, 2.6)
+  }
+  room((LIFTS.x0 + LIFTS.x1) / 2, (LIFTS.z0 + LIFTS.z1) / 2, LIFTS.x1 - LIFTS.x0 + 0.2, LIFTS.z1 - LIFTS.z0 + 0.2, 2.8)
 
   // Air-cooled chillers: a casing with a row of fan discs on top.
-  for (const [x, z] of [[4, -21.5], [4, -17.5], [11, -21.5]] as const) {
+  for (const [x, z] of [[0.6, -22.4], [0.6, -18.6], [13.4, -21.6]] as const) {
     ctx.shade.rect(x, ROOF + 0.005, z, 6.6, 2.9, 0, 0.6)
     k.box(parent, 6, 1.2, 2.3, c.plant, x, ROOF + 0.3 + 0.6, z)
     k.box(parent, 6.2, 0.3, 2.5, c.plantDark, x, ROOF + 0.15, z)
@@ -358,19 +321,19 @@ function buildRooftopPlant(ctx: MallCtx, parent: Object3D) {
       k.cyl(parent, 0.68, 0.68, 0.02, c.frame, x - 2 + i * 2, ROOF + 1.67, z, 28)
     }
   }
-  // Air handling units along the north block, with duct risers into the roof.
-  for (const z of [-8, -1.5, 5]) {
-    k.box(parent, 2.2, 1.2, 4.2, c.plant, 9.4, ROOF + 0.6, z)
-    k.box(parent, 0.9, 0.8, 0.9, c.soffit, 7.6, ROOF + 0.4, z + 1.2)
+  // Air handling units along the north block, clear of the skylight, with duct risers into the roof.
+  for (const z of [-12.5, -7.5, 8.0]) {
+    k.box(parent, 2.2, 1.2, 4.2, c.plant, 11.6, ROOF + 0.6, z)
+    k.box(parent, 0.9, 0.8, 0.9, c.soffit, 10.0, ROOF + 0.4, z + 1.2)
   }
   // Water tanks on plinths.
-  for (const z of [-11.5, -8.3]) {
+  for (const z of [-9.5, -6.3]) {
     k.box(parent, 2.9, 0.3, 2.9, c.concrete, -14, ROOF + 0.15, z)
     k.cyl(parent, 1.3, 1.3, 1.9, c.surface('white', 1, 1), -14, ROOF + 1.25, z, 32)
   }
   // Cable tray and service walkway between the plant.
-  k.box(parent, 0.6, 0.06, 26, c.frame, 8.8, ROOF + 0.25, -8)
-  k.box(parent, 18, 0.06, 0.8, c.frame, 0, ROOF + 0.25, -24.2)
+  k.box(parent, 0.6, 0.06, 22, c.frame, 9.2, ROOF + 0.25, -10)
+  k.box(parent, 18, 0.06, 0.8, c.frame, 0, ROOF + 0.25, -25.0)
 }
 
 /* ---------- signage and the media screen ---------- */
@@ -495,7 +458,7 @@ function buildSignage(ctx: MallCtx, parent: Object3D) {
   const x0 = BX0 + 0.8
   const x1 = LINK.x0 - 2.4
   const cap = Math.min(0.95, (x1 - x0) / textWidth(MALL_NAME))
-  const y = 13.75
+  const y = ROOF - 1.7
   const letters = channelLetters(c, MALL_NAME, cap, 0.16)
   letters.position.set((x0 + x1) / 2, y, FRONT_Z + lean(y + cap / 2) + 0.42)
   letters.rotation.x = Math.atan(0.05)
@@ -560,14 +523,14 @@ function buildService(ctx: MallCtx, parent: Object3D) {
     for (const dx of [-w / 2 + 0.1, w / 2 - 0.1]) k.box(parent, 0.03, 5.6 - GL - 2.45, 0.03, c.mullion, x + dx, (5.6 + GL + 2.45) / 2, REAR_Z - 0.9, false)
   }
   k.box(parent, 0.9, 0.9, 0.04, c.pSign, PORTALS.in, GL + PORTALS.h + 0.9, z - 0.06, false)
-  for (const x of [-12.5, -7]) {
+  for (const x of [-10.2, -5.4]) {
     k.box(parent, 4.0, 4.2, 0.08, c.shutter, x, 0.1 + 2.1, z - 0.05)
     k.box(parent, 4.3, 0.45, 0.5, c.mullion, x, 4.45, z - 0.25)
     for (const dx of [-2.08, 2.08]) k.box(parent, 0.14, 4.2, 0.14, c.hazard, x + dx, 2.2, z - 0.08)
     // Dock bumpers.
     for (const dx of [-1.4, 1.4]) k.box(parent, 0.25, 0.4, 0.12, c.plantDark, x + dx, 1.0, z - 0.1)
   }
-  for (const x of [-2.5, 8.5]) {
+  for (const x of [-2.5, 10.55]) {
     k.box(parent, 1.2, 2.2, 0.06, c.surface('greige', 1, 1), x, 1.2, z - 0.04)
     k.box(parent, 1.36, 0.08, 0.1, c.mullion, x, 2.34, z - 0.05)
     k.box(parent, 0.5, 0.25, 0.06, c.lamp, x, 2.7, z - 0.05, false)
@@ -577,7 +540,7 @@ function buildService(ctx: MallCtx, parent: Object3D) {
 export function buildBuilding(ctx: MallCtx, parent: Object3D) {
   buildPodium(ctx, parent)
   buildShopfronts(ctx, parent)
-  buildInterior(ctx, parent)
+  if (!ctx.openings) buildPlanInterior(ctx, parent)
   buildEntrance(ctx, parent)
   buildRoof(ctx, parent)
   buildSignage(ctx, parent)
