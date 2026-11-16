@@ -44,9 +44,14 @@ export default function LandingPage() {
   const { data, isPending, error, refetch } = useQuery(catalogQuery())
   const items = data?.items ?? []
   const [active, setActive] = useState(() => initialIndex())
+  const safeActive = items.length ? ((active % items.length) + items.length) % items.length : 0
   // Each cycle is one project's turn; a visitor's touch starts a longer one.
   const [cycle, setCycle] = useState({ key: 0, seconds: ADVANCE_SECONDS })
-  const item = items.length ? items[active % items.length] : null
+  const item = items.length ? items[safeActive] : null
+
+  useEffect(() => {
+    if (items.length && active !== safeActive) setActive(safeActive)
+  }, [active, items.length, safeActive])
   const show = useStageStore((s) => s.show)
   const go = useShowroomNavigate()
   const fontsReady = useFontsReady()
@@ -70,7 +75,7 @@ export default function LandingPage() {
       setShownSlug(item.slug)
     })()
     prefetch(item)
-    const upcoming = items[(active + 1) % items.length]
+    const upcoming = items[(safeActive + 1) % items.length]
     if (upcoming) prefetch(upcoming)
     return () => {
       cancelled = true
@@ -100,7 +105,7 @@ export default function LandingPage() {
 
   const onPanEnd = (_: unknown, info: PanInfo) => {
     if (Math.abs(info.offset.x) < SWIPE_PX || Math.abs(info.offset.x) < Math.abs(info.offset.y)) return
-    select(active + (info.offset.x < 0 ? 1 : -1))
+    select(safeActive + (info.offset.x < 0 ? 1 : -1))
   }
 
   if (error) return <ErrorState title="The showroom couldn't load its projects" detail={error.message} onRetry={() => void refetch()} showHome={false} />
@@ -119,11 +124,11 @@ export default function LandingPage() {
 
       <main className="absolute inset-x-0 bottom-44 left-0 px-10 md:bottom-48 md:left-16 md:max-w-[46rem] md:px-0">
         <AnimatePresence mode="wait">
-          <ProjectCard key={item.id} item={item} index={active} total={items.length} ready={shownSlug === item.slug} onExplore={() => void go(projectPath(item), { curtain: false })} />
+          <ProjectCard key={item.id} item={item} index={safeActive} total={items.length} ready={shownSlug === item.slug} onExplore={() => void go(projectPath(item), { curtain: false })} />
         </AnimatePresence>
       </main>
 
-      <ProjectIndex items={items} active={active} cycle={cycle} paused={mediaOpen} onSelect={select} />
+      <ProjectIndex items={items} active={safeActive} cycle={cycle} paused={mediaOpen} onSelect={select} />
     </div>
   )
 }
