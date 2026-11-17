@@ -94,9 +94,9 @@ export function buildSite(ctx: ClubCtx, p: Object3D) {
     [SPECIES.rain, 10, northZ(10) + 3.4, 2104, 0.62],
     [SPECIES.neem, -1, northZ(-1) + 3.2, 2105, 0.7],
     [SPECIES.neem, -13, northZ(-13) + 3.5, 2106, 0.65],
-    [JACARANDA, -18.8, -25, 2107, 0.8],
+    [JACARANDA, -20.4, -31.5, 2107, 0.7],
     [SPECIES.rain, 21.2, 14.5, 2108, 0.6],
-    [SPECIES.neem, 16.8, -15.2, 2109, 0.55],
+    [SPECIES.neem, 17.9, -14.2, 2109, 0.5],
     [SPECIES.rain, 20.8, -31, 2111, 0.55],
     [SPECIES.neem, -20.6, -30.5, 2112, 0.6],
   ]

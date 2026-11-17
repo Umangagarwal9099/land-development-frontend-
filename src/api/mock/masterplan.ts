@@ -194,10 +194,10 @@ function buildKalakal(): Pick<MasterPlan, 'plots' | 'roads' | 'amenities' | 'lan
       highlights: { Area: '9,725 sq yd', Size: '369′9″ × 225′9″', 'Cycle track': '2 m wide', 'Rainwater sump': '1,00,000 L', 'Plan ref.': 'Park Area-1' } },
     // The clubhouse site as surveyed: 150 ft on the avenue, its west side (on the cross road) 215′3.6″
     // deep and its east side (on the park) 225′10.8″, so the north edge falls to the park's.
-    { id: 'am_social', name: 'Terranova Clubhouse', kind: 'clubhouse', height: 9.6, propertySlug: 'kalakal-clubhouse', design: 'kalakal-clubhouse',
+    { id: 'am_social', name: 'Terranova Clubhouse', kind: 'clubhouse', height: 10.5, propertySlug: 'kalakal-clubhouse', design: 'kalakal-clubhouse',
       polygon: [at(696.6, AVENUE_N), at(696.6 + 150 * PER_FT, AVENUE_N), at(696.6 + 150 * PER_FT, AVENUE_N - (225 + 10.8 / 12) * PER_FT), at(696.6, AVENUE_N - (215 + 3.6 / 12) * PER_FT)],
       description: 'The community’s clubhouse, entered from the main avenue beside Central Park: laterite and glass pavilions under steep terracotta gables round a garden courtyard, reached through a laterite portal with a segmental arch.',
-      highlights: { Area: '3,678.19 sq yd', Size: '150′ × 215′3.6″ – 225′10.8″', Facing: 'South, onto the main avenue', Roofs: 'Clay tile gables, ridge to 11.7 m' } },
+      highlights: { Area: '3,678.19 sq yd', Size: '150′ × 215′3.6″ – 225′10.8″', Facing: 'South, onto the main avenue', Roofs: 'Clay tile gables, ridges 10.5 m' } },
     { id: 'am_park2', name: 'North Park', kind: 'garden', polygon: area(519, 681, 672.2, 708.25), height: 0,
       description: 'A strip of landscaped open space along the northern boundary, behind blocks L and M.',
       highlights: { Area: '1,252 sq yd', 'Plan ref.': 'Park Area-2' } },

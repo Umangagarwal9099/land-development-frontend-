@@ -33,7 +33,24 @@ function tri(t: Tris, a: Vector3, b: Vector3, c: Vector3, ua: number[], ub: numb
  * One slope: `poly` in plan, on gable `g`. `open[i]` says whether edge i → i+1 is an outside edge
  * (fascia) rather than a ridge, valley or a seam with the next piece.
  */
-function piece(m: RoofMesh, g: Gable, poly: Point2[], open: boolean[]) {
+function piece(m: RoofMesh, g: Gable, input: Point2[], openIn: boolean[]) {
+  // Coincident corners (a valley starting exactly at a ridge) are merged, each edge keeping its flag.
+  const poly: Point2[] = []
+  const open: boolean[] = []
+  const same = (a: Point2, b: Point2) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-6
+  input.forEach((q, i) => {
+    if (poly.length && same(poly[poly.length - 1], q)) {
+      open[open.length - 1] = openIn[i]
+      return
+    }
+    poly.push(q)
+    open.push(openIn[i])
+  })
+  if (poly.length > 1 && same(poly[poly.length - 1], poly[0])) {
+    poly.pop()
+    open.pop()
+  }
+  if (poly.length < 3) return
   const top = poly.map(([x, z]) => new Vector3(x, yAt(g, x, z), z))
   const bot = top.map((v) => v.clone().setY(v.y - g.thick))
   const k = SLOPE_UV(g)
@@ -125,23 +142,23 @@ export function buildRoofs(ctx: ClubCtx, p: Object3D) {
   const FR = FX + PROW
   piece(m, A.roof, [[-FR, ZA], [-vR, ZA], [-vE, eS], [-FX, eS]], [F, F, T, T])
   piece(m, A.roof, [[vR, ZA], [FR, ZA], [FX, eS], [vE, eS]], [F, T, T, F])
-  // North slopes, the mirror of the south: the entrance gable's valleys run to the back eave too.
-  piece(m, A.roof, [[-FX, eN], [-vE, eN], [-vR, ZA], [-FR, ZA]], [T, F, F, T])
-  piece(m, A.roof, [[vE, eN], [FX, eN], [FR, ZA], [vR, ZA]], [T, T, F, F])
+  // The north slope runs unbroken from end to end: the entrance gable stops at the bar's ridge.
+  piece(m, A.roof, [[-FX, eN], [FX, eN], [FR, ZA], [-FR, ZA]], [T, T, F, T])
   const bx0 = B.roof.at - B.eave
   const bx1 = B.roof.at + B.eave
   const dx0 = D.roof.at - D.eave
   const dx1 = D.roof.at + D.eave
 
-  // The entrance gable, across the bar from its back eave, where it ends in an overhanging gable
-  // over the courtyard, to the portal's front.
-  // Both its gables lean out to their apexes like the wings' ends.
+  // The entrance gable, from a hipped back end that slopes down onto the bar's ridge (nothing
+  // stands above it), to the portal's front, which leans out to its apex like the wings' ends.
+  // Behind the ridge the bar's back slope is unbroken. The hip, at the gable's own pitch, starts
+  // where its ridge is that pitch's rise above the bar's ridge.
   const front = P.ffront
-  const back = eN
   const apexF = front + PROW
-  const apexB = back - PROW
-  piece(m, P.roof, [[0, apexB], [-vE, back], [-vR, ZA], [-vE, eS], [-P.fw, front], [0, apexF]], [T, F, F, T, T, F])
-  piece(m, P.roof, [[0, apexB], [0, apexF], [P.fw, front], [vE, eS], [vR, ZA], [vE, back]], [F, T, T, F, F, T])
+  const zh = ZA + vR
+  piece(m, P.roof, [[0, zh], [-vR, ZA], [-vE, eS], [-P.fw, front], [0, apexF]], [F, F, T, T, F])
+  piece(m, P.roof, [[0, zh], [0, apexF], [P.fw, front], [vE, eS], [vR, ZA]], [F, T, T, F, F])
+  if (vR > 0.01) piece(m, { axis: 'x', at: zh, ridge: P.roof.ridge, t: P.roof.t, thick: P.roof.thick }, [[0, zh], [vR, ZA], [-vR, ZA]], [F, F, F])
 
   // The pavilions, free-standing, an overhanging gable at each end.
   const pavilion = (g: Gable, x0: number, x1: number, z0: number, z1: number) => {
@@ -162,9 +179,8 @@ export function buildRoofs(ctx: ClubCtx, p: Object3D) {
   m.under.mesh(ctx.c.soffit, p, 'roof_soffit', false)
   m.edge.mesh(ctx.c.fascia, p, 'roof_fascia')
 
-  ridgeCap(ctx, p, 'x', ZA, -FR, -vR, A.roof.ridge)
-  ridgeCap(ctx, p, 'x', ZA, vR, FR, A.roof.ridge)
-  ridgeCap(ctx, p, 'z', 0, apexB, apexF, P.roof.ridge)
+  ridgeCap(ctx, p, 'x', ZA, -FR, FR, A.roof.ridge)
+  ridgeCap(ctx, p, 'z', 0, zh, apexF, P.roof.ridge)
   ridgeCap(ctx, p, 'z', B.roof.at, B.z0 - GABLE_OUT, B.z1 + GABLE_OUT, B.roof.ridge)
   ridgeCap(ctx, p, 'z', D.roof.at, D.z0 - GABLE_OUT, D.z1 + GABLE_OUT, D.roof.ridge)
   ridgeCap(ctx, p, 'x', C.roof.at, cx0, cx1, C.roof.ridge)

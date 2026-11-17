@@ -9,15 +9,16 @@ import type { Point2 } from '../../../../../api/types'
  *
  * The building is the client's reference, measured from the aerial and the south elevation:
  *
- *   A   the entrance block: a 34 m east–west bar of glass-walled wings under terracotta gable roofs
- *       (38°, ridge 8.15 m), crossed by a taller 47° gable (ridge 9.6 m, 10 m across the fascia)
- *       that runs from the bar's back to a laterite entrance portal 8.15 m proud of its front:
- *       a gable wall of laterite block on two piers, pierced by a segmental arch.
- *   B   the west pavilion, the tallest (45°, ridge 11.7 m): laterite outside, full-height glass to
- *       the courtyard; its south gable rises above the bar's west wing in the elevation.
- *   D   the east pavilion, lower (ridge 9.05 m) and hidden behind the bar from the road.
- *       Both stand free, 3 m behind the bar, as separate buildings.
- *   C   the north block, the longest, with a 2.5 m verandah on timber posts facing the courtyard.
+ *   A   the entrance block: a 34 m east–west bar of glass-walled wings under terracotta gable
+ *       roofs, crossed by a gable of the same height and pitch (10 m across the fascia) that runs
+ *       from the bar's ridge to a laterite entrance portal 8.15 m proud of its front: a gable wall
+ *       of laterite block on two piers, pierced by a segmental arch. Both 50°.
+ *   B   the west pavilion (44°): laterite outside, full-height glass to the courtyard.
+ *   D   the east pavilion (52°). Both stand free, 3 m behind the bar, as separate buildings.
+ *
+ *   All four share the north block's height: eaves 4.5 m, ridges 10.5 m (see EAVE, RIDGE).
+ *   C   the north block, as long as the bar (34 m), with a 2.5 m verandah on timber posts facing
+ *       the courtyard.
  *
  * The four enclose a landscaped courtyard. In front of the portal a kerbed island carries a
  * charcoal planter with a clipped hedge, tropical foliage behind it and a tall conifer at each end;
@@ -61,24 +62,32 @@ export interface Gable {
   thick: number
 }
 
-const tan = (deg: number) => Math.tan((deg * Math.PI) / 180)
+/**
+ * All four buildings stand to one height, the north block's: the tiles at the eave fascias at
+ * EAVE, every ridge at RIDGE. Each roof's pitch follows from its own span (fascia to ridge,
+ * `half` metres), so the wider pavilion is a little shallower and the narrower one steeper.
+ */
+export const EAVE = 4.5
+export const RIDGE = 10.5
 /** Roof slabs are 300 mm thick across the slope. */
-const slab = (deg: number) => 0.3 / Math.cos((deg * Math.PI) / 180)
+const gable = (axis: 'x' | 'z', at: number, half: number): Gable => {
+  const t = (RIDGE - EAVE) / half
+  return { axis, at, ridge: RIDGE, t, thick: 0.3 * Math.hypot(1, t) }
+}
 
 /** The bar's wings. */
 export const A = {
   x0: -17, x1: 17, z0: -1.75, z1: 6.75,
   /** Fascia: eaves 0.75 m beyond the walls, gables 0.6 m. */
   fx: 17.6,
-  roof: { axis: 'x', at: 2.5, ridge: 8.15, t: tan(38), thick: slab(38) } as Gable,
+  roof: gable('x', 2.5, 5),
 }
 export const A_EAVE = 5.0
 
 /**
  * The front block's gables lean out at the top, a prow, as the side views show: the fascia stands
  * 0.6 m off the wall at the eave corners and this much further out at the ridge, so a deep white
- * soffit opens under each gable, widest at the apex. On the wings' ends, the portal's front and
- * the entrance gable's back over the courtyard.
+ * soffit opens under each gable, widest at the apex. On the wings' ends and the portal's front.
  */
 export const PROW = 3
 /** The entrance gable across the bar, and its portal. */
@@ -89,7 +98,7 @@ export const P = {
   /** Fascia: 0.75 m beyond the side walls; in front, 0.6 m at the eave corners (8 m out from the wings' eave), the apex PROW further. */
   fw: 5.0,
   ffront: 15.5,
-  roof: { axis: 'z', at: 0, ridge: 9.6, t: tan(47), thick: slab(47) } as Gable,
+  roof: gable('z', 0, 5),
   /** The arch: half its span, the springing and the crown. */
   arch: { half: 3.1, spring: 4.5, crown: 5.25 },
   /** The lobby under the gable has a taller ceiling than the wings. */
@@ -102,21 +111,22 @@ export const GAP = 3
 /** West pavilion. */
 export const B = {
   x0: -14, x1: -3, z0: -14.5, z1: A.z0 - GAP,
-  roof: { axis: 'z', at: -8.5, ridge: 11.7, t: 1, thick: slab(45) } as Gable,
+  roof: gable('z', -8.5, 6.25),
   eave: 6.25,
 }
 /** East pavilion. */
 export const D = {
   x0: 6.5, x1: 14.5, z0: -13, z1: A.z0 - GAP,
-  roof: { axis: 'z', at: 10.5, ridge: 9.05, t: 1, thick: slab(45) } as Gable,
+  roof: gable('z', 10.5, 4.75),
   eave: 4.75,
 }
 /** North block, its verandah on the courtyard side. */
 export const C = {
-  x0: -4.5, x1: 18.5, z0: -28, z1: -17.5,
+  /** As long as the front block: its ends line up with the bar's. */
+  x0: A.x0, x1: A.x1, z0: -28, z1: -17.5,
   /** The glass wall behind the verandah. */
   glass: -20,
-  roof: { axis: 'x', at: -22.75, ridge: 10.5, t: 1, thick: slab(45) } as Gable,
+  roof: gable('x', -22.75, 6),
   eave: 6.0,
 }
 /** Gable overhang at the open ends of B, C and D. */

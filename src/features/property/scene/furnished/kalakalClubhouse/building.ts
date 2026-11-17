@@ -163,15 +163,9 @@ export function buildBuilding(ctx: ClubCtx, p: Object3D): Building {
   floor(C.x0, C.x1, C.z0, C.z1)
 
   /* A: the bar's gable ends, the portal, and the glass. */
-  // The wings' ends, as the side views show: solid laterite, no openings on the east and west
-  // faces. From the front corner back to the ridge line it rises to the rake; behind, it stops at
-  // the ceiling, under a white infill that reads with the prow's deep soffit above.
-  const ZA = A.roof.at
-  for (const x of [A.x0, A.x1]) {
-    wall(ctx, p, [x, ZA], [x, A.z1], [[0, 0], [A.z1 - ZA, 0], [A.z1 - ZA, barTop(A.z1)], [0, barTop(ZA)]], T, [0, ZA])
-    wall(ctx, p, [x, A.z0], [x, ZA], [[0, 0], [ZA - A.z0, 0], [ZA - A.z0, ceil], [0, ceil]], T, [0, ZA])
-    wall(ctx, p, [x, A.z0], [x, ZA], [[0, ceil], [ZA - A.z0, ceil], [ZA - A.z0, barTop(ZA)], [0, barTop(A.z0)]], 0.12, [0, ZA], c.soffit)
-  }
+  // The wings' ends: solid laterite gables, no openings on the east and west faces, rising to
+  // the roof's underside under the prow's deep soffit.
+  for (const x of [A.x0, A.x1]) wall(ctx, p, [x, A.z0], [x, A.z1], gableOutline(A.z1 - A.z0, 0, (u) => barTop(A.z0 + u), A.roof.at - A.z0), T, [0, A.roof.at])
   // The portal's front: laterite on two piers round the segmental arch.
   const { half, spring, crown } = P.arch
   const rise = crown - spring
@@ -201,8 +195,6 @@ export function buildBuilding(ctx: ClubCtx, p: Object3D): Building {
   glazing(ctx, p, [P.hw, A.z1], [A.x1 - T, A.z1], FFL, ceil)
   // The back, glazed its full length, with the doors out to the courtyard on the entrance's axis.
   glazing(ctx, p, [A.x0 + T, A.z0], [A.x1 - T, A.z0], FFL, ceil, { doors: [{ u: -A.x0 - T, w: 2.4 }] })
-  // The entrance gable's north end over the courtyard glass, under its overhang.
-  wall(ctx, p, [-P.hw, A.z0], [P.hw, A.z0], [[0, ceil], [2 * P.hw, ceil], [2 * P.hw, gableTop(P.hw)], [P.hw, gableTop(0)], [0, gableTop(P.hw)]], T, [0, 0])
   const bTop = (x: number) => plate(B.roof, Math.abs(x - B.roof.at))
   const dTop = (x: number) => plate(D.roof, Math.abs(x - D.roof.at))
   // The pavilions' south gable ends, facing the bar across the lawn.
@@ -223,8 +215,8 @@ export function buildBuilding(ctx: ClubCtx, p: Object3D): Building {
   const cTop = (z: number) => plate(C.roof, Math.abs(z - C.roof.at))
   wall(ctx, p, [C.x0, C.z0], [C.x1, C.z0], [[0, 0], [C.x1 - C.x0, 0], [C.x1 - C.x0, CEIL.c], [0, CEIL.c]], T, [5, -22])
   for (const x of [C.x0, C.x1]) wall(ctx, p, [x, C.z0], [x, C.z1], gableOutline(C.z1 - C.z0, 0, (u) => cTop(C.z0 + u), C.roof.at - C.z0), T, [5, -22])
-  glazing(ctx, p, [C.x0 + T, C.glass], [C.x1 - T, C.glass], FFL, CEIL.c, { module: 1.8, doors: [{ u: 4.5 - T, w: 2.4 }, { u: 15.5, w: 2.4 }] })
-  const bays = 8
+  glazing(ctx, p, [C.x0 + T, C.glass], [C.x1 - T, C.glass], FFL, CEIL.c, { module: 1.8, doors: [-11, 0, 11].map((x) => ({ u: x - C.x0 - T, w: 2.4 })) })
+  const bays = 11
   for (let i = 1; i < bays; i++) {
     const x = C.x0 + ((C.x1 - C.x0) * i) / bays
     k.box(p, 0.25, CEIL.c - FFL, 0.25, c.teak, x, (FFL + CEIL.c) / 2, C.z1 - 0.2)

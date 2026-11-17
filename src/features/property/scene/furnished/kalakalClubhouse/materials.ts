@@ -92,7 +92,7 @@ const laterite: Paint = (g, w, h) => {
   const bw = w / 4
   const bh = h / 8
   const joint = Math.max(3, Math.round(w * 0.0075))
-  g.fillStyle = '#62482f'
+  g.fillStyle = '#58412b'
   g.fillRect(0, 0, w, h)
   for (let row = 0; row < 8; row++) {
     const off = row % 2 ? bw / 2 : 0
@@ -101,7 +101,7 @@ const laterite: Paint = (g, w, h) => {
       const y = row * bh
       // Cut laterite, matched to the reference: a golden tan, some blocks a little browner or paler.
       const k = r()
-      const base: [number, number, number] = k < 0.35 ? [173, 130, 89] : k < 0.7 ? [182, 138, 96] : k < 0.9 ? [163, 121, 83] : [189, 147, 104]
+      const base: [number, number, number] = k < 0.35 ? [160, 119, 81] : k < 0.7 ? [168, 127, 88] : k < 0.9 ? [151, 111, 76] : [175, 135, 95]
       const d = (r() - 0.5) * 9
       g.fillStyle = rgb(base[0] + d, base[1] + d * 0.8, base[2] + d * 0.6)
       g.fillRect(x + joint / 2, y + joint / 2, bw - joint, bh - joint)
