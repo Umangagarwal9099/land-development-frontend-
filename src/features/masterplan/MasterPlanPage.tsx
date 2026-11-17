@@ -53,7 +53,11 @@ function MasterPlanScreen({ plan, onBack }: { plan: MasterPlan; onBack: () => vo
   const stills = media.filter((m) => m.kind !== 'video')
 
   const selectedPlot = selection?.kind === 'plot' ? plan.plots.find((p) => p.id === selection.id) : undefined
-  const selectedAmenity = selection?.kind === 'amenity' ? plan.amenities.find((a) => a.id === selection.id) : undefined
+  const tappedAmenity = selection?.kind === 'amenity' ? plan.amenities.find((a) => a.id === selection.id) : undefined
+  // A building modelled in full on its amenity site (the clubhouse) opens on a tap, as a plot's
+  // building does: straight inside, with no details panel first.
+  const enterable = tappedAmenity?.design && tappedAmenity.propertySlug ? tappedAmenity : undefined
+  const selectedAmenity = enterable ? undefined : tappedAmenity
   const selectedRoad = selection?.kind === 'road' ? plan.roads.find((r) => r.id === selection.id) : undefined
   const panelOpen = Boolean(selectedPlot || selectedAmenity || selectedRoad || aboutOpen)
 
@@ -71,6 +75,12 @@ function MasterPlanScreen({ plan, onBack }: { plan: MasterPlan; onBack: () => vo
     if (!amenity.propertySlug) return
     void go(`/property/${amenity.propertySlug}?${new URLSearchParams({ from: plan.slug })}`, { before: () => dive?.(amenity.id) })
   }
+
+  useEffect(() => {
+    if (!enterable) return
+    select(null)
+    void go(`/property/${enterable.propertySlug}?${new URLSearchParams({ from: plan.slug })}`, { before: () => dive?.(enterable.id) })
+  }, [enterable, select, go, dive, plan.slug])
 
   return (
     <>

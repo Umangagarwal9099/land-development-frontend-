@@ -116,7 +116,8 @@ export default function MasterPlanScene({ slug }: { slug: string }) {
         <>
           {selectedPlot && <PlotTag key={`sel-${selectedPlot.id}`} plot={selectedPlot} emphasis />}
           {hoveredPlot && hoveredPlot.id !== selectedPlot?.id && <PlotTag key={`hov-${hoveredPlot.id}`} plot={hoveredPlot} />}
-          {plan.amenities.map((a) => (
+          {/* A building modelled in full carries no name pin: it speaks for itself, and a tap goes inside. */}
+          {plan.amenities.filter((a) => !a.design).map((a) => (
             <AmenityPin key={a.id} amenity={a} active={a.id === selectedAmenity?.id} compact={compactPins} onSelect={() => select({ kind: 'amenity', id: a.id })} />
           ))}
         </>

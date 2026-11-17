@@ -594,6 +594,61 @@ function kalakalA01(): Property {
 }
 
 /**
+ * The Kallakal clubhouse: the client's reference design, a cluster of laterite and glass pavilions
+ * under steep terracotta gables round a courtyard, entered from the south through a laterite portal,
+ * modelled in 3D (features/property/scene/furnished/kalakalClubhouse) as an exterior with its
+ * grounds. Areas map to the model's amenity_* hotspots.
+ */
+function kalakalClubhouse(): Property {
+  const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
+    id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
+    dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
+  })
+  const rooms: Room[] = [
+    area('Entrance Portal', 'amenity_entrance', [28, 26],
+      'The clubhouse is entered from the south through a portal under the tallest gable: a wall of laterite block on two piers, pierced by a wide segmental arch, with box sconces in dark bronze on the piers and one high on the gable. The deep white fascia of the 47° roof frames it. The portal is open at its sides on laterite posts, a drive-through for dropping off; inside, the white soffit rises to the ridge, and the lobby\'s glass wall with its double doors looks straight through to the courtyard.',
+      ['Gable 10 m across the fascia, ridge 9.6 m; side eaves run 8 m out from the wings', 'Segmental arch 6.2 m wide, crown 5.25 m', 'Laterite block, 400 × 200 mm, stretcher bond', 'Bronze box sconces with frosted glass'], ['Covered entrance', 'Drop-off on the forecourt']),
+    area('Forecourt & Entrance Island', 'amenity_forecourt', [69, 70],
+      'The forecourt before the entrance, laid in grey circle-and-fan concrete pavers from the road to the building. In front of the portal a kerbed island: a footpath in warm grey stone on a bull-nosed kerb, and behind it a charcoal planter the length of the island with a clipped hedge, broad tropical leaves rising behind its middle and a tall cypress at each end. A jacaranda stands at the forecourt\'s road edge; a drive runs up the west side for cars, a red-paved garden path up the east side.',
+      ['Circle-and-fan concrete pavers', 'Island footpath 19 m long, warm grey stone', 'Charcoal planter with clipped hedge', 'Two cypresses, 7.6 m'], ['Drop-off', 'Parking on the west drive']),
+    area('Lounge Wings', 'amenity_lounge', [112, 28],
+      'Either side of the lobby, the 34 m entrance block\'s wings: glass from floor to soffit front and back between slim black mullions, under 38° terracotta gables whose white fascias run the length of the front. The gable ends are laterite. Inside, pale honed stone floors and white ceilings with downlights; from the forecourt you look straight through them to the gardens behind.',
+      ['Full-height glazing, black aluminium frames', 'Ceiling 4.45 m', 'Mangalore-pattern clay tile roofs, ridge 8.15 m'], ['Lounge', 'Café and reading room']),
+    area('Courtyard', 'amenity_courtyard', [31, 52],
+      'The courtyard at the heart of the clubhouse, enclosed by the entrance block, the tall west pavilion with its full-height glass, the lower east pavilion and the north block\'s verandah of teak posts. A sandstone path runs from the lobby to the verandah between white pebble beds planted with shrubs, tropical clumps and two small trees, with stepping stones to the pavilions\' doors.',
+      ['Sandstone path, granite edged', 'White pebble beds', 'Teak verandah, 2.5 m deep'], ['Landscaped courtyard', 'Verandah seating']),
+  ]
+  return {
+    id: 'p_kalakal_clubhouse', slug: 'kalakal-clubhouse', name: 'Terranova Clubhouse', type: 'commercial', location: 'Kallakal',
+    tagline: 'Laterite and glass pavilions under terracotta gables, round a garden courtyard',
+    thumbnailUrl: placeholderImage('Terranova Clubhouse', 18, 800, 500),
+    stats: [{ label: 'Plot', value: '3,678 sq yd' }, { label: 'Storey', value: 'Single' }, { label: 'Facing', value: 'South' }],
+    description:
+      'The Kallakal clubhouse: four single-storey pavilions of laterite block and glass under steep terracotta gables that lean out to their peaks over deep white soffits, set round a landscaped courtyard. The 34 m entrance block faces south, its glass-walled wings either side of a taller gable that runs out over a laterite portal pierced by a segmental arch. Behind it the tall west pavilion and the lower east pavilion are glazed full height to the courtyard, and the long north block opens onto it through a verandah of teak posts. In front, a forecourt of grey circle-and-fan pavers surrounds a kerbed island with a charcoal planter, a clipped hedge and two tall cypresses.',
+    highlights: {
+      Plot: '3,678.19 sq yd · N 150.3 ft · S 150 ft · E 225.9 ft · W 215.3 ft', Facing: 'South (main entrance)', Structure: 'Ground floor, four pavilions round a courtyard',
+      Roofs: 'Mangalore-pattern clay tiles; entrance gable 47°, ridge 9.6 m; wings 38°, ridge 8.15 m; west pavilion ridge 11.7 m',
+      'Façade': 'Laterite block, full-height glass in black frames, white fascias and soffits', Landscape: 'Fan-pattern pavers, hedged planter island, cypresses, courtyard garden',
+    },
+    model: { kind: 'furnished', design: 'kalakal-clubhouse' }, floors: [], rooms,
+    // Camera positions in scene metres: +x east, +z south (the entrance road). The portal's face is at z = 14.9.
+    presets: [
+      { id: 'reference', name: 'South elevation (reference view)', position: [0, 1.6, 34.5], target: [0, 3.15, 16.5], fov: 48.5 },
+      { id: 'east', name: 'East side of the entrance block', position: [22, 1.6, 22], target: [6, 4.6, 6], fov: 60 },
+      { id: 'west', name: 'West side of the entrance block', position: [-22, 1.6, 22], target: [-6, 4.6, 6], fov: 60 },
+      { id: 'aerial', name: 'Aerial (reference view)', position: [-21, 36, 42], target: [3, 0, -4], fov: 42 },
+      { id: 'front', name: 'Straight-on elevation', position: [0, 5.2, 110], target: [0, 5.2, 8], fov: 14 },
+      { id: 'portal', name: 'Portal, close up', position: [11, 1.6, 19], target: [0, 3.6, 10.5], fov: 55 },
+      { id: 'southwest', name: 'South-west corner', position: [-32, 9, 42], target: [-4, 4, 4], fov: 45 },
+      { id: 'southeast', name: 'South-east corner', position: [32, 9, 42], target: [4, 4, 4], fov: 45 },
+      { id: 'courtyard', name: 'Courtyard from above', position: [1, 22, 10], target: [1.5, 0, -9], fov: 50 },
+      { id: 'top', name: 'Plan view', position: [0, 150, 0.01], target: [0, 0, 0] },
+    ],
+    media: [],
+  }
+}
+
+/**
  * Terranova Hospital on commercial Plot A-03, Kallakal: the client's reference design, a B2 + G + 3
  * hospital in white cladding and blue-grey glass, modelled in 3D
  * (features/property/scene/furnished/kalakalHospital) as an exterior with its grounds. Areas map
@@ -990,4 +1045,4 @@ function kalakalHospital(): Property {
   }
 }
 
-export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalHotel(), kalakalA01(), kalakalHospital()]
+export const properties: Property[] = [nyshasHaven(), kalakalD65(), kalakalMall(), kalakalHotel(), kalakalA01(), kalakalHospital(), kalakalClubhouse()]

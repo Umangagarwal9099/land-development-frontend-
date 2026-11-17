@@ -3,6 +3,7 @@ import { whenIdle } from '../../../../lib/idle'
 import type { BasementSpec } from './basement'
 import { buildKalakalA01, SITE as KALAKAL_A01_SITE } from './kalakalA01'
 import { A01_BASEMENT } from './kalakalA01/basement'
+import { buildKalakalClubhouse, PLOT as KALAKAL_CLUBHOUSE_PLOT, SITE as KALAKAL_CLUBHOUSE_SITE } from './kalakalClubhouse'
 import { buildKalakalHotel, SITE as KALAKAL_HOTEL_SITE } from './kalakalHotel'
 import { buildKalakalHospital, SITE as KALAKAL_HOSPITAL_SITE } from './kalakalHospital'
 import { HOSPITAL_BASEMENT } from './kalakalHospital/basement'
@@ -30,6 +31,11 @@ interface FurnishedDesignEntry {
   optimized?: boolean
   /** Basement parking levels under the building (see basement/), for the camera and the section view. */
   basement?: BasementSpec
+  /**
+   * For a design standing on a master plan's amenity site: where the site's first corner (the
+   * amenity polygon's first point) lies in the model's own frame. The plan places the model by it.
+   */
+  siteCorner?: [number, number]
 }
 
 /** Every furnished design: how to build it, and the extent of its landscaped grounds. */
@@ -39,6 +45,7 @@ export const FURNISHED_DESIGNS: Record<FurnishedDesign, FurnishedDesignEntry> = 
   'kalakal-mall': { build: () => buildKalakalMall(), buildOnPlot: () => buildKalakalMall(false), site: KALAKAL_MALL_SITE, landscaped: true, optimized: true, basement: MALL_BASEMENT },
   'kalakal-hotel': { build: () => buildKalakalHotel(), buildOnPlot: () => buildKalakalHotel(false), site: KALAKAL_HOTEL_SITE, landscaped: true, optimized: true },
   'kalakal-a01': { build: () => buildKalakalA01(), buildOnPlot: () => buildKalakalA01(false), site: KALAKAL_A01_SITE, landscaped: true, optimized: true, basement: A01_BASEMENT },
+  'kalakal-clubhouse': { build: () => buildKalakalClubhouse(), buildOnPlot: () => buildKalakalClubhouse(false), siteCorner: KALAKAL_CLUBHOUSE_PLOT[0], site: KALAKAL_CLUBHOUSE_SITE, landscaped: true, optimized: true },
   'kalakal-hospital': { build: () => buildKalakalHospital(), buildOnPlot: () => buildKalakalHospital(false), site: KALAKAL_HOSPITAL_SITE, landscaped: true, optimized: true, basement: HOSPITAL_BASEMENT },
 }
 

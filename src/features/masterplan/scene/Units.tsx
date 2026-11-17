@@ -1,14 +1,14 @@
 import { Edges } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { BufferGeometry, ExtrudeGeometry, InstancedMesh, Light, MathUtils, Matrix4, Object3D, Shape, Vector3, type Group, type PerspectiveCamera } from 'three'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { BufferGeometry, ExtrudeGeometry, InstancedMesh, MathUtils, Matrix4, Object3D, Shape, Vector3, type Group, type PerspectiveCamera } from 'three'
 import type { FurnishedDesign, Plot, PlotUnit } from '../../../api/types'
 import { bounds, centroid } from '../../../lib/geometry'
 import { GOLD, IVORY } from '../../../lib/palette'
-import { whenIdle } from '../../../lib/idle'
-import { disposeObject, prepareOnGpu } from '../../../lib/three'
+import { disposeObject } from '../../../lib/three'
 import { useStageStore } from '../../../store/stage'
-import { FURNISHED_DESIGNS, furnishedModel, isCached, prewarmFurnished, type FurnishedModel } from '../../property/scene/furnished'
+import { FURNISHED_DESIGNS, isCached, prewarmFurnished } from '../../property/scene/furnished'
+import { usePlotModel } from './usePlotModel'
 import { DETAIL_RADIUS } from '../../property/scene/furnished/optimize'
 import { PLOT_HEIGHT } from './plotGeometry'
 
@@ -202,41 +202,6 @@ function DesignUnit({ plot, design, interactive, onSelect, onHover }: Omit<Units
 }
 
 const at = new Vector3()
-
-/**
- * A designed home's model for its plot, ready to draw: built in an idle moment of its own (never
- * several in one frame, so the landing screen's titles and the camera keep their frames), then
- * put on the GPU in the background, its finishes a few per frame and its shaders compiled in
- * parallel. Until then the plot shows without it.
- */
-function usePlotModel(design: FurnishedDesign): FurnishedModel | null {
-  const gl = useThree((s) => s.gl)
-  const camera = useThree((s) => s.camera)
-  const scene = useThree((s) => s.scene)
-  const invalidate = useThree((s) => s.invalidate)
-  const [ready, setReady] = useState<{ design: FurnishedDesign; model: FurnishedModel } | null>(null)
-  useEffect(() => {
-    let live = true
-    const cancel = whenIdle(() => {
-      if (!live) return
-      const m = furnishedModel(design, true)
-      // The plan has hundreds of materials; the model's own point lights would cost every one of them.
-      const lights: Object3D[] = []
-      m.root.traverse((o) => o instanceof Light && lights.push(o))
-      for (const l of lights) l.removeFromParent()
-      void prepareOnGpu(m.root, gl, camera, scene, { live: () => live }).then(() => {
-        if (!live) return
-        setReady({ design, model: m })
-        invalidate()
-      })
-    })
-    return () => {
-      live = false
-      cancel()
-    }
-  }, [design, gl, camera, scene, invalidate])
-  return ready?.design === design ? ready.model : null
-}
 
 function UnitKind({ kind, plots, interactive, onSelect, onHover }: UnitsProps & { kind: PlotUnit['kind'] }) {
   const materials = useMassingMaterials()

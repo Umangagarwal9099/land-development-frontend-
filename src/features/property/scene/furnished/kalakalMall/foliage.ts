@@ -14,8 +14,8 @@ import { rng, type Paint } from '../textures'
  * Ashoka for the slim columns along a boundary, with duranta hedging and ixora-like shrubs.
  */
 
-export type LeafKind = 'neem' | 'rain' | 'ashoka' | 'shrub' | 'hedge'
-const KINDS: LeafKind[] = ['neem', 'rain', 'ashoka', 'shrub', 'hedge']
+export type LeafKind = 'neem' | 'rain' | 'ashoka' | 'shrub' | 'hedge' | 'conifer' | 'tropical' | 'bloom'
+const KINDS: LeafKind[] = ['neem', 'rain', 'ashoka', 'shrub', 'hedge', 'conifer', 'tropical', 'bloom']
 
 /* ---------- painted leaves and bark ---------- */
 
@@ -138,6 +138,101 @@ const SPRIGS: Record<LeafKind, (g: CanvasRenderingContext2D, r: Rand, s: number)
   hedge: (g, r, s) => {
     for (let i = 0; i < 120; i++) blade(g, r, 30 + r() * (s - 60), 50 + r() * (s - 60), r() * 6.28, 52 + r() * 20, 19 + r() * 6, 88 + r() * 22, 26)
   },
+  // Cypress: flattened sprays of tiny overlapping scale leaves, branching in a fan from a twig.
+  conifer: (g, r, s) => {
+    const spray = (x: number, y: number, ang: number, len: number, depth: number) => {
+      const steps = 9
+      let px = x
+      let py = y
+      for (let i = 0; i < steps; i++) {
+        const t = i / steps
+        const nx = px + Math.sin(ang) * (len / steps)
+        const ny = py - Math.cos(ang) * (len / steps)
+        // Scales along the axis: short, blunt, densely packed, paler at the growing tips.
+        for (let k = 0; k < 5; k++) blade(g, r, nx + (r() - 0.5) * 6, ny + (r() - 0.5) * 6, ang + (r() - 0.5) * 1.6, 15 + r() * 10, 6 + r() * 3, 88 + r() * 18, 19 + t * 12)
+        if (depth > 0 && i > 1 && i < steps - 1 && i % 2 === 0)
+          for (const side of [-1, 1]) spray(nx, ny, ang + side * (0.55 + r() * 0.3), len * (0.45 - t * 0.2), depth - 1)
+        px = nx
+        py = ny
+      }
+    }
+    spray(s / 2, s - 14, (r() - 0.5) * 0.3, s * 0.82, 2)
+  },
+  // A paddle-leaved tropical (heliconia, bird of paradise): one broad, glossy blade, base to tip.
+  tropical: (g, r, s) => {
+    const hue = 98 + r() * 14
+    const len = s * 0.9
+    const wid = s * 0.25
+    g.save()
+    g.translate(s / 2, s - 6)
+    const grad = g.createLinearGradient(-wid, 0, wid, 0)
+    grad.addColorStop(0, `hsl(${hue},48%,22%)`)
+    grad.addColorStop(0.5, `hsl(${hue + 6},52%,36%)`)
+    grad.addColorStop(1, `hsl(${hue},46%,25%)`)
+    g.fillStyle = grad
+    g.beginPath()
+    g.moveTo(0, 0)
+    g.bezierCurveTo(wid * 1.3, -len * 0.2, wid * 1.1, -len * 0.75, 0, -len)
+    g.bezierCurveTo(-wid * 1.1, -len * 0.75, -wid * 1.3, -len * 0.2, 0, 0)
+    g.fill()
+    // Parallel side veins sweeping from the midrib to the margin, and a few weather tears.
+    g.strokeStyle = `hsla(${hue},40%,16%,.45)`
+    g.lineWidth = 1.2
+    for (let t = 0.1; t < 0.95; t += 0.035) {
+      const w = Math.sin(Math.PI * Math.min(1, t * 1.05)) * wid * 1.05
+      for (const side of [-1, 1]) {
+        g.beginPath()
+        g.moveTo(0, -len * t)
+        g.quadraticCurveTo(side * w * 0.6, -len * (t + 0.02), side * w, -len * (t + 0.06))
+        g.stroke()
+      }
+    }
+    g.strokeStyle = `hsla(${hue + 10},45%,62%,.7)`
+    g.lineWidth = 4
+    g.beginPath()
+    g.moveTo(0, 0)
+    g.lineTo(0, -len * 0.97)
+    g.stroke()
+    g.globalCompositeOperation = 'destination-out'
+    for (let k = 0; k < 3; k++) {
+      const t = 0.3 + r() * 0.5
+      const side = r() < 0.5 ? -1 : 1
+      const w = Math.sin(Math.PI * t) * wid * 1.1
+      g.beginPath()
+      g.moveTo(side * w * 1.1, -len * t)
+      g.lineTo(side * w * 0.25, -len * (t + 0.035))
+      g.lineTo(side * w * 1.1, -len * (t + 0.02))
+      g.fill()
+    }
+    g.restore()
+  },
+  // Jacaranda in flower: fine fern-like leaves half hidden under loose panicles of lilac trumpets.
+  bloom: (g, r, s) => {
+    for (let k = 0; k < 3; k++) {
+      const ang = -0.7 + k * 0.7 + (r() - 0.5) * 0.3
+      const pts: [number, number][] = []
+      for (let i = 0; i <= 8; i++) pts.push([s / 2 + Math.sin(ang) * s * 0.42 * (i / 8), s - 10 - Math.cos(ang) * s * 0.42 * (i / 8) - i * 3])
+      stem(g, pts, 2)
+      for (let i = 1; i <= 8; i++) for (const side of [-1, 1]) blade(g, r, pts[i][0], pts[i][1], ang + side * 1.3, 36 + r() * 10, 9, 88 + r() * 14, 30)
+    }
+    for (let c = 0; c < 9; c++) {
+      const cx = s * (0.2 + r() * 0.6)
+      const cy = s * (0.12 + r() * 0.55)
+      for (let i = 0; i < 26; i++) {
+        const fx = cx + (r() - 0.5) * s * 0.2
+        const fy = cy + (r() - 0.5) * s * 0.16
+        const l = 56 + r() * 18
+        g.fillStyle = `hsl(${255 + r() * 18},${45 + r() * 20}%,${l}%)`
+        g.beginPath()
+        g.ellipse(fx, fy, 9 + r() * 6, 6 + r() * 4, r() * 3, 0, Math.PI * 2)
+        g.fill()
+        g.fillStyle = `hsla(270,40%,${l - 22}%,.6)`
+        g.beginPath()
+        g.arc(fx, fy, 2.5, 0, Math.PI * 2)
+        g.fill()
+      }
+    }
+  },
 }
 
 /** Four variants of a kind's sprig in a 2 × 2 atlas, on a transparent ground. */
@@ -181,13 +276,23 @@ const bark: Paint = (g, w, h) => {
 }
 
 export function foliageMaterials(k: Kit) {
-  const leaves = Object.fromEntries(
-    KINDS.map((kind, i) => {
-      const map = k.tex.painted(1024, 1024, leafAtlas(kind, 500 + i * 97))
-      // Alpha to coverage keeps leaf edges soft under multisampling and holds the crowns' density at a distance.
-      return [kind, new MeshStandardMaterial({ map, alphaTest: 0.3, alphaToCoverage: true, side: DoubleSide, vertexColors: true, roughness: kind === 'shrub' || kind === 'ashoka' ? 0.55 : 0.72 })]
-    }),
-  ) as Record<LeafKind, MeshStandardMaterial>
+  // Each kind's atlas is painted the first time a design plants it.
+  const leaves = {} as Record<LeafKind, MeshStandardMaterial>
+  KINDS.forEach((kind, i) => {
+    let mat: MeshStandardMaterial | undefined
+    Object.defineProperty(leaves, kind, {
+      enumerable: true,
+      get: () => {
+        if (!mat) {
+          const map = k.tex.painted(1024, 1024, leafAtlas(kind, 500 + i * 97))
+          // Alpha to coverage keeps leaf edges soft under multisampling and holds the crowns' density at a distance.
+          const glossy = kind === 'shrub' || kind === 'ashoka' || kind === 'tropical'
+          mat = new MeshStandardMaterial({ map, alphaTest: 0.3, alphaToCoverage: true, side: DoubleSide, vertexColors: true, roughness: glossy ? 0.55 : 0.72 })
+        }
+        return mat
+      },
+    })
+  })
   const barkMap = k.tex.painted(512, 512, bark)
   return {
     leaves,
@@ -312,7 +417,10 @@ export class Planting {
       m.renderOrder = name === 'wood' || name === 'hedge_core' ? 0 : 1
       parent.add(m)
     }
-    for (const kind of KINDS) add(this.cards.get(kind)!.geometry(), this.mats.leaves[kind], `leaves_${kind}`, true)
+    for (const kind of KINDS) {
+      const geo = this.cards.get(kind)!.geometry()
+      if (geo) add(geo, this.mats.leaves[kind], `leaves_${kind}`, true)
+    }
     add(this.wood.length ? mergeGeometries(this.wood, false) : null, this.mats.bark, 'wood', true)
     add(this.cores.length ? mergeGeometries(this.cores, false) : null, this.mats.core, 'hedge_core', true)
     if (this.blades.pos.length) {
@@ -327,7 +435,7 @@ export class Planting {
 
 /* ---------- trees ---------- */
 
-interface Species {
+export interface Species {
   leaf: LeafKind
   /** Overall height, clear trunk height, trunk radius at breast height. */
   height: number

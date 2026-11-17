@@ -1,7 +1,10 @@
 import { Edges, useCursor } from '@react-three/drei'
-import type { ThreeEvent } from '@react-three/fiber'
-import { useState, type ReactNode } from 'react'
-import type { Amenity } from '../../../api/types'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
+import { useEffect, useState, type ReactNode } from 'react'
+import type { Amenity, FurnishedDesign } from '../../../api/types'
+import { useStageStore } from '../../../store/stage'
+import { FURNISHED_DESIGNS, prewarmFurnished } from '../../property/scene/furnished'
+import { usePlotModel } from './usePlotModel'
 import { bounds, centroid } from '../../../lib/geometry'
 import { GOLD, IVORY } from '../../../lib/palette'
 
@@ -38,12 +41,36 @@ export function Amenities({ amenities, selectedId, interactive, onSelect }: Prop
             onPointerOver={(e) => interactive && e.pointerType === 'mouse' && setHovered(a.id)}
             onPointerOut={() => setHovered(null)}
           >
-            <AmenityModel amenity={a} w={w} d={d} />
+            {a.design && FURNISHED_DESIGNS[a.design].buildOnPlot ? (
+              <AmenityDesign design={a.design} corner={a.polygon[0]} at={[x, z]} />
+            ) : (
+              <AmenityModel amenity={a} w={w} d={d} />
+            )}
             {(a.id === selectedId || a.id === hovered) && <Footprint w={w} d={d} strong={a.id === selectedId} />}
           </group>
         )
       })}
     </>
+  )
+}
+
+/** A building modelled in full on its amenity site, placed by the site's first corner. */
+function AmenityDesign({ design, corner, at }: { design: FurnishedDesign; corner: [number, number]; at: [number, number] }) {
+  const invalidate = useThree((s) => s.invalidate)
+  const model = usePlotModel(design)
+  // Anyone looking at it on the plan may step inside next: build its full model while idle.
+  useEffect(() => prewarmFurnished(design), [design])
+  const daylight = useStageStore((s) => s.daylight)
+  useEffect(() => {
+    model?.setDaylight?.(daylight)
+    invalidate()
+  }, [model, daylight, invalidate])
+  if (!model) return null
+  const [sx, sz] = FURNISHED_DESIGNS[design].siteCorner ?? [0, 0]
+  return (
+    <group position={[corner[0] - sx - at[0], 0, corner[1] - sz - at[1]]}>
+      <primitive object={model.root} />
+    </group>
   )
 }
 

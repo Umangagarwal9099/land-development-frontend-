@@ -87,7 +87,7 @@ export interface Room {
 }
 
 /** Interior designs built procedurally in the front end (walls, finishes, furniture, lighting). */
-export type FurnishedDesign = 'nyshas-haven' | 'kalakal-d65' | 'kalakal-mall' | 'kalakal-hotel' | 'kalakal-a01' | 'kalakal-hospital'
+export type FurnishedDesign = 'nyshas-haven' | 'kalakal-d65' | 'kalakal-mall' | 'kalakal-hotel' | 'kalakal-a01' | 'kalakal-hospital' | 'kalakal-clubhouse'
 
 /** A real exported model, a generated stand-in used until the 3D artist delivers, or a furnished design model. */
 export type ModelSource =
@@ -157,6 +157,8 @@ export interface Amenity {
   media?: MediaItem[]
   /** A building on this amenity that opens as its own explorable property (e.g. the clubhouse). */
   propertySlug?: string
+  /** Its modelled design, drawn on the plan in place of the generic massing. */
+  design?: FurnishedDesign
 }
 
 export interface Road {
