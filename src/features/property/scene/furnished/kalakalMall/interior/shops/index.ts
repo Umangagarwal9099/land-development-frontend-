@@ -2,12 +2,15 @@ import type { FloorCtx } from '../shell'
 import type { Unit } from '../units'
 import { buildDior } from './dior'
 import { buildAppleStore } from './applestore'
+import { buildBagStore } from './bagStore'
 import { buildCosmetics } from './cosmetics'
+import { buildDecorStore } from './decorStore'
 import { buildPatisserie } from './dessertBar'
 import { buildParfumerie } from './parfumerie'
 import { buildPrada } from './prada'
 import { buildStarbucks } from './starbucks'
 import { buildTribeca } from './tribeca'
+import { buildWomenStore } from './womenStore'
 
 /*
  * The shops fitted out so far (units.ts says which): each is built in place of the bare unit the
@@ -24,6 +27,9 @@ export function fitShops(e: FloorCtx) {
     else if (u.fitout === 'perfume') buildParfumerie(e, u)
     else if (u.fitout === 'heels') buildTribeca(e, u)
     else if (u.fitout === 'dessert') buildPatisserie(e, u)
+    else if (u.fitout === 'decor') buildDecorStore(e, u)
+    else if (u.fitout === 'women') buildWomenStore(e, u)
+    else if (u.fitout === 'bags') buildBagStore(e, u)
   }
 }
 

@@ -61,7 +61,6 @@ export function fitFloor(e: FloorCtx) {
   switch (e.level) {
     case 0:
       ground(e)
-      fitShops(e)
       break
     case 1:
     case 2:
@@ -76,6 +75,8 @@ export function fitFloor(e: FloorCtx) {
       cinema(e)
       break
   }
+  // The fitted shops, on whichever floor they are.
+  fitShops(e)
 }
 
 /**

@@ -14,6 +14,8 @@ export interface EquipmentInfo {
   inspect?: () => Object3D
   /** Options to pick from (a shoe's sizes), some perhaps unavailable. */
   choices?: { label: string; options: string[]; unavailable?: string[] }
+  /** Colourways to show it in: picking one recolours the piece in the shop (and in the card). */
+  variants?: { label: string; options: { name: string; swatch: string }[]; current: () => number; pick: (i: number) => void }
   /** What can be done with it (add to bag, pay): runs with the picked option, returns what to say. */
   action?: { label: string; run: (choice: string | null) => string }
 }

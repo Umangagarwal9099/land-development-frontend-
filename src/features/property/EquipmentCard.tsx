@@ -46,11 +46,7 @@ export function EquipmentCard() {
               <X size={16} />
             </button>
           </div>
-          {item.inspect && (
-            <Suspense fallback={<div className="mt-3 h-56 rounded-2xl bg-ivory/5" />}>
-              <ModelInspector make={item.inspect} />
-            </Suspense>
-          )}
+          <Look item={item} />
           <p className="mt-3 text-sm leading-relaxed text-ivory/80">{item.body}</p>
           {item.specs && item.specs.length > 0 && (
             <ul className="mt-3 space-y-1.5 border-t border-ivory/10 pt-3 text-sm text-ivory/70">
@@ -103,5 +99,41 @@ function Actions({ item }: { item: EquipmentInfo }) {
       )}
       {said && <p className="mt-2 text-sm text-ivory/80" aria-live="polite">{said}</p>}
     </div>
+  )
+}
+
+/** The piece in 3D, and its colourways: picking a swatch recolours it here and in the shop. */
+function Look({ item }: { item: EquipmentInfo }) {
+  const [v, setV] = useState(() => item.variants?.current() ?? 0)
+  return (
+    <>
+      {item.inspect && (
+        <Suspense fallback={<div className="mt-3 h-56 rounded-2xl bg-ivory/5" />}>
+          <ModelInspector key={v} make={item.inspect} />
+        </Suspense>
+      )}
+      {item.variants && (
+        <div className="mt-3">
+          <p className="text-xs uppercase tracking-[0.12em] text-ivory/50">
+            {item.variants.label}: <span className="text-ivory/80 normal-case tracking-normal">{item.variants.options[v]?.name}</span>
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.variants.options.map((o, i) => (
+              <button
+                key={o.name}
+                aria-label={o.name}
+                title={o.name}
+                onClick={() => {
+                  item.variants!.pick(i)
+                  setV(i)
+                }}
+                className={`h-7 w-7 rounded-full border-2 transition ${i === v ? 'border-gold scale-110' : 'border-ivory/30 hover:border-ivory/60'}`}
+                style={{ background: o.swatch }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   )
 }

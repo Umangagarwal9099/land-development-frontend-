@@ -43,7 +43,7 @@ export interface Unit {
   rects: Rect[]
   fronts: Front[]
   /** A shop whose interior is built (see ../interior/shops): the shell leaves it to its fit-out. */
-  fitout?: 'dior' | 'prada' | 'starbucks' | 'cosmetics' | 'apple' | 'perfume' | 'heels' | 'dessert'
+  fitout?: 'dior' | 'prada' | 'starbucks' | 'cosmetics' | 'apple' | 'perfume' | 'heels' | 'dessert' | 'decor' | 'women' | 'bags'
 }
 
 /** A marked zone inside one of the big open spaces (the gaming hall, the cinema). */
@@ -291,6 +291,12 @@ const F1 = retail(1, [
   ['Dessert Bar', 'Dessert kiosk'],
   ['Coffee & Beverages', 'Coffee and beverage kiosk'],
 ])
+// 1-08, fitted out as Aurum Home (see ./shops/decorStore.ts).
+Object.assign(F1.units.find((u) => u.id === '1-08')!, { name: 'Aurum Home', use: 'Aurum Home: home décor and lifestyle (vases, lighting, sculpture, mirrors, cushions, furniture)', fitout: 'decor' })
+// 1-03, fitted out as Maison Verde (see ./shops/womenStore.ts).
+Object.assign(F1.units.find((u) => u.id === '1-03')!, { name: 'Maison Verde', use: 'Maison Verde: women\'s clothing (dresses, evening and party wear, tops, tailoring, denim, skirts, knitwear and ethnic wear)', fitout: 'women' })
+// 1-07, fitted out as Gucci's handbag boutique (see ./shops/bagStore.ts).
+Object.assign(F1.units.find((u) => u.id === '1-07')!, { name: 'Gucci', use: 'Gucci handbags: top-handles, shoulder and crossbody bags, totes, hobos, buckets, clutches and evening bags', fitout: 'bags' })
 // The east spine and the north corridor to fire stair 2: public on the retail floors.
 F1.commons.push([XV1, XE, ZSC0, VZ1], [XE, 13.1, -3.4, 3.5])
 
