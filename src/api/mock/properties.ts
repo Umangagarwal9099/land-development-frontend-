@@ -457,60 +457,80 @@ function kalakalMall(): Property {
 }
 
 /**
- * Terranova Hotel on commercial Plot A-04, Kallakal: the client's reference design, a G+2 ring of
- * curved glass pavilions round a lamp-lit plaza, modelled in 3D
- * (features/property/scene/furnished/kalakalHotel) as an exterior with its grounds. Areas map to
- * the model's amenity_* hotspots.
+ * Terranova Hotel on commercial Plot A-04, Kallakal: the client's two references (the curved glass
+ * hotel, its towers taken off, and the Starbucks coffee cup that completes its north end), modelled in
+ * 3D (features/property/scene/furnished/kalakalHotel) as an exterior with its grounds, the pool
+ * deck behind it and two basement parking levels under it. Areas map to the model's amenity_*
+ * hotspots; the basement levels to the basement's own.
  */
 function kalakalHotel(): Property {
   const area = (name: string, meshName: string, [lengthFt, widthFt]: [number, number], description: string, specs: string[], amenities: string[] = []): Room => ({
     id: id('room'), name, kind: 'outdoor', meshName, floorId: null,
     dimensions: { length: lengthFt, width: widthFt, unit: 'ft' }, areaSqft: Math.round(lengthFt * widthFt), description, specs, amenities, media: [],
   })
+  const levels = basementFloors()
   const rooms: Room[] = [
-    area('Main Entrance & Lobby', 'amenity_entrance', [26, 10],
-      'The hotel\'s entrance on the centre wing\'s axis, across the plaza from the road: automatic sliding doors in the curved glass under a white blade canopy, opening into the double-height lobby with its reception and a spiral stair to the first floor. The centre\'s roof runs out over the plaza above, carrying the name.',
-      ['Automatic sliding doors, 3.8 m frame', 'White canopy with recessed downlights', 'Cantilevered roof canopy, 1.8 m', 'Reception, lobby lounge and all-day restaurant on the ground floor'],
-      ['Planters along the glass', 'Benches on the plaza']),
-    area('Lamp Plaza', 'amenity_plaza', [42, 42],
-      'A circular plaza 23 m across, open to the road: concentric rings of polished black granite and honed travertine, with decorative lamps set in the dark bands. At the centre a bronze candelabrum of seven opal globes stands on a granite drum; round it a ring of glowing opal orbs, then slim bronze post-top lanterns, and low lantern bollards on the outer band, with the axis from the road to the entrance left clear. By day the lamps read as dark bronze and opal glass; at dusk they glow warm and pool light on the stone.',
-      ['Bronze candelabrum, seven opal globes, 3.9 m', '8 opal orb lamps, 8 post-top lanterns, lantern bollards', 'Dark statuary bronze and opal glass', 'Polished black granite and honed travertine'],
-      ['Lamp-lit plaza', 'Benches and bollard lights']),
-    area('Guest Car Park', 'amenity_parking', [118, 138],
-      'Behind the hotel\'s rear wing: 44 nose-in bays in concrete pavers in four rows, on two aisles and the entry road, with neem trees in planted islands and twin-headed pole lights. Traffic runs one way: in by the 4.6 m entry road down the south boundary from the HMDA road, past the forecourt for drop-off and the rear wing, into the car park, and out by the 4.4 m exit road up the north boundary back to the HMDA road. The back of the plot is walled off from the cross road.',
-      ['44 bays, 2.5 × 5 m, wheel stops and painted lines', '6 m aisles, cross aisles front and back', 'Neem trees in kerbed islands', 'One way: 4.6 m entry road (south), 4.4 m exit road (north)'], ['Guest parking', 'Drop-off on the entry road']),
-    area('Utility Yard', 'amenity_service', [118, 23],
-      'At the back of the plot: the fenced substation and generator yard and a planted strip with rain trees against the back wall, which runs unbroken across the plot with no way through to the cross road; service vehicles come and go by the entry and exit roads.',
-      ['Transformer and DG set in a fenced yard', 'Unbroken back wall, no rear access', 'Rain trees on a planted strip'], ['Substation', 'Service access']),
+    area('Main Entrance & Lobby', 'amenity_entrance', [52, 30],
+      'The drop-off under the deep, curved canopy: a thick silver blade edged along its top in warm LED light over a set-back fascia with its own LED line, its soffit lit by a grid of linear lights, on three brushed stainless columns. Behind it the double-height lobby\'s storefront of floor-to-ceiling glass in stainless frames with automatic sliding doors, opening onto a stone floor under a lit ceiling, the reception before a back-lit onyx wall, lounge seating under a ring chandelier, and the lift wall at the back, from which two lifts and a stair go down to the basements.',
+      ['Canopy 15 m wide, up to 8.6 m deep, soffit at 5.7 m', 'Warm-white LED edge lines and soffit grid', 'Three brushed stainless columns, 840 mm', 'Double-height lobby, 8 m to the ceiling', 'Two lifts and a stair to B1 and B2'],
+      ['Drop-off under cover', 'Reception and lobby lounge']),
+    area('Starbucks Coffee', 'amenity_starbucks', [29, 29],
+      'Starbucks\' giant coffee cup at the north end of the front, from the second reference, set into a notch in the hotel\'s main block so the block wraps round behind it: a glazed café on bronze mullions with its doors on the axis, the sleeve band in board-formed concrete, a tall glazed upper café with the green siren on its right, the top band lettered STARBUCKS COFFEE in raised letters, and the white lid\'s rim and domed top. Inside, the counter curves before a wall of merchandise under a round cove of light; upstairs, café tables round a lantern pendant.',
+      ['9.2 m across at the ground, 12 m across the lid, 18.75 m high', 'Glazed ground floor and 7 m high upper café', 'Board-formed concrete sleeve and top band', 'Siren emblem 3.4 m across', 'Two floors, entered from the forecourt'],
+      ['Café on two floors', 'Seating by the glass']),
+    area('Pool Deck', 'amenity_pool', [122, 84],
+      'Behind the hotel, the pool deck: honed ivory travertine from the hotel\'s back to pale stone boundary walls, with raised travertine planters along them of coconut palms, paddle-leaved tropicals and flowering shrubs, uplit at night. The 18 × 7.2 m pool runs parallel to the building in pale aqua glass mosaic with a deep blue waterline band under a limestone coping; a dark basalt water wall on its far side pours three sheets of water into it; a sun shelf with two in-water loungers at its south end, steps at its north end, and beside it a raised round spa with a basalt rim. Slatted teak loungers with thick white cushions and rolled towels, in pairs under square canvas umbrellas with stone-topped side tables; a canopied daybed with sheer curtains in each far corner; a teak lounge on a woven rug with a lantern at each end by the hotel; small trees in round travertine planters.',
+      ['Pool 18 × 7.2 m, 1.2 to 1.6 m deep, sun shelf 0.3 m', 'Basalt water wall with three water blades', 'Raised spa, 3.4 m across', 'Glass mosaic, limestone coping, travertine deck', '10 teak loungers, 2 in-water loungers, 5 umbrellas, 2 daybeds, 2 lounges', 'Palms and tropical planting in raised planters', 'Underwater, step, uplight and lantern lighting'],
+      ['Swimming pool', 'Spa', 'Cabana daybeds', 'Poolside lounges']),
+    area('Basement Ramp & Lanes', 'amenity_parking', [21, 75],
+      'All parking is below ground. Cars come in off the HMDA road by the two-way south lane: straight on and down the ramp beside the south block to the basements, its mouth open between granite walls under a striped height bar and the parking sign, the rest of it covered by rendered walls and a planted roof; or right, across the forecourt under the canopy to drop guests at the lobby and out by the north lane.',
+      ['Two-way ramp, 5.8 m clear, 1:6, 2.4 m headroom', 'Covered over its length beyond the mouth', 'Drop-off across the forecourt, out by the north lane', 'No parking above ground'], ['Basement parking', 'Drop-off at the canopy']),
+    area('Service & Fire Lane', 'amenity_service', [13, 254],
+      'The north lane carries on past the hotel\'s north side as the service and fire lane, as far as the pool deck. The transformer and DG set are in the second basement; nothing stands in a yard above ground. The back wall runs unbroken across the plot, with no way through to the cross road.',
+      ['4 m service and fire lane', 'Transformer and DG set in B2', 'Unbroken back wall, no rear access'], ['Service access']),
+    basementArea(levels.B1, -1, [121, 163], 22,
+      'The upper basement under the podium and the forecourt. The ramp from the south lane lands in the back cross aisle; from there two-way aisles 6 m wide run towards the road either side of a double row of 90° bays, crossed by an aisle before the lifts and another along the front. Parallel bays line the ramp to B2, which runs along the north wall from the back aisle; the LT electrical and HVAC plant rooms stand beyond it. Painted bays, numbers and arrows on trowelled concrete, the blue level band, LED battens, jet fans and sprinklers overhead. Two lifts and a stair rise from the middle cross aisle to the lobby.',
+      ['Two-way ramp from the south lane, 5.8 m, 1:6', 'Two-way ramp to B2 along the north wall', 'Two lifts and a stair up to the lobby', 'LT electrical and HVAC plant rooms']),
+    basementArea(levels.B2, -2, [121, 163], 33,
+      'The lower basement, reached by the ramp along the north wall and laid out like B1, with its green level band; where the ramp from the ground stands on B1, B2 has a row of bays along the south wall. The fire pump room and the DG set and transformer room are in the north-west corner.',
+      ['Two-way ramp up to B1', 'Fire pump room', 'DG set and transformer room', 'Two lifts and a stair to the lobby']),
   ]
   return {
     id: 'p_kalakal_hotel', slug: 'kalakal-hotel', name: 'Terranova Hotel', type: 'commercial', location: 'Kallakal, NH-44',
-    tagline: 'A boutique hotel of curved glass pavilions round a lamp-lit plaza, on the HMDA road frontage',
+    tagline: 'A curved-glass hotel with its glass drum, Starbucks in a giant coffee cup, a pool deck and basement parking, on the HMDA road frontage',
     thumbnailUrl: placeholderImage('Terranova Hotel', 160, 800, 500),
-    stats: [{ label: 'Plot', value: '4,676 sq yd' }, { label: 'Floors', value: 'G + 3' }, { label: 'Facing', value: 'East' }],
+    stats: [{ label: 'Plot', value: '4,676 sq yd' }, { label: 'Height', value: '26.9 m' }, { label: 'Facing', value: 'East' }],
     description:
-      'A hotel on Plot A-04 in Kallakal, facing east onto the 250 ft HMDA master plan road. Three curved, fully glazed G+2 wings with white slab edges wrap a circular lamp-lit plaza that opens to the road: the lobby, reception and all-day restaurant on the ground floor, guest rooms behind sheer curtains on the two floors above. Behind the centre a G+3 rear wing, glazed and banded to match and a storey taller, holds more guest rooms either side of a corridor over a banquet and dining floor. The south wing ends in a glass corner and a white curved fin, the centre wing holds the entrance under a cantilevered roof, and the north wing stands behind a white wall that sweeps up out of the plaza, pierced by two arches. Three black mesh capsules grown over with creepers rise above the roofs. The plot runs 104 m deep, holding the guests\' car park behind the rear wing and the utility yard, walled off from the cross road behind; cars come in by an entry road down the south side and leave by an exit road up the north side.',
+      'A hotel on Plot A-04 in Kallakal, facing east onto the 250 ft HMDA master plan road, after the client\'s reference design. A podium of curved glass, a double-height ground floor and two more, runs back over most of the plot\'s depth: at the south end of the front a glass block with a rounded corner carrying a three-storey glass drum, its first floor set back, its roof sweeping down to the south in a silver blade; a silver band hugging the drum\'s foot with the name on it, rising gently past the lobby into the coffee cup; the double-height lobby behind a deep curved canopy edged in warm LED light on stainless columns; behind the cup, the main block\'s roof rising as a silver shell. Behind the drum, on the podium\'s roof, four more floors in a rounded block glazed and banded like the drum, its front reaching into the drum\'s back. At the north end of the front Starbucks\' giant coffee cup, from the second reference, is set into the main block, which wraps round behind it. All parking is in two basements under the building and the forecourt, reached by a covered two-way ramp down the south side; behind the hotel there is only the pool deck, with no lawns, trees or planting.',
     highlights: {
-      Plot: 'A-04 · 124′3″ × 340′7″ (4,676 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: 'Ring G + 2, rear wing G + 3',
-      Height: 'Ring roof 12.35 m, rear wing 15.95 m; north capsule to 23 m', Plan: 'Wings 5.3 m deep on an 8.2 m / 13.5 m ring; rear wing 18 m wide', 'Façade': 'Clear curtain glass, white slab bands, white GRC',
-      Setbacks: 'South 5.2 m (entry road) · north 5.0 m (exit road) · front 10 m', Parking: '44 bays in the car park behind',
+      Plot: 'A-04 · 124′3″ × 340′7″ (4,676 sq yd)', Facing: 'East, onto the 250 ft HMDA road', Structure: '2 basements + podium (ground + 2) + drum (3 floors) + 4 floors behind the drum',
+      Height: 'Podium band 12.65 m, drum 23.1 m, roof shell 24.65 m, block behind the drum 26.15 m (parapet 26.9 m)', Plan: 'Podium up to 31.9 × 60.6 m; drum 14.4 m across; block behind it 15 × 17 m', 'Façade': 'Clear and back-painted curtain glass, silver aluminium bands, LED lines',
+      Setbacks: 'South 7.0 m beside the ramp, 1.2 m behind it · north 4.5 m (service lane) · front 17 m to the glass · rear 25.7 m (pool deck)', Parking: '55 bays on B1 and B2; none above ground',
     },
-    model: { kind: 'furnished', design: 'kalakal-hotel' }, floors: [], rooms,
-    // Camera positions in scene metres: +z east (the HMDA road), +x north. The plaza is centred at (2, 30).
+    model: { kind: 'furnished', design: 'kalakal-hotel' }, floors: levels.floors, rooms,
+    // Camera positions in scene metres: +z east (the HMDA road), +x north. The lobby's doors are at (0, 33).
     presets: [
-      { id: 'reference', name: 'From the forecourt', position: [-3.5, 1.7, 47], target: [3, 6, 24], fov: 60 },
-      { id: 'street', name: 'From the road', position: [-8, 2, 66], target: [2, 6, 30], fov: 50 },
-      { id: 'front', name: 'East elevation', position: [2, 10, 84], target: [2, 7, 28], fov: 42 },
-      { id: 'elevation', name: 'Straight-on elevation', position: [2, 9, 170], target: [2, 9, 28], fov: 16 },
-      { id: 'northeast', name: 'North-east corner', position: [36, 15, 62], target: [3, 7, 28], fov: 40 },
-      { id: 'southeast', name: 'South-east corner', position: [-34, 14, 64], target: [0, 7, 28], fov: 40 },
-      { id: 'south', name: 'South side (entry road)', position: [-40, 10, 18], target: [0, 7, 16] },
-      { id: 'carpark', name: 'Car park', position: [-16, 8, -2], target: [2, 0, -28], fov: 55 },
-      { id: 'rear', name: 'Rear and back wall', position: [-8, 22, -82], target: [0, 4, -10] },
-      { id: 'aerial', name: 'Aerial', position: [55, 75, 80], target: [0, 2, 0] },
-      { id: 'fountain', name: 'Plaza, eye level', position: [6, 1.6, 37], target: [-1.5, 3.2, 25], fov: 55 },
-      { id: 'jets', name: 'Lamps, close-up', position: [5.2, 1.5, 33.6], target: [2, 1.0, 30], fov: 45 },
-      { id: 'top', name: 'Plan view', position: [0, 260, -0.01], target: [0, 0, 0] },
+      { id: 'reference', name: 'As in the reference', position: [36, 20, 100], target: [-1, 12, 20], fov: 38 },
+      { id: 'front', name: 'East elevation', position: [1, 16, 100], target: [1, 13, 10], fov: 40 },
+      { id: 'street', name: 'From the road', position: [-8, 9, 92], target: [0, 12, 30], fov: 55 },
+      { id: 'entrance', name: 'Canopy and lobby, eye level', position: [3, 1.7, 48], target: [-1.5, 2.4, 32], fov: 62 },
+      { id: 'starbucks', name: 'Starbucks', position: [17, 7, 64], target: [9.8, 7, 35.4], fov: 50 },
+      { id: 'drum', name: 'Drum, close-up', position: [-16, 18, 66], target: [-4, 18, 26], fov: 50 },
+      { id: 'southeast', name: 'South-east corner', position: [-56, 22, 90], target: [-2, 12, 20], fov: 45 },
+      { id: 'northeast', name: 'North-east corner', position: [52, 20, 86], target: [6, 12, 22], fov: 45 },
+      { id: 'pool', name: 'Pool deck', position: [-24, 14, -60], target: [0, 1, -36], fov: 50 },
+      { id: 'poolside', name: 'Poolside, eye level', position: [13, 1.7, -30.5], target: [-4, 1.2, -39], fov: 60 },
+      { id: 'ramp', name: 'Basement ramp', position: [-15.4, 1.7, 40], target: [-15.4, 0.2, 20], fov: 55 },
+      { id: 'rear', name: 'Rear', position: [-40, 26, -100], target: [0, 10, -10], fov: 50 },
+      { id: 'aerial', name: 'Aerial', position: [80, 80, 110], target: [0, 5, 0] },
+      { id: 'top', name: 'Plan view', position: [0, 240, -0.01], target: [0, 0, 0] },
+      { id: 'b1', name: 'B1 · overview', position: [36, 26, 66], target: [0, -3.3, 25], level: -1 },
+      { id: 'b1-ramp', name: 'B1 · down the ramp', position: [-15.4, 1.0, 33], target: [-15.4, -3.0, 6], fov: 60, level: -1 },
+      { id: 'b1-aisle', name: 'B1 · south aisle, eye level', position: [-9.25, -1.75, 46], target: [-9.25, -2.2, 10], fov: 60, level: -1 },
+      { id: 'b1-lifts', name: 'B1 · lift lobby', position: [0, -1.75, 31], target: [0, -2.1, 24], fov: 58, level: -1 },
+      { id: 'b2', name: 'B2 · overview', position: [36, 23, 66], target: [0, -6.6, 25], level: -2 },
+      { id: 'b2-aisle', name: 'B2 · north aisle, eye level', position: [6.75, -5.05, 46], target: [6.75, -5.5, 10], fov: 60, level: -2 },
+      { id: 'b2-ramp', name: 'B2 · up the ramp to B1', position: [15.35, -4.9, 42], target: [15.35, -5.2, 20], fov: 60, level: -2 },
     ],
     media: [],
   }

@@ -211,9 +211,10 @@ const sheer: Paint = (g, w, h) => {
 /* ---------- materials ---------- */
 
 /**
- * Terranova Hotel's finishes: the mall's palette (glass, aluminium, paving, asphalt, planting, lamps,
- * car parts, sky reflections), plus the white GRC, polished plaza stone and black mesh of
- * the reference design.
+ * The hotel's first palette, which Terranova Square and the hospital build on: the mall's palette
+ * (glass, aluminium, paving, asphalt, planting, lamps, car parts, sky reflections), plus white GRC,
+ * polished stone, black mesh, painted rooms and the lobby. The hotel itself now adds its own
+ * finishes over it (finishes.ts).
  */
 export function hotelMaterials(k: Kit, lighting: Lighting) {
   const base = mallMaterials(k, lighting)

@@ -1,37 +1,24 @@
 import { PointLight, type Material, type Object3D } from 'three'
 import type { Point2 } from '../../../../../api/types'
 import { PI } from '../kit'
-import { parkedCar, type Body } from '../car'
-import { lawn, shrub, SPECIES, tree } from '../kalakalMall/foliage'
+import { parkedCar } from '../car'
+import { lawn, shrub } from '../kalakalMall/foliage'
 import { metricBox, rect, slab } from '../kalakalMall/solids'
-import { NAME, signLine, type HotelCtx } from './building'
-import { buildLamps, type Lamps } from './lamps'
-import { circle, clipHalf, DRIVE, EXIT, FRONTAGE, FRONTAGE_Z, FT, GL, P, PARK, PAVED_R, PLAZA_R, PLOT, polar, R_IN, R_OUT, WALL, YARD } from './plan'
+import { NAME, signLine, type HotelCtx } from './ctx'
+import { rectPoly } from '../basement'
+import { clipHalf, DECK, DRIVE, FORECOURT, FRONTAGE, FRONTAGE_Z, FT, GL, PLOT, RAMP, REAR, SERVICE, WALL_T } from './plan'
+import { buildPoolDeck } from './pool'
 
 /*
- * The grounds. The lamp-lit plaza opens east to the road across a stone forecourt. Traffic runs
- * one way round the plot: in from the HMDA road by a 4.6 m entry road down the south boundary,
- * past the hotel to the guests' car park behind it, and out by a 4.4 m exit road up the north
- * boundary back to the HMDA road. The car park fills the plot's depth: four rows of nose-in bays
- * on two aisles and the entry road, between cross aisles front and back that join the two roads,
- * with neem trees in planted islands; behind it, the utility yard and a landscaped strip against
- * the back wall, which runs unbroken across the plot: there is no way in from the cross road.
- *
- * The plaza is the reference's: concentric rings of polished black granite and travertine, with
- * decorative lamps set in the dark bands (lamps.ts): a bronze candelabrum at the centre, and rings
- * of opal orbs, post-top lanterns and lantern bollards round it.
+ * The grounds. Cars come in off the HMDA road by the south lane: straight on for the basements,
+ * down the covered ramp beside the south block; or right, across the forecourt under the canopy to
+ * drop guests at the lobby, and out by the north lane, which carries on down the north side to the
+ * pool deck as the service and fire lane. There is no parking above ground. Behind the hotel there
+ * is only the pool deck (pool.ts), closed by stone walls; no lawns, trees or planting anywhere on
+ * the plot. The back wall runs unbroken across it.
  */
 
 type R = [number, number]
-
-const WALL_T = 0.23
-/** The forecourt and plaza, between the entry and exit roads, in front of the car park. */
-const COURT = { x0: DRIVE.x1, x1: EXIT.x0, z0: PARK.front[1] }
-/** Bays along each row, 2.5 m wide; planted islands take the place of two of them. */
-const BAY = 2.5
-const BAYS_PER_ROW = Math.floor((PARK.z1 - PARK.z0) / BAY)
-const ISLANDS = [5, 12]
-const bayZ = (i: number) => PARK.z0 + ((PARK.z1 - PARK.z0) * (i + 0.5)) / BAYS_PER_ROW
 
 /** Inside the plot as the plan draws it (with a margin), or anywhere in the property's own view. */
 const within = (ctx: HotelCtx, x: number, z: number, margin = 0.6) => !ctx.onPlan || z <= FRONTAGE_Z(x) - margin
@@ -51,9 +38,9 @@ function bxIn(ctx: HotelCtx, p: Object3D, xs: R, ys: R, [z0, z1]: R, mat: Materi
 }
 
 /** A ground surface laid at true scale, trimmed to the plan's road edge on the master plan. */
-function ground(ctx: HotelCtx, p: Object3D, poly: Point2[], y: number, mat: Material, holes: Point2[][] = []) {
+function ground(ctx: HotelCtx, p: Object3D, poly: Point2[], y: number, mat: Material, holes: Point2[][] = [], name = '') {
   const shape = ctx.onPlan ? clipHalf(poly, FRONTAGE.k, -1, FRONTAGE.c - 0.3) : poly
-  if (shape.length >= 3) slab(p, shape, 0, y, [mat, ctx.c.concrete], holes, false)
+  if (shape.length >= 3) slab(p, shape, 0, y, [mat, ctx.c.concrete], holes, false, name)
 }
 
 /** Precast kerb along z at x, its shade on both sides. */
@@ -65,191 +52,127 @@ function kerbZ(ctx: HotelCtx, p: Object3D, x: number, [z0, z1]: R, h: number) {
 
 /** A precast kerb along x at z, its shade on the low side. */
 function kerbX(ctx: HotelCtx, p: Object3D, [x0, x1]: R, z: number, h: number, low: 1 | -1) {
-  bx(ctx, p, [x0, x1], [0, h], [z - 0.075, z + 0.075], ctx.c.kerb(x1 - x0), true, true)
-  ctx.shade.edge([[x0, z + low * 0.075], [x1, z + low * 0.075]], 0.025, 0.22, low, 0.45)
+  const xs: R = ctx.onPlan ? [x0, Math.min(x1, (FRONTAGE.c - z - 0.5) / -FRONTAGE.k)] : [x0, x1]
+  if (ctx.onPlan && z > FRONTAGE_Z(x0) - 0.5) return
+  bx(ctx, p, xs, [0, h], [z - 0.075, z + 0.075], ctx.c.kerb(xs[1] - xs[0]), true, true)
+  ctx.shade.edge([[xs[0], z + low * 0.075], [xs[1], z + low * 0.075]], 0.025, 0.22, low, 0.45)
 }
 
-export function buildSite(ctx: HotelCtx, p: Object3D): Lamps {
-  const { c } = ctx
-  // The entry and exit roads and the car park's aisles in asphalt, its rows of bays in concrete pavers.
-  ground(ctx, p, rect(DRIVE.x0, DRIVE.x1, PARK.back[0], PLOT.z1), 0.02, c.asphalt)
-  ground(ctx, p, rect(EXIT.x0, EXIT.x1, PARK.front[1], PLOT.z1), 0.02, c.asphalt)
-  ground(ctx, p, rect(DRIVE.x1, PLOT.x1 - WALL_T, PARK.back[0], PARK.front[1]), 0.02, c.asphalt)
-  for (const [x0, x1] of PARK.rows) ground(ctx, p, rect(x0, x1, PARK.z0, PARK.z1), 0.03, c.interlock)
-  // The forecourt: flamed granite at plaza level, the plaza's rings inlaid.
-  ground(ctx, p, rect(COURT.x0, COURT.x1, COURT.z0, PLOT.z1), GL, c.paving, [circle(P.x, P.z, PAVED_R, 160)])
-  // Behind the car park: the yard in concrete and a planted strip.
-  ground(ctx, p, rect(YARD.x0, YARD.x1, YARD.z0, YARD.z1), GL, c.apron)
-  ground(ctx, p, rect(DRIVE.x0, YARD.x0, PLOT.z0 + WALL_T, PARK.back[0]), 0.1, c.lawnGround)
-  ground(ctx, p, rect(YARD.x0, PLOT.x1 - WALL_T, YARD.z1, PARK.back[0]), 0.1, c.lawnGround)
+/** The ramp's trench, from its mouth west to its foot under the basement's slab. */
+const TRENCH = { x0: RAMP.x0 - 0.2, x1: RAMP.x1 + 0.2, z0: RAMP.top - 22.92, z1: RAMP.top }
+/** The ramp's cover: from 2.5 m inside its mouth back to its foot. */
+const COVER_Z = RAMP.top - 2.5
 
-  const lamps = buildPlaza(ctx, p)
+export function buildSite(ctx: HotelCtx, p: Object3D) {
+  const { c } = ctx
+  const fx0 = DRIVE.x1
+  const fx1 = SERVICE.x0
+  // The two lanes in asphalt; the forecourt's drive in granite setts; under the canopy and along
+  // the front, flamed granite at the lobby's level.
+  ground(ctx, p, rect(DRIVE.x0, DRIVE.x1, RAMP.top, PLOT.z1), 0.02, c.asphalt)
+  ground(ctx, p, rect(SERVICE.x0, SERVICE.x1, DECK.z1, PLOT.z1), 0.02, c.asphalt)
+  ground(ctx, p, rect(fx0, fx1, FORECOURT.z0, FORECOURT.kerb), 0.03, c.interlock)
+  ground(ctx, p, rect(fx0, fx1, DECK.z1, FORECOURT.z0), GL, c.paving, ctx.openings?.wells.map(rectPoly) ?? [])
+  ground(ctx, p, rect(fx0, fx1, FORECOURT.kerb, PLOT.z1), GL, c.paving)
+  // The ramp: open to the sky at its mouth, covered over the rest; until the basements are built,
+  // a dark floor in its trench. Behind its foot the podium's back half fills the south side.
+  ground(ctx, p, rect(TRENCH.x0, TRENCH.x1, TRENCH.z0, TRENCH.z1), 0.02, c.asphalt, [], ctx.openings ? 'void_ramp_floor' : '')
+  ground(ctx, p, rect(DRIVE.x0, TRENCH.x0, TRENCH.z0, RAMP.top), 0.02, c.asphalt)
+  ground(ctx, p, rect(DRIVE.x0, fx0, DECK.z1, TRENCH.z0), GL, c.paving)
+
   buildEdges(ctx, p)
-  buildParking(ctx, p)
-  buildYard(ctx, p)
+  buildRamp(ctx, p)
   buildWalls(ctx, p)
-  buildFurniture(ctx, p)
-  buildPlanting(ctx, p)
+  buildFrontage(ctx, p)
   buildLighting(ctx, p)
   buildPylon(ctx, p)
-  return lamps
+  buildPoolDeck(ctx, p)
+  buildCars(ctx, p)
 }
 
-/* ---------- the plaza ---------- */
-
-/** Rings of the plaza from the centre out: radius and finish. */
-const RINGS: [r: number, dark: boolean][] = [
-  [0.95, true],
-  [1.57, false],
-  [2.01, true],
-  [3.88, false],
-  [4.55, true],
-  [5.89, false],
-  [PLAZA_R, true],
-  [9.25, false],
-  [9.77, true],
-  [11.1, false],
-  [PAVED_R, true],
-]
-/** The white wall's foot stands just outside the outer ring; no lamps there (degrees round P). */
-const UNDER_WALL: [number, number] = [WALL.t0 + 360 - 5, WALL.t1 + 360 + 5]
-
-function buildPlaza(ctx: HotelCtx, p: Object3D): Lamps {
-  const { c, shade } = ctx
-  let inner = 0
-  for (const [r, dark] of RINGS) {
-    const holes = inner ? [circle(P.x, P.z, inner, 160)] : []
-    // Clipped to the plan's road edge, like the rest of the forecourt.
-    const ring = ctx.onPlan ? clipHalf(circle(P.x, P.z, r, 160), FRONTAGE.k, -1, FRONTAGE.c - 0.3) : circle(P.x, P.z, r, 160)
-    slab(p, ring, 0, GL, [dark ? c.darkStone : c.lightStone, c.concrete], holes, false)
-    inner = r
-  }
-
-  // Decorative lamps in the dark bands, none in the outer one where the white wall stands.
-  const lamps = buildLamps(ctx, p, (t) => {
-    const a = t < 0 ? t + 360 : t
-    return !(a > UNDER_WALL[0] && a < UNDER_WALL[1])
-  })
-  shade.edge(circle(P.x, P.z, 1.2, 64), GL + 0.004, 0.2, -1, 0.12, true)
-  return lamps
-}
-
-/* ---------- the drive and the car park ---------- */
+/* ---------- the drive ---------- */
 
 function buildEdges(ctx: HotelCtx, p: Object3D) {
   const { c } = ctx
-  // Kerbs: the forecourt above both roads and the car park; the planted strip behind it.
-  kerbZ(ctx, p, DRIVE.x1 + 0.075, [COURT.z0, PLOT.z1], GL + 0.02)
-  kerbZ(ctx, p, EXIT.x0 - 0.075, [COURT.z0, PLOT.z1], GL + 0.02)
-  kerbX(ctx, p, [DRIVE.x1, EXIT.x0], COURT.z0 - 0.075, GL + 0.02, -1)
-  kerbX(ctx, p, [DRIVE.x0, PLOT.x1 - WALL_T], PARK.back[0] - 0.075, 0.17, 1)
-  // One way: arrows down the entry road towards the car park, up the exit road towards the
-  // road, a speed table at the way in and a give-way line at the way out.
-  const arrow = (x: number, z: number, dir: 1 | -1) => {
-    bxIn(ctx, p, [x - 0.08, x + 0.08], [0.02, 0.024], [z - 1.0, z + 1.0], c.lane, false)
-    const tip = z + dir * 1.0
-    if (!within(ctx, x, tip + 0.5, 0.4)) return
-    // Barbs meet at the tip and sweep back from it on either side of the shaft.
+  const fx0 = DRIVE.x1
+  const fx1 = SERVICE.x0
+  // Kerbs: the walk under the canopy above the drive, the planted front edge, the lanes' sides.
+  kerbX(ctx, p, [fx0, fx1], FORECOURT.z0 - 0.075, GL + 0.02, 1)
+  kerbX(ctx, p, [fx0, fx1], FORECOURT.kerb + 0.075, GL + 0.02, -1)
+  kerbZ(ctx, p, fx0 - 0.075, [FORECOURT.kerb, PLOT.z1], GL + 0.02)
+  kerbZ(ctx, p, fx1 + 0.075, [FORECOURT.kerb, PLOT.z1], GL + 0.02)
+  kerbZ(ctx, p, fx0 - 0.075, [RAMP.top, FORECOURT.z0], GL + 0.02)
+  kerbZ(ctx, p, fx1 + 0.075, [DECK.z1, FORECOURT.z0], GL + 0.02)
+  // Arrows: in and down the south lane, across the drop-off, out up the north lane.
+  const arrow = (x: number, z: number, dx: number, dz: number) => {
+    const g = ctx.k.at(x, z, Math.atan2(dx, dz), 0.022)
+    if (!within(ctx, x, z + 1.5, 0.4)) return
+    ctx.k.box(g, 0.16, 0.004, 2.0, c.lane, 0, 0, 0, false)
+    // Barbs sweeping back from the tip either side of the shaft.
     for (const s of [-1, 1]) {
-      const m = bx(ctx, p, [-0.38, 0.38], [0.02, 0.024], [-0.06, 0.06], c.lane, false)
-      m.position.set(x + s * 0.2, 0.022, tip - dir * 0.3)
-      m.rotation.y = PI / 2 - s * dir * 0.65
+      const m = ctx.k.box(g, 0.12, 0.004, 0.66, c.lane, s * 0.175, 0, 0.725, false)
+      m.rotation.y = -s * 0.567
     }
+    p.add(g)
   }
-  const mid = (DRIVE.x0 + DRIVE.x1) / 2
-  for (let z = PLOT.z1 - 9; z > PARK.back[1]; z -= 14) arrow(mid, z, -1)
-  const out = (EXIT.x0 + EXIT.x1) / 2
-  for (let z = COURT.z0 + 4; z < PLOT.z1 - 5; z += 14) arrow(out, z, 1)
-  bxIn(ctx, p, [DRIVE.x0, DRIVE.x1], [0.02, 0.09], [PLOT.z1 - 4.2, PLOT.z1 - 2.6], c.interlock)
-  bxIn(ctx, p, [EXIT.x0 + 0.1, EXIT.x1 - 0.1], [0.02, 0.025], [PLOT.z1 - 3.0, PLOT.z1 - 2.7], c.lane, false)
-  // Bay lines and wheel stops in every row; kerbed islands with a neem tree in mulch.
-  for (const [x0, x1, dir] of PARK.rows) {
-    for (let i = 0; i <= BAYS_PER_ROW; i++) {
-      const z = PARK.z0 + ((PARK.z1 - PARK.z0) * i) / BAYS_PER_ROW
-      bx(ctx, p, [x0 + 0.15, x1 - 0.15], [0.03, 0.034], [z - 0.05, z + 0.05], c.lane, false)
-    }
-    // Wheel stops at the bay's head, away from its aisle.
-    const head = dir < 0 ? x1 - 0.75 : x0 + 0.75
-    for (let i = 0; i < BAYS_PER_ROW; i++) {
-      if (ISLANDS.includes(i)) continue
-      const z = bayZ(i)
-      bx(ctx, p, [head - 0.08, head + 0.08], [0.03, 0.13], [z - 0.9, z + 0.9], c.kerb(1.8), true, true)
-    }
-  }
-  for (const i of ISLANDS) {
-    const z0 = PARK.z0 + ((PARK.z1 - PARK.z0) * i) / BAYS_PER_ROW
-    const z1 = PARK.z0 + ((PARK.z1 - PARK.z0) * (i + 1)) / BAYS_PER_ROW
-    for (const [x0, x1] of [[PARK.rows[0][0], PARK.rows[1][1]], [PARK.rows[2][0], PARK.rows[3][1]]] as R[]) {
-      bx(ctx, p, [x0 + 0.3, x1 - 0.3], [0, 0.17], [z0 + 0.15, z1 - 0.15], c.kerb(x1 - x0), true, true)
-      bx(ctx, p, [x0 + 0.45, x1 - 0.45], [0.17, 0.18], [z0 + 0.3, z1 - 0.3], c.mulch, false)
-      ctx.shade.edge([[x0 + 0.3, z0 + 0.15], [x1 - 0.3, z0 + 0.15], [x1 - 0.3, z1 - 0.15], [x0 + 0.3, z1 - 0.15]], 0.025, 0.25, -1, 0.45, true)
-    }
-  }
+  const sx = (DRIVE.x0 + DRIVE.x1) / 2
+  for (const z of [48.5, 37]) arrow(sx - 1.4, z, 0, -1)
+  for (const z of [44.5, 34]) arrow(sx + 1.4, z, 0, 1)
+  for (const x of [-6, 3]) arrow(x, (FORECOURT.z0 + FORECOURT.kerb) / 2, 1, 0)
+  const nx = (SERVICE.x0 + SERVICE.x1) / 2
+  for (const z of [45, 20, -10]) arrow(nx, z, 0, z > 30 ? 1 : -1)
+  // The south lane's centre line, a speed table at the way in and a give-way line at the way out.
+  bxIn(ctx, p, [sx - 0.06, sx + 0.06], [0.02, 0.024], [RAMP.top + 0.5, FORECOURT.z0 - 0.5], c.hazard, false)
+  bxIn(ctx, p, [DRIVE.x0, DRIVE.x1], [0.02, 0.09], [PLOT.z1 - 3.4, PLOT.z1 - 2.0], c.interlock)
+  bxIn(ctx, p, [SERVICE.x0 + 0.1, SERVICE.x1 - 0.1], [0.02, 0.025], [PLOT.z1 - 2.6, PLOT.z1 - 2.3], c.lane, false)
+  // A zebra across the drive from the road's footpath to the canopy.
+  for (let x = -3.0; x <= 1.0; x += 0.8) bx(ctx, p, [x, x + 0.45], [0.03, 0.034], [FORECOURT.z0 + 0.3, FORECOURT.kerb - 0.3], c.lane, false)
 }
 
-/** Common colours of a car park in Hyderabad: mostly white, silver and grey, some dark, a few in colour. */
-const PAINTS = ['#ecebe7', '#e9eaea', '#f1f2f2', '#a6aaae', '#b8bbbd', '#7d8186', '#5b5f63', '#2a2c30', '#1c1d1f', '#6e1a1c', '#1f3a5f', '#5a4a3a']
-const BODIES: Body[] = ['crossover', 'crossover', 'sedan', 'hatch', 'crossover', 'hatch', 'sedan']
-
-function buildParking(ctx: HotelCtx, p: Object3D) {
-  let seed = 977
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-  PARK.rows.forEach(([x0, x1, dir]) => {
-    for (let i = 0; i < BAYS_PER_ROW; i++) {
-      if (ISLANDS.includes(i)) continue
-      // Fuller near the hotel, emptier at the back.
-      const fill = 0.38 + 0.35 * (i / BAYS_PER_ROW)
-      if (rnd() > fill) continue
-      const body = BODIES[Math.floor(rnd() * BODIES.length)]
-      const paint = PAINTS[Math.floor(rnd() * rnd() * PAINTS.length)]
-      // Most drive in nose first, towards the bay's head; a few reverse in.
-      const noseIn = rnd() < 0.75
-      const towards = dir < 0 ? 1 : -1
-      const yaw = (towards * (noseIn ? 1 : -1) * PI) / 2 + (rnd() - 0.5) * 0.05
-      const x = (x0 + x1) / 2 + towards * 0.15 + (rnd() - 0.5) * 0.2
-      const z = bayZ(i) + (rnd() - 0.5) * 0.25
-      if (!within(ctx, x, z + 2.4)) continue
-      parkedCar(p, body, paint, x, z, yaw, 0.03)
-      ctx.shade.rect(x, 0.035, z, 1.9, 4.5, yaw, 0.75)
-    }
-  })
-  // A car dropping guests at the forecourt on its way in, and one leaving by the exit road.
-  const mid = (DRIVE.x0 + DRIVE.x1) / 2
-  parkedCar(p, 'sedan', '#1c1d1f', DRIVE.x1 - 1.1, 31, PI, 0.02)
-  ctx.shade.rect(DRIVE.x1 - 1.1, 0.03, 31, 1.9, 4.5, 0, 0.75)
-  parkedCar(p, 'crossover', '#e9eaea', mid, 6, PI, 0.02)
-  ctx.shade.rect(mid, 0.03, 6, 1.9, 4.5, 0, 0.75)
-  const out = (EXIT.x0 + EXIT.x1) / 2
-  if (within(ctx, out, 22 + 2.4)) {
-    parkedCar(p, 'hatch', '#a6aaae', out, 22, 0, 0.02)
-    ctx.shade.rect(out, 0.03, 22, 1.8, 4.0, 0, 0.75)
+/**
+ * The ramp down to the basements beside the south block: its mouth open between low granite walls
+ * with the striped height bar and the lit sign over the way in; beyond, a covered run under rendered
+ * walls and a stone-capped roof down to the foot, where the podium's back half takes over.
+ */
+function buildRamp(ctx: HotelCtx, p: Object3D) {
+  const { c, k, shade } = ctx
+  const { x0, x1, z0, z1 } = TRENCH
+  const T = 0.25
+  const h = RAMP.h
+  // Side walls: low parapets at the mouth, full height under the cover.
+  for (const [a, b] of [[x0 - T, x0], [x1, x1 + T]] as R[]) {
+    bx(ctx, p, [a, b], [0, 1.0], [COVER_Z, z1], c.granite)
+    bx(ctx, p, [a, b], [0, h], [z0, COVER_Z], c.whiteMetric)
+    bx(ctx, p, [a - 0.03, b + 0.03], [h, h + 0.45], [z0, COVER_Z], c.coping)
   }
+  bx(ctx, p, [x0 - T, x1 + T], [h - 0.3, h], [z0, COVER_Z], c.concrete)
+  bx(ctx, p, [x0 - T, x1 + T], [0, h], [z0 - T, z0], c.whiteMetric)
+  // The roof, finished in pale stone inside its coping.
+  bx(ctx, p, [x0, x1], [h, h + 0.3], [z0 + 0.2, COVER_Z - 0.2], c.poolCoping, false)
+  // The mouth: its header with the height bar and the sign; the dark beyond until it is built.
+  bx(ctx, p, [x0 - T, x1 + T], [2.6, h + 0.45], [COVER_Z - 0.3, COVER_Z], c.granite)
+  const xc = (x0 + x1) / 2
+  k.box(p, x1 - x0, 2.6, 0.02, c.void, xc, 1.3, COVER_Z - 2.2, false).name = 'void_ramp_mouth'
+  const bars = 8
+  for (let i = 0; i < bars; i++) {
+    const w = (x1 - x0 - 0.4) / bars
+    const x = x0 + 0.2 + i * w
+    bx(ctx, p, [x, x + w], [2.3, 2.44], [COVER_Z + 0.42, COVER_Z + 0.5], i % 2 ? c.plantDark : c.hazard)
+  }
+  for (const x of [x0 + 0.25, x1 - 0.25]) bx(ctx, p, [x - 0.02, x + 0.02], [2.44, 2.6], [COVER_Z + 0.44, COVER_Z + 0.48], c.chromeRail)
+  k.box(p, 3.4, 0.42, 0.04, c.pSign, xc, (2.6 + h + 0.45) / 2, COVER_Z + 0.02, false)
+  shade.rect(xc, 0.025, COVER_Z - 1.5, x1 - x0, 3, 0, 0.7)
+  // The south block's side lit over the mouth.
+  const l = ctx.lighting.light(new PointLight('#ffe0b8', 4, 8, 2), 0)
+  l.position.set(xc, 2.2, COVER_Z + 1.2)
+  p.add(l)
 }
 
-/** Substation and generator yard in the back corner, behind the car park. */
-function buildYard(ctx: HotelCtx, p: Object3D) {
-  const { c, shade } = ctx
-  const { x0, x1, z0, z1 } = YARD
-  bx(ctx, p, [x0, x1], [0, GL], [z0, z1], c.apron)
-  const fence = (xs: R, zs: R) => bx(ctx, p, xs, [GL, 2.4], zs, c.fence(Math.max(xs[1] - xs[0], zs[1] - zs[0]), 2.25), false, true)
-  fence([x0, x0 + 0.02], [z0, z1])
-  fence([x0, x1 - 3.2], [z1 - 0.02, z1])
-  for (const [x, z] of [[x0, z0], [x0, z1], [x1 - 3.2, z1], [x0, (z0 + z1) / 2]] as const) bx(ctx, p, [x - 0.04, x + 0.04], [GL, 2.45], [z - 0.04, z + 0.04], c.mullion)
-  const tx = x0 + 2.4
-  const tz = z0 + 2.0
-  bx(ctx, p, [tx - 1.0, tx + 1.0], [GL, 1.95], [tz - 0.7, tz + 0.7], c.plant)
-  for (let i = -3; i <= 3; i++) bx(ctx, p, [tx + i * 0.26 - 0.02, tx + i * 0.26 + 0.02], [0.3, 1.7], [tz + 0.7, tz + 1.05], c.plant)
-  for (const dx of [-0.5, 0, 0.5]) ctx.k.cyl(p, 0.07, 0.09, 0.45, c.white, tx + dx, 2.15, tz, 10)
-  shade.rect(tx, GL + 0.005, tz + 0.2, 2.2, 2.0, 0, 0.6)
-  const gx = x1 - 2.4
-  bx(ctx, p, [gx - 1.25, gx + 1.25], [GL, 2.55], [z0 + 0.6, z0 + 5.0], c.greigeMetric)
-  bx(ctx, p, [gx - 1.3, gx + 1.3], [2.55, 2.65], [z0 + 0.55, z0 + 5.05], c.coping)
-  for (let z = z0 + 1.0; z < z0 + 4.8; z += 0.25) bx(ctx, p, [gx - 1.27, gx - 1.25], [1.2, 2.2], [z, z + 0.12], c.plantDark, false)
-  ctx.k.cyl(p, 0.14, 0.14, 2.2, c.aluminium, gx + 0.7, 3.7, z0 + 1.2, 12)
-  shade.rect(gx, GL + 0.005, z0 + 2.8, 2.6, 4.5, 0, 0.6)
-}
-
-/** Compound walls on the south, west and north boundaries, the back one unbroken: rendered base, stone coping, bar railing. */
+/**
+ * Compound walls: along the lanes, a rendered base, stone coping and bar railing; round the pool
+ * deck, solid 2.4 m walls in pale stone with a warm wash of light at their foot, the back one
+ * unbroken across the plot.
+ */
 function buildWalls(ctx: HotelCtx, p: Object3D) {
   const { c, shade } = ctx
   const white = c.whiteMetric
@@ -259,129 +182,69 @@ function buildWalls(ctx: HotelCtx, p: Object3D) {
     bxIn(ctx, p, [(xs[0] + xs[1]) / 2 - 0.01, (xs[0] + xs[1]) / 2 + 0.01], [0.96, 1.8], zs, c.railing(zs[1] - zs[0]), false, true)
     if (run) for (const [x, side] of [[xs[0], 1], [xs[1], -1]] as const) shade.edge([[x, run[0]], [x, run[1]]], 0.03, 0.4, side, 0.5)
   }
-  const wallX = (x0: number, x1: number, z: number) => {
-    bx(ctx, p, [x0, x1], [0, 0.9], [z, z + WALL_T], white)
-    bx(ctx, p, [x0, x1], [0.9, 0.96], [z - 0.03, z + WALL_T + 0.03], c.coping)
-    bx(ctx, p, [x0, x1], [0.96, 1.8], [z + WALL_T / 2 - 0.01, z + WALL_T / 2 + 0.01], c.railing(x1 - x0), false, true)
-    shade.edge([[x0, z + WALL_T], [x1, z + WALL_T]], 0.03, 0.4, 1, 0.5)
+  wallZ([PLOT.x0, PLOT.x0 + WALL_T], [REAR.back, PLOT.z1])
+  wallZ([PLOT.x1 - WALL_T, PLOT.x1], [REAR.back, PLOT.z1])
+  // Round the deck: stone privacy walls, a coping, and a hidden LED line washing their foot.
+  const H = 2.4
+  const stone = (xs: R, zs: R, inward: [number, number]) => {
+    bx(ctx, p, xs, [0, H], zs, c.poolCoping)
+    bx(ctx, p, [xs[0] - 0.03, xs[1] + 0.03], [H, H + 0.06], [zs[0] - 0.03, zs[1] + 0.03], c.coping)
+    const [ix, iz] = inward
+    const lx = ix > 0 ? xs[1] + 0.02 : ix < 0 ? xs[0] - 0.02 : (xs[0] + xs[1]) / 2
+    const lz = iz > 0 ? zs[1] + 0.02 : iz < 0 ? zs[0] - 0.02 : (zs[0] + zs[1]) / 2
+    if (ix) ctx.k.box(p, 0.03, 0.03, zs[1] - zs[0] - 0.4, c.led, lx, GL + 0.03, lz, false)
+    else ctx.k.box(p, xs[1] - xs[0] - 0.4, 0.03, 0.03, c.led, lx, GL + 0.03, lz, false)
   }
-  wallZ([PLOT.x0, PLOT.x0 + WALL_T], [PLOT.z0, PLOT.z1])
-  wallZ([PLOT.x1 - WALL_T, PLOT.x1], [PLOT.z0, PLOT.z1])
-  // The back wall, unbroken across the plot: no gate or opening to the cross road.
-  wallX(PLOT.x0 + WALL_T, PLOT.x1 - WALL_T, PLOT.z0)
-  // Gate piers in granite at the way in and the way out.
-  for (const [x, z] of [[DRIVE.x1 + 0.3, PLOT.z1 - 0.4], [EXIT.x0 - 0.3, PLOT.z1 - 0.4]] as const)
+  stone([PLOT.x0, PLOT.x0 + WALL_T], [PLOT.z0, REAR.back], [1, 0])
+  stone([PLOT.x1 - WALL_T, PLOT.x1], [PLOT.z0, REAR.back], [-1, 0])
+  stone([PLOT.x0 + WALL_T, PLOT.x1 - WALL_T], [PLOT.z0, PLOT.z0 + WALL_T], [0, 1])
+  for (const [x, z] of [[DRIVE.x1 - 0.3, PLOT.z1 - 0.4], [SERVICE.x0 + 0.3, PLOT.z1 - 0.4]] as const)
     if (within(ctx, x, z)) {
       bx(ctx, p, [x - 0.3, x + 0.3], [0, 1.6], [z - 0.3, z + 0.3], c.granite)
       shade.rect(x, 0.03, z, 0.9, 0.9, 0, 0.55)
     }
-  // The forecourt's road edge: a low granite step with stainless bollards, open to the footpath.
-  const edge = PLOT.z1 - 0.2
-  for (let x = COURT.x0 + 0.8; x < COURT.x1 - 0.4; x += 1.8)
-    if (within(ctx, x, edge, 0.5)) {
-      ctx.k.cyl(p, 0.085, 0.09, 0.9, c.chromeRail, x, GL + 0.45, edge - 0.3, 20)
-      shade.pool(x, GL + 0.004, edge - 0.3, 0.22, 0.22, 0.5)
-    }
 }
 
-/** Curved stone benches round the plaza and planters along the forecourt. */
-function buildFurniture(ctx: HotelCtx, p: Object3D) {
+/** The front between the drive and the road: paved, with a line of stainless bollards along the road edge. */
+function buildFrontage(ctx: HotelCtx, p: Object3D) {
   const { c, k, shade } = ctx
-  const seat = c.surface('teak', 1, 1)
-  for (const t of [-45, -25, 25, 45]) {
-    const [x, z] = polar(t, PLAZA_R + 1.6)
-    const g = k.at(x, z, (t * PI) / 180 + PI, GL)
-    k.box(g, 2.2, 0.38, 0.5, c.granite, 0, 0.19, 0)
-    for (let i = 0; i < 4; i++) k.box(g, 2.3, 0.05, 0.11, seat, 0, 0.405, -0.19 + i * 0.125)
-    shade.rect(x, GL + 0.004, z, 2.4, 0.7, (t * PI) / 180, 0.5)
-  }
-  // Raised planters along the forecourt, with seats on their edges.
-  let seed = 2500
-  const planter = (x0: number, x1: number, z0: number, z1: number) => {
-    if (!within(ctx, x1, z1)) return
-    bx(ctx, p, [x0, x1], [GL, GL + 0.48], [z0, z1], c.granite)
-    bx(ctx, p, [x0 - 0.03, x1 + 0.03], [GL + 0.48, GL + 0.52], [z0 - 0.03, z1 + 0.03], c.granite)
-    bx(ctx, p, [x0 + 0.15, x1 - 0.15], [GL + 0.52, GL + 0.525], [z0 + 0.15, z1 - 0.15], c.mulch, false)
-    shade.edge([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], GL + 0.004, 0.35, -1, 0.45, true)
-    for (let x = x0 + 0.5; x < x1 - 0.35; x += 0.7) shrub(ctx.plant, x, GL + 0.52, (z0 + z1) / 2 + (((seed * 0.61) % 0.3) - 0.15), 0.36, 0.6, seed++)
-  }
-  planter(COURT.x0 + 0.8, COURT.x0 + 5.5, 45.2, 46.6)
-  planter(COURT.x1 - 5.5, COURT.x1 - 0.8, 42.2, 43.6)
-}
-
-function buildPlanting(ctx: HotelCtx, p: Object3D) {
-  const { plant } = ctx
-  // Tall, slim trees in the gap between the south wing and the centre, as in the reference, and a
-  // rain tree beyond it on the forecourt.
-  for (const [t, r, sp, seed, sc] of [[-134, R_IN + 1.2, 'ashoka', 1701, 1.0], [-134, R_OUT - 1.5, 'ashoka', 1702, 1.15], [-131, R_OUT + 3, 'rain', 1703, 0.7]] as const) {
-    const [x, z] = polar(t, r)
-    tree(plant, SPECIES[sp], x, GL, z, seed, sc)
-    ctx.k.box(p, 1.2, 0.01, 1.2, ctx.c.plantDark, x, GL + 0.006, z, false)
-  }
-  // A neem in every car park island, shading the bays round it.
-  ISLANDS.forEach((i, n) => {
-    const z = bayZ(i)
-    for (const [x, s] of [[PARK.rows[0][1], 1760], [PARK.rows[2][1], 1770]] as const) tree(plant, SPECIES.neem, x, 0.17, z, s + n, 0.75)
-  })
-  // Rain trees along the planted strip at the back, and street trees on the forecourt edge.
-  for (const [x, seed] of [[-9, 1741], [-1, 1742], [4, 1743]] as const) tree(plant, SPECIES.rain, x, 0.1, PLOT.z0 + 3.2, seed, 0.7)
-  for (const [x, sp, seed] of [[-11, 'neem', 1750], [11.8, 'neem', 1751]] as const)
-    if (within(ctx, x, PLOT.z1 - 2.2, 1.2)) {
-      tree(plant, SPECIES[sp], x, GL, PLOT.z1 - 2.2, seed, 0.8)
-      ctx.k.box(p, 1.2, 0.01, 1.2, ctx.c.plantDark, x, GL + 0.006, PLOT.z1 - 2.2, false)
+  for (let x = DRIVE.x1 + 0.9; x < SERVICE.x0 - 0.4; x += 1.8)
+    if (within(ctx, x, PLOT.z1 - 0.4, 0.4)) {
+      k.cyl(p, 0.085, 0.09, 0.9, c.chromeRail, x, GL + 0.45, PLOT.z1 - 0.45, 20)
+      shade.pool(x, GL + 0.004, PLOT.z1 - 0.45, 0.22, 0.22, 0.5)
     }
-  if (!ctx.onPlan) {
-    lawn(plant, DRIVE.x0 + 0.3, YARD.x0 - 0.3, PLOT.z0 + 0.4, PARK.back[0] - 0.3, 0.1, 1850, 160)
-    lawn(plant, YARD.x0 + 0.2, PLOT.x1 - 0.4, YARD.z1 + 0.3, PARK.back[0] - 0.3, 0.1, 1851, 160)
-  }
-  for (const f of plant.footprints) ctx.shade.pool(f.x, f.y + 0.006, f.z, f.r, f.r, f.strength)
 }
 
-/** Pole lights on both roads, bollards on the plaza, and the building's own wash lights. */
+/** Pole lights on both lanes, and a pair lighting the drop-off. */
 function buildLighting(ctx: HotelCtx, p: Object3D) {
   const { c, k, shade } = ctx
-  const pole = (x: number, z: number, h: number) => {
+  const pole = (x: number, z: number, h: number, dir: 1 | -1) => {
     if (!within(ctx, x, z)) return
     k.cyl(p, 0.055, 0.1, h, c.galvanised, x, h / 2 + 0.03, z, 8)
     k.box(p, 0.36, 0.03, 0.36, c.galvanised, x, 0.045, z)
-    const arm = k.cyl(p, 0.035, 0.04, 1.2, c.galvanised, x + 0.55, h - 0.05, z, 8)
+    const arm = k.cyl(p, 0.035, 0.04, 1.2, c.galvanised, x + dir * 0.55, h - 0.05, z, 8)
     arm.rotation.z = PI / 2
-    k.box(p, 0.62, 0.07, 0.3, c.luminaire, x + 1.15, h - 0.08, z)
-    k.box(p, 0.5, 0.01, 0.24, c.lamp, x + 1.15, h - 0.12, z, false)
+    k.box(p, 0.62, 0.07, 0.3, c.luminaire, x + dir * 1.15, h - 0.08, z)
+    k.box(p, 0.5, 0.01, 0.24, c.lamp, x + dir * 1.15, h - 0.12, z, false)
     shade.pool(x, 0.03, z, 0.35, 0.35, 0.5)
   }
-  for (const z of [-38, -22, -6, 10, 26, 42]) pole(DRIVE.x0 + 0.4, z, 7)
-  // Two on the exit road, where the north wing leaves room for them.
-  for (const z of [-1, 43]) pole(EXIT.x0 - 0.5, z, 7)
-  // Twin-headed poles in the car park's islands.
-  for (const i of ISLANDS)
-    for (const x of [PARK.rows[0][1] + 1.6, PARK.rows[2][1] + 1.6]) {
-      pole(x, bayZ(i) - 0.6, 7)
-    }
-  // Bollard lights round the plaza.
-  const bollard = (x: number, z: number) => {
-    if (!within(ctx, x, z)) return
-    k.cyl(p, 0.09, 0.09, 0.85, c.luminaire, x, GL + 0.425, z, 16)
-    k.cyl(p, 0.085, 0.085, 0.12, c.lamp, x, GL + 0.72, z, 16).castShadow = false
-    shade.pool(x, GL + 0.004, z, 0.25, 0.25, 0.5)
-  }
-  for (const t of [-60, -25, 25, 60]) bollard(...polar(t, PLAZA_R + 2.8))
+  for (const z of [44, 34]) pole(DRIVE.x0 + 0.4, z, 7, 1)
+  for (const z of [44, 20, -5]) pole(SERVICE.x1 - 0.4, z, 7, -1)
   for (const x of [-7, 7]) {
-    const l = ctx.lighting.light(new PointLight('#ffd9ad', 7, 14, 2), 0)
-    l.position.set(P.x + x, 1.2, P.z + 7)
+    const l = ctx.lighting.light(new PointLight('#ffd9ad', 6, 14, 2), 0)
+    l.position.set(x, 1.5, FORECOURT.kerb - 1)
     p.add(l)
   }
 }
 
-/** A stone monolith at the gate carrying the name in channel letters. */
+/** A stone monolith at the way in carrying the name in channel letters. */
 function buildPylon(ctx: HotelCtx, p: Object3D) {
   const { c } = ctx
-  const x = DRIVE.x1 + 1.9
-  const z = PLOT.z1 - 1.8
+  const x = DRIVE.x1 + 2.2
+  const z = PLOT.z1 - 2.2
   if (!within(ctx, x, z)) return
-  // Broadside to the road, the name on a dark panel near its top.
   bx(ctx, p, [x - 1.6, x + 1.6], [GL, GL + 0.25], [z - 0.8, z + 0.8], c.granite)
-  bx(ctx, p, [x - 1.4, x + 1.4], [GL + 0.25, 5.2], [z - 0.55, z + 0.55], c.grc)
+  bx(ctx, p, [x - 1.4, x + 1.4], [GL + 0.25, 5.2], [z - 0.55, z + 0.55], c.silver)
   bx(ctx, p, [x - 1.25, x + 1.25], [3.6, 4.9], [z + 0.55, z + 0.58], c.plantDark)
   NAME.split(' ').forEach((line, i) => {
     const g = signLine(ctx, line, 0.36, 0.04)
@@ -389,6 +252,18 @@ function buildPylon(ctx: HotelCtx, p: Object3D) {
     p.add(g)
   })
   ctx.shade.rect(x, GL + 0.004, z, 3.4, 1.8, 0, 0.55)
+}
+
+/** A car dropping guests under the canopy, and one going down the ramp. */
+function buildCars(ctx: HotelCtx, p: Object3D) {
+  const dz = (FORECOURT.z0 + FORECOURT.kerb) / 2 - 1.1
+  if (within(ctx, -1.5, dz + 2.4)) {
+    parkedCar(p, 'sedan', '#1c1d1f', -1.5, dz, PI / 2, 0.03)
+    ctx.shade.rect(-1.5, 0.035, dz, 4.5, 1.9, 0, 0.75)
+  }
+  const lx = (DRIVE.x0 + DRIVE.x1) / 2 - 1.4
+  parkedCar(p, 'crossover', '#e9eaea', lx, RAMP.top + 4.5, PI, 0.02)
+  ctx.shade.rect(lx, 0.03, RAMP.top + 4.5, 1.9, 4.5, 0, 0.75)
 }
 
 /* ---------- surroundings ---------- */
@@ -417,12 +292,9 @@ export function buildContext(ctx: HotelCtx, p: Object3D) {
   lawn(plant, SITE.minX, SITE.maxX, zf + 10.6, zf + 12.4, 0.2, 1500, 180)
   let seed = 1600
   for (let x = SITE.minX + 2; x < SITE.maxX - 1; x += 2.8 + ((seed * 0.53) % 1.2)) shrub(plant, x, 0.2, zf + 11.5 + (((seed * 0.31) % 0.4) - 0.2), 0.45 + ((seed * 0.13) % 0.2), 0.7 + ((seed * 0.41) % 0.3), seed++)
-  // The cross road behind, with a footpath on the plot's side.
   ground(ctx, p, rect(SITE.minX, SITE.maxX, PLOT.z0 - CROSS, PLOT.z0 - 1.5), 0.02, c.asphalt)
   ground(ctx, p, rect(SITE.minX, SITE.maxX, PLOT.z0 - 1.5, PLOT.z0), 0.15, c.interlock)
   ground(ctx, p, rect(SITE.minX, SITE.maxX, SITE.minZ, PLOT.z0 - CROSS), 0.02, c.fallow)
-  // Open ground beyond the boundary to the south, and Plot A-03, still unbuilt, to the north.
   ground(ctx, p, rect(SITE.minX, PLOT.x0, PLOT.z0, zf), 0.02, c.fallow)
   ground(ctx, p, rect(PLOT.x1, SITE.maxX, PLOT.z0, zf), 0.02, c.fallow)
 }
-

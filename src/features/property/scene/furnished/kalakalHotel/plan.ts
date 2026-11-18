@@ -6,30 +6,34 @@ import type { Point2 } from '../../../../../api/types'
  * 33 ft cross road behind it, Plot A-03 to the north and the site boundary to the south.
  *
  * Site frame, as for D-65 and the mall: +z east (the road), +x north, y up, origin at the plot
- * centre. The reference design is fitted to the plot like this:
+ * centre. Seen from the forecourt (looking west) south is on the left and north on the right.
  *
- *   a G+2 ring of curved glass pavilions round a circular plaza that opens east to the
- *   road: the south wing ends in a rounded white wall; the centre wing, with the main entrance,
- *   carries a cantilevered roof; the north wing stands behind a white wall that sweeps up out of
- *   the plaza, pierced by two arches. Three black mesh "capsules" with round openings, grown over
- *   with creepers, rise over the south wing, the centre and (the tallest) the north wing.
+ * The client's two references, fitted to the plot:
  *
- *   The plot is narrow and deep, so the ring stands at the front, scaled to its frontage, and
- *   the guests' car park fills the depth behind it. Traffic runs one way round the plot: in by
- *   the entry road down the south side, through the car park, and out by the exit road up the
- *   north side to the HMDA road. The back is walled along its full width: no way through to the
- *   cross road behind. To make room for the exit road the ring's wings are 0.8 m shallower than
- *   first drawn and the ring stands 1.9 m further south.
+ *   the podium (reference 1, left to right): a glass block with a rounded corner at the south end;
+ *   above it a glass drum, its lower floor set back, its roof sweeping down to the south in a silver
+ *   blade; a silver band that hugs the drum's foot and rises to the north, the roofline of the
+ *   main block, whose roof climbs with it; the double-height lobby under a deep curved canopy
+ *   edged in warm LED light on stainless columns; the main block's front bowing out to the north.
+ *   behind the drum: four floors in the drum's glass and silver bands, in place of the towers of
+ *   reference 1, which the client had taken off.
+ *   Starbucks (reference 2): the giant coffee cup at the north end, set into a notch in the main
+ *   block's front so the block wraps round behind it, as the tower does in the reference: glass
+ *   ground floor, a sleeve band, a tall glazed upper café with the siren, the lettered top band
+ *   and the white lid.
  *
- *   ring:     centred on the plaza at P, glass lines at radius 8.2 (plaza side) and 13.5
- *   rear wing: 18 m wide behind the centre, G+3, guest rooms either side of a corridor
- *   setbacks: south 5.2 m (the 4.6 m entry road), north 5.0 m (the 4.4 m exit road), front
- *             10 m (forecourt)
- *   levels:   ground +0.15 (lobby and restaurant), first +5.15, second +8.75, roof +12.35
- *             (5.0 / 3.6 / 3.6 m floor to floor, guest rooms above); the rear wing's third
- *             floor at +12.35 and its roof at +15.95; north capsule to +23
- *   behind:   a car park of four rows of bays on two aisles and the entry road, 44 bays, with
- *             the utility yard and a planted strip against the back wall
+ *   Floors and heights are read from reference 1 by perspective, scaled by the canopy (about 7 m
+ *   to its top): the podium is a double-height ground floor and two more to the silver band at
+ *   about 12 m; the drum three floors over it to about 23 m; behind the drum, four floors to 26 m.
+ *
+ *   The podium runs back over most of the plot's depth; behind it there is only the pool deck.
+ *   Parking is in two basements (basement.ts) under the building and the forecourt, by a two-way
+ *   ramp down the south side; the service and fire lane runs down the north side to the deck.
+ *
+ *   levels:   ground +0.15; podium floors every 4.0 m from +4.15 (the lobby double height to
+ *             +8.15); the drum's and the block behind it every 3.5 m from the podium roof at +12.15
+ *   heights:  silver band +11.5 to +12.65 over the south block, rising with the main block's roof
+ *             to +24.65 behind the cup; drum roof +23.1; the block behind it +26.15, parapet +26.9
  */
 
 export const FT = 0.3048
@@ -46,114 +50,156 @@ export const FRONTAGE_Z = (x: number) => FRONTAGE.c + FRONTAGE.k * x
 /** Where the plan's plot polygon centre (the mean of its corners) sits in this frame. */
 export const PLAN_CENTRE_Z = (2 * PLOT.z0 + FRONTAGE_Z(PLOT.x0) + FRONTAGE_Z(PLOT.x1)) / 4
 
-/** Centre of the plaza and of the ring of buildings round it. */
-export const P = { x: 0.1, z: 30 }
-/** Glass lines of the ring: the plaza side and the outside. */
-export const R_IN = 8.2
-export const R_OUT = 13.5
-/** The wing's depth, glass to glass: what fittings inside are placed by. */
-export const DEPTH = R_OUT - R_IN
-/** Slab edges stand this far proud of the glass. */
-export const NOSE = 0.3
+export const WALL_T = 0.23
 
-/** Floor levels; slabs are SLAB deep below each. */
+/* ---------- levels ---------- */
+
 export const GL = 0.15
-export const L1 = 5.15
-export const L2 = 8.75
-export const ROOF = 12.35
-export const SLAB = 0.5
-export const LEVELS = [GL, L1, L2] as const
-/** The rear wing rises a floor above the ring: its third floor is at the ring's roof. */
-export const L3 = ROOF
-export const ROOF_B = ROOF + 3.6
+/** Podium floors, 4 m apart; the lobby runs double height to the third. */
+export const LV = [GL, 4.15, 8.15, 12.15, 16.15, 20.15] as const
+export const PODIUM_ROOF = 12.15
+export const SLAB = 0.45
 
+/* ---------- the podium ---------- */
+
+/** The south block under the drum: its south face, its front, the rounded corner between. */
+export const LEFT = { x0: -11.9, x1: -4.0, front: 34.5, r: 3.5 }
+/** The main block: the lobby's straight front, then the bowed front to the north end. */
+export const MAIN = { x0: -4.0, x1: 14.4, front: 33.0, bowFrom: 3.5 }
 /**
- * The rear wing: guest rooms behind the centre, 18 m wide on the plaza's axis, its front following
- * the ring's outer glass and its back end a half circle. Plan: x0..x1 across, the half circle's
- * centre at zc.
+ * The podium's back half, filling the plot's width and depth behind the ramp: its back face, and
+ * where it steps out south beside the ramp's foot.
  */
-export const ANNEX = { x0: P.x - 9, x1: P.x + 9, zc: 5 }
+export const REAR = { x0: -17.5, z1: 7.8, back: -26.0 }
+/** Where the bowed front passes: from the lobby's front at bowFrom, out and back to the north end. */
+const BOW: [Point2, Point2, Point2] = [[MAIN.bowFrom, MAIN.front], [9.0, 34.6], [MAIN.x1, 32.2]]
 
-/**
- * Angles round P in degrees: 0 is east (towards the road), −90 south, −180 west. The ring runs
- * from the south wing's tip at −62° round the west to the north wing's tip at −296° (+64°).
- */
-export const SOUTH = { t0: -128, t1: -62 }
-/** Centre and north wings are one building; the centre is the part between the white wall and the gap. */
-export const MAIN = { t0: -296, t1: -140 }
-export const CENTRE = { t0: -212, t1: -140 }
-/** The white wall in front of the north wing, its foot rising out of the plaza at the centre's edge. */
-export const WALL = { t0: -295, t1: -212, r: R_IN - 1.5, rise: -240, thick: 0.34 }
-/** The main entrance, on the centre wing's axis. */
-export const ENTRY_T = -180
-/** How far the centre's roof runs out over the plaza. */
-export const CANTILEVER = 1.8
-
-/** The plaza's rings, and the outer rings of the paving, which run on under the wings and out into the forecourt. */
-export const PLAZA_R = 6.4
-export const PAVED_R = 11.5
-
-/** The entry road down the south side, one way from the HMDA road to the car park. */
-export const DRIVE = { x0: PLOT.x0 + 0.23, x1: PLOT.x0 + 0.23 + 4.6 }
-/** The exit road up the north side, one way from the car park out to the HMDA road. */
-export const EXIT = { x0: 14.3, x1: PLOT.x1 - 0.23 }
-/** The car park: rows of 2.5 × 5 m bays between the drive and two aisles, between two cross aisles. */
-export const PARK = {
-  z0: -40,
-  z1: -10,
-  /** Cross aisles at the back and the front of the car park. */
-  back: [-46, -40] as [number, number],
-  front: [-10, -4] as [number, number],
-  /** Rows of bays (x ranges) and which way their cars face (+1 north, −1 south). */
-  rows: [[-13.2, -8.2, -1], [-8.2, -3.2, 1], [2.8, 7.8, -1], [7.8, 12.8, 1]] as [number, number, 1 | -1][],
-  aisles: [[-3.2, 2.8], [12.8, PLOT.x1 - 0.23]] as [number, number][],
+/** The circle through three points. */
+function circleThrough([a, b, c]: [Point2, Point2, Point2]) {
+  const [ax, az] = a
+  const [bx, bz] = b
+  const [cx, cz] = c
+  const d = 2 * (ax * (bz - cz) + bx * (cz - az) + cx * (az - bz))
+  const ux = ((ax * ax + az * az) * (bz - cz) + (bx * bx + bz * bz) * (cz - az) + (cx * cx + cz * cz) * (az - bz)) / d
+  const uz = ((ax * ax + az * az) * (cx - bx) + (bx * bx + bz * bz) * (ax - cx) + (cx * cx + cz * cz) * (bx - ax)) / d
+  return { x: ux, z: uz, r: Math.hypot(ax - ux, az - uz) }
 }
-export const YARD = { x0: 6, x1: PLOT.x1 - 0.23, z0: PLOT.z0 + 0.23, z1: -46.5 }
+export const BOW_CIRCLE = circleThrough(BOW)
 
-const D = Math.PI / 180
-
-/** A plan point at angle `t` (degrees) and radius `r` from P. */
-export const polar = (t: number, r: number): Point2 => [P.x + r * Math.sin(t * D), P.z + r * Math.cos(t * D)]
-/** Unit vector away from P at angle t. */
-export const radial = (t: number): Point2 => [Math.sin(t * D), Math.cos(t * D)]
-/** Unit vector along increasing t. */
-export const tangent = (t: number): Point2 => [Math.cos(t * D), -Math.sin(t * D)]
-/** Arc length per degree at radius r. */
-export const perDeg = (r: number) => r * D
-
-/**
- * A wing's plan between angles t0 < t1 and radii rIn..rOut, its ends either rounded (a half
- * circle across the wing) or square, sampled every `step` metres along the arcs.
- */
-export function wingOutline(t0: number, t1: number, rIn: number, rOut: number, round: { start: boolean; end: boolean }, step = 0.4): Point2[] {
-  const out: Point2[] = []
-  const arc = (r: number, a: number, b: number) => {
-    const n = Math.max(2, Math.ceil(Math.abs(b - a) * perDeg(r) / step))
-    for (let i = 0; i <= n; i++) out.push(polar(a + ((b - a) * i) / n, r))
+/** The podium's front line: z at x, from the left block's corner to the north end. */
+export function frontZ(x: number) {
+  if (x <= LEFT.x0 + LEFT.r) {
+    const dx = Math.max(0, LEFT.x0 + LEFT.r - x)
+    return LEFT.front - LEFT.r + Math.sqrt(Math.max(0, LEFT.r * LEFT.r - dx * dx))
   }
-  const cap = (t: number, dir: 1 | -1, fromInner: boolean) => {
-    const rm = (rIn + rOut) / 2
-    const a = (rOut - rIn) / 2
-    const [cx, cz] = polar(t, rm)
-    const [nx, nz] = radial(t)
-    const [tx, tz] = tangent(t)
-    const n = 18
-    for (let i = 1; i < n; i++) {
-      const f = (i / n) * Math.PI
-      const sgnN = fromInner ? -Math.cos(f) : Math.cos(f)
-      out.push([cx + a * (sgnN * nx + dir * Math.sin(f) * tx), cz + a * (sgnN * nz + dir * Math.sin(f) * tz)])
-    }
-  }
-  arc(rIn, t0, t1)
-  if (round.end) cap(t1, 1, true)
-  arc(rOut, t1, t0)
-  if (round.start) cap(t0, -1, false)
-  return out
+  if (x <= LEFT.x1) return LEFT.front
+  if (x <= MAIN.bowFrom) return MAIN.front
+  const { x: cx, z: cz, r } = BOW_CIRCLE
+  return cz + Math.sqrt(Math.max(0, r * r - (x - cx) ** 2))
 }
 
-/** The south wing (rounded at its tip) and the main building (rounded at the north tip). */
-export const southOutline = (grow = 0, step = 0.4) => wingOutline(SOUTH.t0, SOUTH.t1, R_IN - grow, R_OUT + grow, { start: false, end: true }, step)
-export const mainOutline = (grow = 0, step = 0.4) => wingOutline(MAIN.t0, MAIN.t1, R_IN - grow, R_OUT + grow, { start: true, end: false }, step)
+/**
+ * The silver band's underside. Along the front: level at 11.5 m round the drum's foot, then rising
+ * gently past the lobby to run into the cup's lettered band, as in reference 1 it runs into the
+ * right-hand volume. Behind the cup the main block's roof rises as a silver shell to about 24.5 m
+ * between the towers and the north face, and falls back to the podium's level towards the back and
+ * the front, so its band climbs and falls along the north face.
+ */
+export const SWOOSH_H = 1.15
+export const SWOOSH_BASE = 11.5
+const smooth = (t: number) => {
+  const u = Math.min(1, Math.max(0, t))
+  return u * u * (3 - 2 * u)
+}
+export function swooshY(x: number, z: number) {
+  const front = 3.0 * smooth((x + 4) / 8.8)
+  const across = Math.pow(Math.sin((Math.min(1, Math.max(0, (x - 3.5) / (14.4 - 3.5))) * Math.PI) / 2), 1.2)
+  const depth = z > 24 ? smooth((33 - z) / 9) : z > 12 ? 1 : smooth((z + 2) / 14)
+  return SWOOSH_BASE + front + 10.0 * across * depth
+}
+/** The podium's roof at (x, z): the band's top. */
+export const roofY = (x: number, z: number) => swooshY(x, z) + SWOOSH_H
+
+/** The drum over the left block: its glass at r, its first floor set back to rIn. */
+export const DRUM = { x: -3.6, z: 29.6, r: 7.2, rIn: 6.2, y0: PODIUM_ROOF, mid: 15.65, floor: 3.5, top: 22.65, roof: 23.1 }
+
+/** The lobby: double height behind the canopy, between the left block and the bow. */
+export const LOBBY = { x0: -4.0, x1: 3.5, z0: 21.0, z1: MAIN.front }
+/** The canopy over the drop-off: its ends, its front's furthest reach, its soffit and top. */
+export const CANOPY = { x0: -10.6, x1: 4.6, reach: 41.6, peak: -2.5, soffit: 5.7, top: 7.9 }
+/** The canopy's front edge at x, before its ends are rounded. */
+export function canopyFrontZ(x: number) {
+  const u = (x - CANOPY.x0) / (CANOPY.x1 - CANOPY.x0)
+  const up = (CANOPY.peak - CANOPY.x0) / (CANOPY.x1 - CANOPY.x0)
+  // A skewed bow: furthest out at `peak`, falling back to the facade at both ends.
+  const w = u < up ? Math.sin((u / up) * (Math.PI / 2)) : Math.cos(((u - up) / (1 - up)) * (Math.PI / 2))
+  const base = frontZ(Math.min(Math.max(x, CANOPY.x0), CANOPY.x1))
+  return base + (CANOPY.reach - MAIN.front) * Math.pow(Math.max(0, w), 0.55)
+}
+/** Stainless columns under the canopy, 1.8 m behind its front edge. */
+export const COLUMNS_X = [-7.0, -1.8, 2.6]
+
+/* ---------- Starbucks ---------- */
+
+/**
+ * The cup: centre, and its profile as [y, outer radius] by band, from the ground up. Read from
+ * reference 2 against the people at its foot: 9.2 m across at the ground, 12 m across the lid.
+ */
+export const CUP = { x: 9.8, z: 35.4 }
+export const CUP_BANDS = {
+  glass: [GL, 4.0, 4.6, 4.72] as const,
+  sleeve: [4.0, 5.6, 4.85, 4.9] as const,
+  upper: [5.6, 12.6, 4.8, 5.3] as const,
+  band: [12.6, 16.9, 5.45, 5.8] as const,
+  rim: [16.9, 17.7, 5.98, 6.02] as const,
+  lid: [17.7, 18.75, 5.85, 5.15] as const,
+}
+/** The cup's radius at height y, through its bands (the notch in the main block follows it). */
+export function cupR(y: number) {
+  for (const [y0, y1, r0, r1] of Object.values(CUP_BANDS)) if (y >= y0 && y <= y1) return r0 + ((r1 - r0) * (y - y0)) / (y1 - y0)
+  return CUP_BANDS.glass[2]
+}
+/** The café's upper floor, hidden behind the sleeve band. */
+export const CUP_FLOOR = 5.0
+
+/* ---------- behind the drum ---------- */
+
+/**
+ * Four floors behind the drum, glazed and banded like it: a rounded block on the podium's roof whose
+ * front reaches into the drum's back. (The towers of the first versions were taken off.)
+ */
+export const BACK_BLOCK = { x: -4.0, z: 16.5, hx: 7.5, hz: 8.5, floors: 4, floor: 3.5 }
+/** The block's roof, above which its parapet stands. */
+export const backTop = () => PODIUM_ROOF + BACK_BLOCK.floors * BACK_BLOCK.floor
+
+/** A rounded rectangle (superellipse) round (cx, cz), half-widths hx and hz. */
+export function superellipse(cx: number, cz: number, hx: number, hz: number, n = 2.8, seg = 64): Point2[] {
+  return Array.from({ length: seg }, (_, i) => {
+    const t = (i / seg) * Math.PI * 2
+    const c = Math.cos(t)
+    const s = Math.sin(t)
+    return [cx + hx * Math.sign(c) * Math.abs(c) ** (2 / n), cz + hz * Math.sign(s) * Math.abs(s) ** (2 / n)] as Point2
+  })
+}
+
+/* ---------- the drive, the ramp, the lanes ---------- */
+
+/** The south lane, two-way, from the road to the ramp's mouth. */
+export const DRIVE = { x0: PLOT.x0 + WALL_T, x1: -12.25 }
+/** The ramp down to B1: its clear width and where its top is (it falls west, −z). */
+export const RAMP = { x0: -18.25, x1: -12.45, top: 31.0, h: 3.1 }
+/** The service and fire lane down the north side, to the pool deck at the back. */
+export const SERVICE = { x0: 14.75, x1: PLOT.x1 - WALL_T }
+/** The forecourt's drive: in from the south lane, under the canopy, out by the north lane. */
+export const FORECOURT = { z0: 41.0, kerb: 47.0 }
+
+/* ---------- behind the hotel ---------- */
+
+/** The pool deck: travertine from wall to wall behind the hotel, and the pool on it, parallel to the building. */
+export const DECK = { x0: PLOT.x0 + WALL_T, x1: PLOT.x1 - WALL_T, z0: PLOT.z0 + WALL_T, z1: REAR.back }
+export const POOL = { x0: -9.0, x1: 9.0, z0: -42.6, z1: -35.4, depth: 1.45, water: GL - 0.07 }
+/** The pool's shallow sun shelf at its south end. */
+export const SHELF = { x0: -9.0, x1: -6.0, depth: 0.3 }
 
 /** A circle as a plan polygon. */
 export const circle = (cx: number, cz: number, r: number, n = 96): Point2[] =>
@@ -177,18 +223,17 @@ export function clipHalf(poly: Point2[], a: number, b: number, c: number): Point
   return out
 }
 
-/** Top of the white wall at angle t: low at the centre's edge, sweeping up to the first floor. */
-export function wallTop(t: number) {
-  const low = 0.95
-  const high = L1 + 0.35
-  if (t <= WALL.rise) return high
-  const u = Math.min(1, (t - WALL.rise) / (WALL.t1 - WALL.rise))
-  // A quarter ellipse: level where it leaves the plaza, vertical where it meets the first floor.
-  return low + (high - low) * (1 - Math.sqrt(1 - (1 - u) ** 2))
+/** Rounds a closed polygon's corners by Chaikin's corner cutting. */
+export function chaikin(poly: Point2[], passes = 3): Point2[] {
+  let p = poly
+  for (let k = 0; k < passes; k++) {
+    const out: Point2[] = []
+    for (let i = 0; i < p.length; i++) {
+      const [ax, az] = p[i]
+      const [bx, bz] = p[(i + 1) % p.length]
+      out.push([0.75 * ax + 0.25 * bx, 0.75 * az + 0.25 * bz], [0.25 * ax + 0.75 * bx, 0.25 * az + 0.75 * bz])
+    }
+    p = out
+  }
+  return p
 }
-
-/** The two arches through the white wall: centre angle, half-width and spring height (m). */
-export const ARCHES = [
-  { t: -256, half: 1.1, spring: 2.4 },
-  { t: -280, half: 1.1, spring: 2.4 },
-] as const

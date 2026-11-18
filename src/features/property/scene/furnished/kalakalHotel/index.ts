@@ -1,42 +1,46 @@
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial } from 'three'
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial } from 'three'
 import { GOLD } from '../../../../../lib/palette'
+import { Basement, openingsOf } from '../basement'
 import { Kit } from '../kit'
-import { LightPool, Lighting, type FurnishedModel, type WalkArea } from '../shared'
+import { LightPool, Lighting, type FurnishedModel, type LiftHost, type WalkArea } from '../shared'
 import { Contact } from '../kalakalMall/contact'
 import { Planting } from '../kalakalMall/foliage'
-import { buildBuilding } from './building'
-import { hotelMaterials } from './materials'
-import { DRIVE, ENTRY_T, GL, P, PARK, PLAN_CENTRE_Z, PLAZA_R, PLOT, polar, R_IN, YARD } from './plan'
+import { HOTEL_BASEMENT } from './basement'
+import type { HotelCtx } from './ctx'
+import { terranovaMaterials } from './finishes'
+import { CUP, DECK, DRIVE, FORECOURT, GL, LOBBY, MAIN, PLAN_CENTRE_Z, PLOT, RAMP, SERVICE, canopyFrontZ } from './plan'
+import { buildPodium } from './podium'
 import { buildContext, buildSite, SITE } from './site'
+import { buildStarbucks } from './starbucks'
+import { buildBackBlock } from './annex'
 
 export { SITE }
 
 /*
- * Terranova Hotel on commercial Plot A-04: an exterior model of the client's reference design, a
- * G+2 ring of curved glass pavilions with white slab bands round a lamp-lit plaza (the lobby and
- * restaurant below, guest rooms above), its white sweeping wall and black mesh capsules grown
- * over with creepers, fitted to the front of the 124′3″ × 340′7″ east-facing plot, with the
- * guests' car park and utility yard filling the depth behind, walled off from the cross road;
- * cars come in by the south side and leave by the north. See plan.ts for how the reference was
- * fitted to the plot.
+ * Terranova Hotel on commercial Plot A-04: an exterior model of the client's two references. The
+ * podium of curved glass under a rising silver band, with the drum and its blade over the south
+ * block and the deep LED-edged canopy over the drop-off; four floors behind the drum, glazed and
+ * banded like it (the towers of reference 1 were taken off); and Starbucks' giant coffee
+ * cup set into the main block at the north end of the front. Parking is in two basements reached
+ * by a covered ramp down the south side; behind the hotel, only the pool deck. See plan.ts for how
+ * the references were fitted to the 124′3″ × 340′7″ east-facing plot.
  */
 
 type Zone = [x0: number, x1: number, z0: number, z1: number]
 
-const [, entryZ] = polar(ENTRY_T, R_IN)
-
 /** Tappable outdoor areas, in site coordinates. */
 const HOTSPOTS: Record<string, { y: number; height: number; zones: Zone[] }> = {
-  amenity_entrance: { y: GL, height: 5, zones: [[P.x - 4, P.x + 4, entryZ, entryZ + 3.2]] },
-  amenity_plaza: { y: GL, height: 2.5, zones: [[P.x - PLAZA_R, P.x + PLAZA_R, P.z - PLAZA_R + 3.2, P.z + PLAZA_R]] },
-  amenity_parking: { y: 0.03, height: 2.4, zones: [[DRIVE.x1, PLOT.x1 - 0.3, PARK.back[0], PARK.front[1]]] },
-  amenity_service: { y: 0.03, height: 4, zones: [[DRIVE.x1, YARD.x1, PLOT.z0 + 0.3, PARK.back[0]]] },
+  amenity_entrance: { y: GL, height: 6, zones: [[LOBBY.x0 - 4, LOBBY.x1, MAIN.front, canopyFrontZ(-2.5) - 0.5]] },
+  amenity_starbucks: { y: GL, height: 5, zones: [[CUP.x - 4.4, CUP.x + 4.4, CUP.z - 1.5, CUP.z + 4.4]] },
+  amenity_pool: { y: GL, height: 3, zones: [[DECK.x0, DECK.x1, DECK.z0, DECK.z1]] },
+  amenity_parking: { y: 0.03, height: 3.2, zones: [[DRIVE.x0, DRIVE.x1, RAMP.top - 22.9, FORECOURT.z0]] },
+  amenity_service: { y: 0.03, height: 3, zones: [[SERVICE.x0, SERVICE.x1, DECK.z1, FORECOURT.z0]] },
 }
 
 /**
- * Builds the design. `context` adds the roads and neighbouring ground round the plot; the master
- * plan, which draws its own roads, builds it without them and with the forecourt trimmed to the
- * layout's road edge.
+ * Builds the design. `context` adds the roads and neighbouring ground round the plot, and the
+ * basements under it; the master plan, which draws its own roads, builds it without them and with
+ * the forecourt trimmed to the layout's road edge.
  */
 export function buildKalakalHotel(context = true): FurnishedModel {
   const root = new Group()
@@ -49,11 +53,13 @@ export function buildKalakalHotel(context = true): FurnishedModel {
 
   const lighting = new Lighting()
   const k = new Kit(root)
-  const c = hotelMaterials(k, lighting)
-  const ctx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact() }
+  const c = terranovaMaterials(k, lighting)
+  const ctx: HotelCtx = { k, c, lighting, onPlan: !context, plant: new Planting(c.plants), shade: new Contact(), openings: context ? openingsOf(HOTEL_BASEMENT) : undefined }
 
-  buildBuilding(ctx, building)
-  const lamps = buildSite(ctx, site)
+  buildPodium(ctx, building)
+  buildBackBlock(ctx, building)
+  buildStarbucks(ctx, building)
+  buildSite(ctx, site)
   if (context) buildContext(ctx, site)
   else root.position.z = -PLAN_CENTRE_Z
   ctx.plant.build(site)
@@ -76,35 +82,45 @@ export function buildKalakalHotel(context = true): FurnishedModel {
   }
 
   const pool = new LightPool(root, () => 'exterior', 6)
-  // On foot from the road: across the forecourt towards the plaza's lamps and the entrance beyond it.
+  // Two basement parking levels, built the first time a visitor goes below ground (not on the master plan).
+  const basement = context ? new Basement(root, k, lighting, pool, HOTEL_BASEMENT, SITE, highlights) : undefined
+  // On foot from the road: up the footpath and across the drive towards the canopy and the lobby.
   const walk: WalkArea = {
-    start: [P.x, GL, PLOT.z1 - 2.5],
+    start: [-1.0, GL, PLOT.z1 - 2.0],
     yaw: 0,
     bounds: { ...PLOT },
-    zoneAt: () => 'exterior',
+    zoneAt: (_x, y) => basement?.zoneAt(y) ?? 'exterior',
   }
-  // Glass, metal and the polished stone reflect the design's own sky (see kalakalMall/surfaces.ts).
+  // Glass, metal and stone reflect the design's own sky (see kalakalMall/surfaces.ts).
   const reflective: MeshStandardMaterial[] = []
   root.traverse((o) => {
     const mats = (o as Mesh).material
     if (!mats) return
     for (const m of Array.isArray(mats) ? mats : [mats]) if (m instanceof MeshStandardMaterial && !reflective.includes(m)) reflective.push(m)
   })
+  const clearGlass: MeshPhysicalMaterial[] = [c.glass]
   const setSky = (day: boolean) => {
     for (const m of reflective) {
       m.envMap = day ? c.env.day : c.env.dusk
       m.envMapIntensity = day ? 0.9 : 0.45
     }
+    // By day the glass reads mostly as reflection; at dusk the lit floors show through it.
+    for (const m of clearGlass) m.opacity = day ? 0.55 : 0.3
     c.shopGlass.opacity = day ? 0.58 : 0.3
   }
   setSky(false)
-  lamps.setDaylight(false)
+  const lifts: LiftHost | undefined = basement && {
+    tick: (dt, walker) => basement.tick(dt, walker),
+    liftNear: (p) => basement.liftNear(p),
+  }
   return {
     root,
     highlights,
     walk,
-    setDaylight: (day) => (lighting.set(day), setSky(day), lamps.setDaylight(day)),
-    setZone: (z) => pool.setZone(z),
+    setDaylight: (day) => (lighting.set(day), setSky(day)),
+    setZone: (z) => pool.setZone(basement?.zone(z) ?? z),
     syncLights: () => pool.sync(),
+    basement,
+    lifts,
   }
 }

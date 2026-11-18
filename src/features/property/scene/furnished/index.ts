@@ -5,6 +5,7 @@ import { buildKalakalA01, SITE as KALAKAL_A01_SITE } from './kalakalA01'
 import { A01_BASEMENT } from './kalakalA01/basement'
 import { buildKalakalClubhouse, PLOT as KALAKAL_CLUBHOUSE_PLOT, SITE as KALAKAL_CLUBHOUSE_SITE } from './kalakalClubhouse'
 import { buildKalakalHotel, SITE as KALAKAL_HOTEL_SITE } from './kalakalHotel'
+import { HOTEL_BASEMENT } from './kalakalHotel/basement'
 import { buildKalakalHospital, SITE as KALAKAL_HOSPITAL_SITE } from './kalakalHospital'
 import { HOSPITAL_BASEMENT } from './kalakalHospital/basement'
 import { buildKalakalD65, SITE as KALAKAL_D65_SITE } from './kalakalD65'
@@ -32,6 +33,12 @@ interface FurnishedDesignEntry {
   /** Basement parking levels under the building (see basement/), for the camera and the section view. */
   basement?: BasementSpec
   /**
+   * For a design much taller than the usual few storeys: its highest point, metres. The camera's
+   * pivot may then rise to half of it (otherwise it stays below 14 m), so its upper floors can be
+   * looked at and orbited.
+   */
+  height?: number
+  /**
    * For a design standing on a master plan's amenity site: where the site's first corner (the
    * amenity polygon's first point) lies in the model's own frame. The plan places the model by it.
    */
@@ -43,7 +50,7 @@ export const FURNISHED_DESIGNS: Record<FurnishedDesign, FurnishedDesignEntry> = 
   'nyshas-haven': { build: buildNyshasHaven, site: NYSHAS_HAVEN_SITE, landscaped: true },
   'kalakal-d65': { build: () => buildKalakalD65(), buildOnPlot: () => buildKalakalD65(false), site: KALAKAL_D65_SITE, landscaped: true, optimized: true },
   'kalakal-mall': { build: () => buildKalakalMall(), buildOnPlot: () => buildKalakalMall(false), site: KALAKAL_MALL_SITE, landscaped: true, optimized: true, basement: MALL_BASEMENT },
-  'kalakal-hotel': { build: () => buildKalakalHotel(), buildOnPlot: () => buildKalakalHotel(false), site: KALAKAL_HOTEL_SITE, landscaped: true, optimized: true },
+  'kalakal-hotel': { build: () => buildKalakalHotel(), buildOnPlot: () => buildKalakalHotel(false), site: KALAKAL_HOTEL_SITE, landscaped: true, optimized: true, basement: HOTEL_BASEMENT },
   'kalakal-a01': { build: () => buildKalakalA01(), buildOnPlot: () => buildKalakalA01(false), site: KALAKAL_A01_SITE, landscaped: true, optimized: true, basement: A01_BASEMENT },
   'kalakal-clubhouse': { build: () => buildKalakalClubhouse(), buildOnPlot: () => buildKalakalClubhouse(false), siteCorner: KALAKAL_CLUBHOUSE_PLOT[0], site: KALAKAL_CLUBHOUSE_SITE, landscaped: true, optimized: true },
   'kalakal-hospital': { build: () => buildKalakalHospital(), buildOnPlot: () => buildKalakalHospital(false), site: KALAKAL_HOSPITAL_SITE, landscaped: true, optimized: true, basement: HOSPITAL_BASEMENT },

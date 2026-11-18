@@ -59,7 +59,9 @@ export default function PropertyScene({ slug }: { slug: string }) {
   const site = useMemo(() => siteOf(property), [property])
   const landscaped = property.model.kind === 'furnished' && FURNISHED_DESIGNS[property.model.design].landscaped
   const trees = useMemo(() => (landscaped ? [] : boundaryTrees(site)), [site, landscaped])
-  const siteBox = useMemo(() => new Box3(new Vector3(site.minX, -1, site.minZ), new Vector3(site.maxX, 20, site.maxZ)), [site])
+  // A tall design's own height, which its site box (and the section planes drawn from it) must clear.
+  const height = property.model.kind === 'furnished' ? (FURNISHED_DESIGNS[property.model.design].height ?? 0) : 0
+  const siteBox = useMemo(() => new Box3(new Vector3(site.minX, -1, site.minZ), new Vector3(site.maxX, Math.max(20, height + 2), site.maxZ)), [site, height])
   const radius = Math.hypot(site.maxX - site.minX, site.maxZ - site.minZ) / 2
   useFog(radius * 3, radius * 9)
 
@@ -80,7 +82,9 @@ export default function PropertyScene({ slug }: { slug: string }) {
     gl.shadowMap.needsUpdate = true
     setSceneReady(true)
   }, [gl, setSceneReady])
-  usePropertyCamera(property, site, radius, basement)
+  // A tall design lets the camera's pivot rise with it.
+  const pivotTop = Math.max(PIVOT_TOP, height / 2)
+  usePropertyCamera(property, site, radius, basement, pivotTop)
 
   // The property's shadows only change when the sun moves or something in the model does, so the
   // shadow maps aren't re-rendered on every frame the camera moves: only when asked (needsUpdate).
@@ -109,7 +113,10 @@ export default function PropertyScene({ slug }: { slug: string }) {
   )
 }
 
-function usePropertyCamera(property: Property, site: Site, radius: number, basement?: BasementSpec) {
+/** How high the camera's pivot may rise over a design of the usual few storeys. */
+const PIVOT_TOP = 14
+
+function usePropertyCamera(property: Property, site: Site, radius: number, basement: BasementSpec | undefined, pivotTop: number) {
   const controls = useStageStore((s) => s.controls)
   const mode = useStageStore((s) => s.mode)
   const setHome = useStageStore((s) => s.setHome)
@@ -134,9 +141,9 @@ function usePropertyCamera(property: Property, site: Site, radius: number, basem
     controls.minPolarAngle = 0
     // Just above the ground: close enough for an eye-level look at the facade.
     controls.maxPolarAngle = MathUtils.degToRad(86)
-    controls.setBoundary(new Box3(new Vector3(site.minX, 0, site.minZ), new Vector3(site.maxX, 14, site.maxZ)))
+    controls.setBoundary(new Box3(new Vector3(site.minX, 0, site.minZ), new Vector3(site.maxX, pivotTop, site.maxZ)))
     return () => controls.setBoundary()
-  }, [controls, camera, site, radius])
+  }, [controls, camera, site, radius, pivotTop])
 
   // A preset may set its own lens (to match a photograph); every other view uses the stage's lens.
   const baseFov = useRef((camera as PerspectiveCamera).fov)
@@ -182,7 +189,7 @@ function usePropertyCamera(property: Property, site: Site, radius: number, basem
         viewer.setActiveLevel(level)
       }
       // The pivot is held inside the boundary as the flight sets off, so lower it first.
-      if (basement) controls.setBoundary(new Box3(new Vector3(site.minX, level === null ? 0 : LEVEL_Y[level], site.minZ), new Vector3(site.maxX, 14, site.maxZ)))
+      if (basement) controls.setBoundary(new Box3(new Vector3(site.minX, level === null ? 0 : LEVEL_Y[level], site.minZ), new Vector3(site.maxX, pivotTop, site.maxZ)))
       setLens(p.fov ?? baseFov.current)
       controls.smoothTime = smoothTime
       void controls.setFocalOffset(0, 0, 0, true)
@@ -190,7 +197,7 @@ function usePropertyCamera(property: Property, site: Site, radius: number, basem
       controls.smoothTime = BASE_SMOOTH_TIME
       if (useViewerStore.getState().aboutOpen) applyInset(controls, panelInset())
     },
-    [controls, property.presets, setLens, basement, site],
+    [controls, property.presets, setLens, basement, site, pivotTop],
   )
 
   useEffect(() => {
@@ -242,7 +249,7 @@ function usePropertyCamera(property: Property, site: Site, radius: number, basem
     const was = lastLevel.current
     lastLevel.current = below ? activeLevel : null
     const y = below ? LEVEL_Y[activeLevel] : 0
-    controls.setBoundary(new Box3(new Vector3(site.minX, y, site.minZ), new Vector3(site.maxX, 14, site.maxZ)))
+    controls.setBoundary(new Box3(new Vector3(site.minX, y, site.minZ), new Vector3(site.maxX, pivotTop, site.maxZ)))
     if (presetLevel.current) {
       presetLevel.current = false
       return
@@ -253,7 +260,7 @@ function usePropertyCamera(property: Property, site: Site, radius: number, basem
       const sphere = new Sphere(new Vector3((b.x0 + b.x1) / 2, y, (b.z0 + b.z1) / 2), Math.hypot(b.x1 - b.x0, b.z1 - b.z0) * 0.42)
       void frameSphere(controls, sphere, { polar: 46, smoothTime: 1.1 })
     } else if (was !== null && !property.floors.some((f) => f.level === activeLevel && f.focus)) void goToPreset(undefined, 1.1)
-  }, [controls, basement, activeLevel, site, goToPreset, property.floors])
+  }, [controls, basement, activeLevel, site, goToPreset, property.floors, pivotTop])
 
   // A floor of a building with floors above it: the building is cut away above it (RoomSection)
   // and the camera looks down into it from above its front; back to the building, the first view.
