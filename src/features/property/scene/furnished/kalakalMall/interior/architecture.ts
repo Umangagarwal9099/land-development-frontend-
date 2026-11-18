@@ -338,6 +338,31 @@ export function liftWall(e: FloorCtx) {
 }
 
 /**
+ * The ramp enclosure's west wall at the ground, open to the gallery since units G-04 and G-05 were
+ * taken out: the floor's bookmatched marble in panels between brass reveals, a dark stone plinth,
+ * a wall-washer slot in the ceiling above it.
+ */
+export function rampWall(e: FloorCtx) {
+  const { g, lux } = e
+  const sc = lux.schemes[e.level]
+  const x = -0.075
+  const face = x - 0.03
+  const y = e.y
+  const top = y + e.ceiling
+  const z0 = -18.0
+  const z1 = -4.2
+  bx(e, g, face, x, y, top, z0, z1, sc.wall)
+  const n = 6
+  for (let i = 1; i < n; i++) {
+    const z = z0 + ((z1 - z0) * i) / n
+    bx(e, g, face - 0.008, face, y + 0.1, top, z - 0.006, z + 0.006, sc.metal, false)
+  }
+  bx(e, g, face - 0.02, face, y, y + 0.1, z0, z1, lux.wallNero)
+  bx(e, g, face - 0.12, face - 0.05, top - 0.008, top - 0.002, z0 + 0.3, z1 - 0.3, lux.led, false)
+  e.shade.foot(face, z0, face, z1, y + 0.01, 0.25, 0.35)
+}
+
+/**
  * The atrium's feature wall at the ground, facing the visitor from across the void: a field of
  * backlit honey onyx in a brass frame, set in Calacatta, on the end wall of the ramp enclosure.
  */

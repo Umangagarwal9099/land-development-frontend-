@@ -10,7 +10,8 @@ export const isSpinner = (name: string) => name.startsWith('spin_')
 export const isButton = (name: string) => name.startsWith('button_')
 /**
  * Equipment that explains itself: an invisible hit volume round it named `info_*`, carrying its
- * `userData.info` (an EquipmentInfo). Tapped, it opens the information card.
+ * `userData.info` (an EquipmentInfo). Tapped, it opens the information card, and runs its
+ * `userData.onTap` if it has one.
  */
 export const isInfo = (name: string) => name.startsWith('info_')
 /** Signs that lead somewhere: `goto_*`, whose `userData.target` names the room hotspot they point to. */
@@ -20,7 +21,11 @@ export const isOpenable = (name: string) => isDoor(name) || isDrawer(name) || is
 
 /** Operates a door, drawer, switch or fan: OpenableAnimator then moves it to its new state. */
 export function operate(o: Object3D) {
-  if (isInfo(o.name)) useInfoStore.getState().show((o.userData.info as EquipmentInfo | undefined) ?? null)
+  if (isInfo(o.name)) {
+    useInfoStore.getState().show((o.userData.info as EquipmentInfo | undefined) ?? null)
+    // A product may also lift and turn in place to be looked at (its `userData.onTap`).
+    ;(o.userData.onTap as (() => void) | undefined)?.()
+  }
   else if (isButton(o.name)) (o.userData.press as (() => void) | undefined)?.()
   else if (isSwitch(o.name)) {
     o.userData.on = !(o.userData.on ?? true)

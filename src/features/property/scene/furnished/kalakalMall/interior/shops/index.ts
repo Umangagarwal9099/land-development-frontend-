@@ -3,8 +3,11 @@ import type { Unit } from '../units'
 import { buildDior } from './dior'
 import { buildAppleStore } from './applestore'
 import { buildCosmetics } from './cosmetics'
+import { buildPatisserie } from './dessertBar'
+import { buildParfumerie } from './parfumerie'
 import { buildPrada } from './prada'
 import { buildStarbucks } from './starbucks'
+import { buildTribeca } from './tribeca'
 
 /*
  * The shops fitted out so far (units.ts says which): each is built in place of the bare unit the
@@ -18,13 +21,16 @@ export function fitShops(e: FloorCtx) {
     else if (u.fitout === 'starbucks') buildStarbucks(e, u)
     else if (u.fitout === 'cosmetics') buildCosmetics(e, u)
     else if (u.fitout === 'apple') buildAppleStore(e, u)
+    else if (u.fitout === 'perfume') buildParfumerie(e, u)
+    else if (u.fitout === 'heels') buildTribeca(e, u)
+    else if (u.fitout === 'dessert') buildPatisserie(e, u)
   }
 }
 
-/** The light zone of a fitted shop: its own lamps, with a couple of the gallery's borrowed at the door. */
+/** The light zone of a fitted shop: its own lamps, with a couple of the gallery's borrowed at the door (a kiosk in a gallery is lit with it). */
 export function shopZones(e: FloorCtx): { zone: string; rects: Unit['rects']; door: [number, number, number] }[] {
   const tag = e.level === 0 ? 'g' : String(e.level)
-  return e.plan.units.filter((u) => u.fitout).map((u) => {
+  return e.plan.units.filter((u) => u.fitout && u.kind !== 'kiosk').map((u) => {
     const f = u.fronts[0]
     const mid = (f.from + f.to) / 2
     return {

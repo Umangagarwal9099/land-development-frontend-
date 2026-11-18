@@ -319,6 +319,22 @@ export function lightSwitch(s: Shop, x: number, z: number, yaw: number, name: st
 
 /* ---------- small helpers ---------- */
 
+/**
+ * Glass that a tap passes through (a display case's panes, so the goods behind them can be
+ * tapped): kept whole by the floor's merge (live_) and ignored by the raycaster.
+ */
+export function clickThrough(p: Object3D, name: string) {
+  const g = new Group()
+  g.name = `live_glass_${name}`
+  p.add(g)
+  return {
+    g,
+    seal: () => g.traverse((o) => {
+      if ((o as Mesh).isMesh) (o as Mesh).raycast = () => {}
+    }),
+  }
+}
+
 export function mesh(p: Object3D, g: BufferGeometry, m: Material, x = 0, y = 0, z = 0, cast = true) {
   const o = new Mesh(g, m)
   o.position.set(x, y, z)
@@ -430,16 +446,16 @@ const SERIF = '"Cormorant Garamond", "Playfair Display", Georgia, "Times New Rom
 const SANS = '"Inter", "Helvetica Neue", Arial, sans-serif'
 
 /** Cut-out brand letters on a transparent cell: a quad shows only the letters. */
-export function letters(s: Shop, text: string, style: 'dior' | 'prada', ink: string, w = 512, h = 128) {
+export function letters(s: Shop, text: string, style: 'dior' | 'prada' | 'light', ink: string, w = 512, h = 128) {
   return s.e.s.fascia.cell(w, h, (g, cw, ch) => {
     g.clearRect(0, 0, cw, ch)
     g.textAlign = 'center'
     g.textBaseline = 'middle'
     g.fillStyle = ink
     let size = style === 'dior' ? ch * 0.86 : ch * 0.72
-    const spacing = style === 'dior' ? ch * 0.08 : ch * 0.12
+    const spacing = style === 'dior' ? ch * 0.08 : style === 'light' ? ch * 0.2 : ch * 0.12
     for (;;) {
-      g.font = style === 'dior' ? `500 ${size}px ${SERIF}` : `700 ${size}px ${SANS}`
+      g.font = style === 'dior' ? `500 ${size}px ${SERIF}` : style === 'light' ? `300 ${size}px ${SANS}` : `700 ${size}px ${SANS}`
       if (g.measureText(text).width + spacing * (text.length - 1) <= cw - 16 || size < 10) break
       size *= 0.94
     }

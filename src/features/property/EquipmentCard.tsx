@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Stethoscope, X } from 'lucide-react'
-import { useEffect } from 'react'
-import { useInfoStore } from '../../store/info'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { useInfoStore, type EquipmentInfo } from '../../store/info'
+
+const ModelInspector = lazy(() => import('./ModelInspector'))
 
 /**
  * The card a tapped piece of equipment opens: what it is, where it stands, what it does and its
@@ -44,6 +46,11 @@ export function EquipmentCard() {
               <X size={16} />
             </button>
           </div>
+          {item.inspect && (
+            <Suspense fallback={<div className="mt-3 h-56 rounded-2xl bg-ivory/5" />}>
+              <ModelInspector make={item.inspect} />
+            </Suspense>
+          )}
           <p className="mt-3 text-sm leading-relaxed text-ivory/80">{item.body}</p>
           {item.specs && item.specs.length > 0 && (
             <ul className="mt-3 space-y-1.5 border-t border-ivory/10 pt-3 text-sm text-ivory/70">
@@ -55,8 +62,46 @@ export function EquipmentCard() {
               ))}
             </ul>
           )}
+          {(item.choices || item.action) && <Actions item={item} />}
         </motion.aside>
       )}
     </AnimatePresence>
+  )
+}
+
+/** A card's options (a shoe's sizes) and what can be done with it; says what happened. */
+function Actions({ item }: { item: EquipmentInfo }) {
+  const [pick, setPick] = useState<string | null>(null)
+  const [said, setSaid] = useState<string | null>(null)
+  const off = new Set(item.choices?.unavailable ?? [])
+  return (
+    <div className="mt-3 border-t border-ivory/10 pt-3">
+      {item.choices && (
+        <>
+          <p className="text-xs uppercase tracking-[0.12em] text-ivory/50">{item.choices.label}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {item.choices.options.map((o) => (
+              <button
+                key={o}
+                disabled={off.has(o)}
+                onClick={() => {
+                  setPick(o)
+                  setSaid(null)
+                }}
+                className={`min-w-9 rounded-full border px-2.5 py-1 text-sm transition ${pick === o ? 'border-gold bg-gold/20 text-ivory' : 'border-ivory/20 text-ivory/75 hover:border-ivory/50'} disabled:cursor-not-allowed disabled:border-ivory/10 disabled:text-ivory/25 disabled:line-through`}
+              >
+                {o}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {item.action && (
+        <button onClick={() => setSaid(item.action!.run(pick))} className="mt-3 w-full rounded-full bg-gold/90 px-4 py-2 text-sm font-medium text-black transition hover:bg-gold">
+          {item.action.label}
+        </button>
+      )}
+      {said && <p className="mt-2 text-sm text-ivory/80" aria-live="polite">{said}</p>}
+    </div>
   )
 }

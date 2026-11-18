@@ -138,8 +138,9 @@ function shafts(ctx: BasementCtx, floors: Group[], es: FloorCtx[], basement: Map
   }
 }
 
-/** The floor's name and what is on it, on a directory board by the lifts. */
+/** The floor's name and what is on it, on a directory board by the lifts (the ground floor has none). */
 function lobbyLevel(e: FloorCtx, g: Group) {
+  if (e.level === 0) return
   const plan = FLOORS[e.level]
   const entries = plan.units
     .filter((u) => u.kind !== 'service' && u.kind !== 'washroom')

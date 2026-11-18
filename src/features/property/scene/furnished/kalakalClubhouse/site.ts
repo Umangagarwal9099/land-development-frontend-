@@ -6,6 +6,7 @@ import { rect, slab } from '../kalakalMall/solids'
 import type { ClubCtx } from './building'
 import { A, B, C, D, DRIVE, ISLAND, northZ, PATH, PLOT, PLOT_X, YARD, YARD_Y, Z_SOUTH } from './plan'
 import { cypress, JACARANDA, tropical } from './plants'
+import { buildPool, DECK, POOL_HOLE } from './pool'
 
 /*
  * The grounds. The forecourt before the entrance is laid in grey circle-and-fan pavers from the
@@ -14,7 +15,8 @@ import { cypress, JACARANDA, tropical } from './plants'
  * kerb, and behind it a long charcoal planter with a clipped hedge, broad tropical leaves rising
  * behind the hedge's middle and a tall cypress at each end. A drive runs up the west side where
  * cars stand; a red-paved garden path runs up the east side through the lawns; the courtyard is
- * white pebble beds with shrubs either side of a sandstone path from the bar to the verandah.
+ * white pebble margins and planted beds round a long pool in a sandstone deck (pool.ts) that
+ * runs from the lobby's doors to the verandah.
  */
 
 /** A level slab with softly rounded top edges (a bull-nosed kerb). */
@@ -54,7 +56,8 @@ export function buildSite(ctx: ClubCtx, p: Object3D) {
   const x0 = PLOT_X.x0 + 0.3
 
   /* Ground: lawn over the plot, the forecourt and drive paved, the east path in red. */
-  slab(p, PLOT, 0, 0.1, [c.lawnGround, c.concrete], [], false)
+  // (Open over the courtyard pool, which is sunk into the ground.)
+  slab(p, PLOT, 0, 0.1, [c.lawnGround, c.concrete], [POOL_HOLE], false)
   // Circle-and-fan pavers from the road to the island; square pavers on the drive round the building.
   const split = ISLAND.planter.z0
   slab(p, [[x0, Z_SOUTH], [PATH.x0, Z_SOUTH], [PATH.x0, split], [x0, split]], 0, PAVE, [c.fan, c.concrete], [], false)
@@ -151,32 +154,24 @@ function buildCourtyard(ctx: ClubCtx, p: Object3D) {
   const { c, k, plant, shade } = ctx
   const { x0, x1, z0, z1 } = YARD
   // Planted beds of lawn and groundcover, edged along the glass by white pebble margins.
-  slab(p, rect(x0, x1, z0, z1), 0, YARD_Y - 0.02, [c.lawnGround, c.concrete], [], false)
+  slab(p, rect(x0, x1, z0, z1), 0, YARD_Y - 0.02, [c.lawnGround, c.concrete], [POOL_HOLE], false)
   const m = 0.6
   for (const [a, b, cc, d] of [[x0, x0 + m, z0, z1], [x1 - m, x1, z0, z1], [x0 + m, x1 - m, z1 - m, z1], [x0 + m, x1 - m, z0, z0 + m]] as const)
     slab(p, rect(a, b, cc, d), 0, YARD_Y, [c.pebbles, c.concrete], [], false)
-  lawn(plant, x0 + m, -1, z0 + m, z1 - m, YARD_Y - 0.02, 2560, 140)
-  lawn(plant, 1, x1 - m, z0 + m, z1 - m, YARD_Y - 0.02, 2561, 140)
-  // The sandstone path from the bar's doors to the verandah, kerbed in granite.
-  const pw = 0.95
-  slab(p, rect(-pw, pw, z0, z1), 0, YARD_Y + 0.03, [c.flags, c.granite], [], false)
-  shade.edge([[-pw, z0], [-pw, z1]], YARD_Y + 0.004, 0.15, 1, 0.3)
-  shade.edge([[pw, z0], [pw, z1]], YARD_Y + 0.004, 0.15, -1, 0.3)
-  // Clumps of shrubs and tropicals in the pebble beds, and two small trees.
+  lawn(plant, DECK.x1 + 0.1, x1 - m, z0 + m, z1 - m, YARD_Y - 0.02, 2561, 140)
+  // Down the middle, where the sandstone path ran, the pool in its deck (pool.ts).
+  buildPool(ctx, p)
+  // Shrubs and tropicals in the east beds, and a small tree, clear of the deck and the loungers.
   let seed = 2500
-  const beds: [number, number, 's' | 't'][] = [
-    [-2.1, -3.6, 's'], [-2.2, -6.4, 't'], [-1.9, -10.5, 's'], [-2.2, -14.2, 't'], [-1.8, -16.2, 's'],
-    [2.4, -3.4, 't'], [4.4, -4.6, 's'], [5.4, -7.8, 's'], [2.6, -9.6, 't'], [4.6, -12.6, 's'], [2.4, -15.8, 's'], [5.3, -16.1, 't'],
-  ]
+  const beds: [number, number, 's' | 't'][] = [[2.9, -3.4, 't'], [4.6, -4.4, 's'], [5.4, -7.2, 's'], [5.4, -13.4, 's'], [2.9, -16.0, 's'], [5.3, -16.1, 't']]
   for (const [x, z, kind] of beds) {
     if (kind === 's') shrub(plant, x, YARD_Y, z, 0.55, 0.85, seed++)
     else tropical(plant, x, YARD_Y, z, 1.5, seed++)
   }
-  tree(plant, SPECIES.neem, 4.3, YARD_Y, -8.6, 2550, 0.36)
-  tree(plant, SPECIES.neem, -1.9, YARD_Y, -12.5, 2551, 0.33)
-  // Stepping stones across the beds to B's and D's doors.
-  for (let x = -2.6; x < -1; x += 0.7) k.box(p, 0.5, 0.03, 0.8, c.flags, x, YARD_Y + 0.015, -8.3, false)
-  for (let x = 1.4; x < D.x0 - 0.3; x += 0.7) k.box(p, 0.5, 0.03, 0.8, c.flags, x, YARD_Y + 0.015, -7.1, false)
+  tree(plant, SPECIES.neem, 5.2, YARD_Y, -14.6, 2550, 0.33)
+  // Stepping stones from the deck to the west pavilion's doors, and across the lawn to the east's.
+  k.box(p, 0.5, 0.03, 0.8, c.flags, -2.65, YARD_Y + 0.015, -8.3, false)
+  for (let x = 2.75; x < D.x0 - 0.3; x += 0.7) k.box(p, 0.5, 0.03, 0.8, c.flags, x, YARD_Y + 0.015, -7.1, false)
   // Shade under the verandah and at the foot of the glass.
   shade.edge([[x0, C.z1], [x1, C.z1]], YARD_Y + 0.004, 0.5, -1, 0.35)
 }

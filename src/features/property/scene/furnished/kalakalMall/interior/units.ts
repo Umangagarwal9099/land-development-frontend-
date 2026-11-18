@@ -43,7 +43,7 @@ export interface Unit {
   rects: Rect[]
   fronts: Front[]
   /** A shop whose interior is built (see ../interior/shops): the shell leaves it to its fit-out. */
-  fitout?: 'dior' | 'prada' | 'starbucks' | 'cosmetics' | 'apple'
+  fitout?: 'dior' | 'prada' | 'starbucks' | 'cosmetics' | 'apple' | 'perfume' | 'heels' | 'dessert'
 }
 
 /** A marked zone inside one of the big open spaces (the gaming hall, the cinema). */
@@ -199,13 +199,9 @@ const G: FloorPlan = {
       fronts: [{ axis: 'x', at: XW, from: -1.0, to: 3.4, door: 2.4 }], fitout: 'dior',
     },
     { id: 'G-02', name: 'Prada', use: 'Prada boutique: leather goods, accessories and fragrance', kind: 'shop', rects: [[ENV_G.x0, XW, -6.0, -1.0]], fronts: [{ axis: 'x', at: XW, from: -6.0, to: -1.0, door: 2.2 }], fitout: 'prada' },
-    { id: 'G-03', name: 'Footwear & Sneakers', use: 'Footwear and sneaker store', kind: 'shop', rects: [[ENV_G.x0, XW, ZWC, -6.0]], fronts: [{ axis: 'x', at: XW, from: ZWC, to: -6.0, door: 2.2 }] },
-    {
-      id: 'G-04', name: 'Artisan Bakery', use: 'Premium bakery and patisserie', kind: 'cafe', rects: [[XV0, 0.0, -11.0, VZ0]],
-      fronts: [{ axis: 'x', at: XV0, from: -11.0, to: VZ0, door: 2.0 }, { axis: 'z', at: VZ0, from: XV0, to: 0.0, door: 0 }],
-    },
-    { id: 'G-05', name: 'Desserts & Pastries', use: 'Dessert and pastry boutique', kind: 'cafe', rects: [[XV0, 0.0, ZSC1, -11.0]], fronts: [{ axis: 'x', at: XV0, from: ZSC1, to: -11.0, door: 1.8 }] },
-    { id: 'G-06', name: 'Perfume & Fragrance', use: 'Perfume and fragrance house', kind: 'shop', rects: [[4.0, 7.75, -16.6, -9.0]], fronts: [{ axis: 'z', at: -9.0, from: 4.0, to: 7.75, door: 2.0 }] },
+    { id: 'G-03', name: 'TR/BECA', use: 'TR/BECA: women\'s high heels, from day pumps and kitten heels to evening sandals and bridal', kind: 'shop', rects: [[ENV_G.x0, XW, ZWC, -6.0]], fronts: [{ axis: 'x', at: XW, from: ZWC, to: -6.0, door: 2.2 }], fitout: 'heels' },
+    { id: 'G-05', name: 'Desserts & Pastries', use: 'Pâtisserie kiosk: macarons, éclairs, tarts, cakes and viennoiserie, with seating beside it', kind: 'kiosk', rects: [[-3.1, 0.0, -16.0, -10.4]], fronts: [], fitout: 'dessert' },
+    { id: 'G-06', name: 'Perfume & Fragrance', use: 'Maison Sakura parfumerie: perfume, fragrance oils, body mists and gift sets', kind: 'shop', rects: [[4.0, 7.75, -16.6, -9.0]], fronts: [{ axis: 'z', at: -9.0, from: 4.0, to: 7.75, door: 2.0 }], fitout: 'perfume' },
     { id: 'G-07', name: 'Rosé Atelier', use: 'Cosmetics, skincare and fragrance boutique', kind: 'shop', rects: [[7.75, 11.5, -16.6, -9.0]], fronts: [{ axis: 'z', at: -9.0, from: 7.75, to: 11.5, door: 2.0 }], fitout: 'cosmetics' },
     { id: 'G-08', name: 'Apple Store', use: 'Apple store: iPhone, Mac, iPad, Watch, AirPods and accessories', kind: 'shop', rects: [[LINK_X1, XE, ZFG, ENV_G.z1]], fronts: [{ axis: 'z', at: ZFG, from: LINK_X1, to: XE, door: 2.2 }], fitout: 'apple' },
     { id: 'G-09', name: 'Starbucks', use: 'Starbucks café, glazed to the forecourt on two sides', kind: 'cafe', rects: [[XE, ENV_G.x1, 3.5, ENV_G.z1]], fronts: [{ axis: 'x', at: XE, from: 3.5, to: ZFG, door: 2.4 }], fitout: 'starbucks' },
@@ -232,6 +228,8 @@ const G: FloorPlan = {
     [XE, 13.1, -3.4, 3.5],
     [ENV_G.x0, XW, ZSC0, ZSC1],
     [XV0, 0.0, ZSC0, ZSC1],
+    // Where G-04 and G-05 stood: open gallery between the west spine and the rear gallery.
+    [XV0, 0.0, ZSC1, VZ0],
     [4.0, 11.5, -18.0, -16.6],
     [9.6, 11.5, ENV_G.z0, -18.0],
   ],

@@ -1,6 +1,6 @@
 import { RingGeometry, Group, Mesh, TorusGeometry, type Material, type Object3D } from 'three'
 import { sheet } from '../solids'
-import { alabasterPendants, ceiling, liftWall, onyxWall, waterNiche } from './architecture'
+import { alabasterPendants, ceiling, liftWall, onyxWall, rampWall, waterNiche } from './architecture'
 import { arcLamp, banquette, barrelChair, channelSofa, clubChair, coffeeTable, curvedSofa, diningChair, longTable, pillTable, plinthTable, roundTable, rug, sectional, sofa, wingChair } from './furniture'
 import { blades, crystalChandelier, globeCluster, molecular } from './installations'
 import { plantedFicus, plantedMonstera, plantedPalm } from './plants'
@@ -122,6 +122,7 @@ function ground(e: FloorCtx) {
   plantedPalm(e, g, -3.95, 9.05, 11, 'travertine')
   plantedPalm(e, g, 1.95, 9.05, 12, 'travertine')
   onyxWall(e)
+  rampWall(e)
   // A rug under the ring of sofas, side tables at its two openings' flanks.
   for (const a of [0.45, PI - 0.45, PI + 0.45, -0.45]) pillTable(e, g, cx + Math.sin(a) * 2.75, cz + Math.cos(a) * 2.75)
   hangingSign(e, g, 6.0, -4.6, 0, ['ESCALATORS UP', 'Fashion 1 · Lifestyle 2 · Gaming 3 · Food & cinema 4'])
