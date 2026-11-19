@@ -584,14 +584,18 @@ export function trousers(m: M, p: Object3D, cloth: Material, kind: 'wide' | 'str
 }
 
 /** A kurta and its dupatta: a long straight tunic with side slits, the dupatta draped over the hanger. */
-export function kurta(_m: M, p: Object3D, cloth: Material, dupatta: Material) {
+export function kurta(_m: M, p: Object3D, cloth: Material, dupatta?: Material) {
   const g = new Group()
   p.add(g)
   const L = 1.05
   const cut: Cut = { len: L, a: (v) => (v < 0.2 ? lerp(0.2, 0.17, smooth(v / 0.2)) : lerp(0.17, 0.25, smooth((v - 0.3) / 0.7))), b: (v) => lerp(0.08, 0.12, v), top: neckline('v', 0.035), folds: 9, amp: (v) => 0.012 * v, seed: 551 }
   mesh(g, shell(cut, 64, 26), cloth)
   for (const sx of [-1, 1]) sleeve(g, sx * 0.195, -0.03, 0.42, [0.052, 0.04], sx, cloth, false)
-  // The dupatta: a long light scarf over the hanger's shoulders, falling both sides.
+  // The dupatta (a women's set has one): a long light scarf over the hanger's shoulders, falling both sides.
+  if (!dupatta) {
+    g.userData.len = L
+    return g
+  }
   const d = new Group()
   d.position.z = -0.03
   g.add(d)

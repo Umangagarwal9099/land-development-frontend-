@@ -5,9 +5,12 @@ import { buildAppleStore } from './applestore'
 import { buildBagStore } from './bagStore'
 import { buildCosmetics } from './cosmetics'
 import { buildDecorStore } from './decorStore'
+import { buildKidsStore } from './kidsStore'
+import { buildMenStore } from './menStore'
 import { buildPatisserie } from './dessertBar'
 import { buildParfumerie } from './parfumerie'
 import { buildPrada } from './prada'
+import { buildRolexStore } from './rolexStore'
 import { buildStarbucks } from './starbucks'
 import { buildTribeca } from './tribeca'
 import { buildWomenStore } from './womenStore'
@@ -30,6 +33,9 @@ export function fitShops(e: FloorCtx) {
     else if (u.fitout === 'decor') buildDecorStore(e, u)
     else if (u.fitout === 'women') buildWomenStore(e, u)
     else if (u.fitout === 'bags') buildBagStore(e, u)
+    else if (u.fitout === 'men') buildMenStore(e, u)
+    else if (u.fitout === 'kids') buildKidsStore(e, u)
+    else if (u.fitout === 'watches') buildRolexStore(e, u)
   }
 }
 

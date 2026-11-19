@@ -43,7 +43,7 @@ export interface Unit {
   rects: Rect[]
   fronts: Front[]
   /** A shop whose interior is built (see ../interior/shops): the shell leaves it to its fit-out. */
-  fitout?: 'dior' | 'prada' | 'starbucks' | 'cosmetics' | 'apple' | 'perfume' | 'heels' | 'dessert' | 'decor' | 'women' | 'bags'
+  fitout?: 'dior' | 'prada' | 'starbucks' | 'cosmetics' | 'apple' | 'perfume' | 'heels' | 'dessert' | 'decor' | 'women' | 'bags' | 'men' | 'kids' | 'watches'
 }
 
 /** A marked zone inside one of the big open spaces (the gaming hall, the cinema). */
@@ -297,6 +297,12 @@ Object.assign(F1.units.find((u) => u.id === '1-08')!, { name: 'Aurum Home', use:
 Object.assign(F1.units.find((u) => u.id === '1-03')!, { name: 'Maison Verde', use: 'Maison Verde: women\'s clothing (dresses, evening and party wear, tops, tailoring, denim, skirts, knitwear and ethnic wear)', fitout: 'women' })
 // 1-07, fitted out as Gucci's handbag boutique (see ./shops/bagStore.ts).
 Object.assign(F1.units.find((u) => u.id === '1-07')!, { name: 'Gucci', use: 'Gucci handbags: top-handles, shoulder and crossbody bags, totes, hobos, buckets, clutches and evening bags', fitout: 'bags' })
+// 1-02, fitted out as Atelier Noir (see ./shops/menStore.ts).
+Object.assign(F1.units.find((u) => u.id === '1-02')!, { name: 'Atelier Noir', use: 'Atelier Noir: men\'s clothing (suits, blazers, outerwear, shirts, knitwear, tees, chinos, denim and ethnic wear)', fitout: 'men' })
+// 1-04, fitted out as Little Bloom (see ./shops/kidsStore.ts).
+Object.assign(F1.units.find((u) => u.id === '1-04')!, { name: 'Little Bloom', use: 'Little Bloom: children\'s clothing (babywear, toddler, girls\' and boys\' everyday, party and ethnic wear, knitwear, outerwear and nightwear)', fitout: 'kids' })
+// 1-05, fitted out as the Rolex boutique (see ./shops/rolexStore.ts).
+Object.assign(F1.units.find((u) => u.id === '1-05')!, { name: 'Rolex', use: 'Rolex boutique: Submariner, GMT-Master II, Cosmograph Daytona, Datejust, Day-Date, Lady-Datejust, 1908, Explorer, Sky-Dweller, Yacht-Master and Oyster Perpetual', fitout: 'watches' })
 // The east spine and the north corridor to fire stair 2: public on the retail floors.
 F1.commons.push([XV1, XE, ZSC0, VZ1], [XE, 13.1, -3.4, 3.5])
 
